@@ -153,6 +153,24 @@ export const addCategoryItem = async (req, res) => {
     }
 };
 
+// get category item controller
+export const getCategoryItems = async (req, res) => {
+    try {
+        const {itemId} = req.query; 
+
+        const query = itemId ? {category: itemId} : {};
+        const items = await CategoryItem.find(query).populate('category', 'name type');
+
+        if (items.length === 0) {
+            return res.status(404).json({ message: 'No items found' });
+        }
+
+        res.status(200).json({ message: 'Category items retrieved successfully', items });
+    } catch (error) {
+        res.status(500).json({ message: 'Error retrieving category items', error: error.message });
+    }
+};
+
 // edit category item controller
 export const editCategoryItemController = async (req, res) => {
     try {
@@ -251,6 +269,25 @@ export const addTableController = async (req, res) => {
     }
 };
 
+//get table controller
+export const getAllTables = async (req, res) => {
+    try {
+        const tables = await Table.find().populate('menuItems.item', 'itemName price');
+        res.status(200).json({
+            success: true,
+            message: "Tables fetched successfully",
+            data: tables,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error fetching tables",
+            error: error.message,
+        });
+    }
+};
+
+
 // delete table controller
 export const deleteTableController = async (req, res) => {
     try {
@@ -278,6 +315,55 @@ export const deleteTableController = async (req, res) => {
         });
     }
 };
+
+//add menu items to table
+export const addMenuItemsToTable = async (req, res) => {
+    try {
+        const {tableId} = req.params;
+        const {items} = req.body; 
+
+        const table = await Table.findById(tableId);
+        if (!table) {
+            return res.status(404).json({ success: false, message: "Table not found" });
+        }
+
+        for (const {itemId, quantity} of items) {
+            const menuItem = await CategoryItem.findById(itemId);
+            if (!menuItem) {
+                return res.status(404).json({ success: false, message: `Menu item not found: ${itemId}` });
+            }
+
+            const existingItem = table.menuItems.find(
+                (menuItem) => menuItem.item.toString() === itemId
+            );
+
+            if (existingItem) {
+                existingItem.quantity += quantity || 1;
+            } else {
+                table.menuItems.push({
+                    item: itemId,
+                    quantity: quantity || 1,
+                });
+            }
+        }
+        table.reserved = true;
+        await table.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Menu items added to the table successfully",
+            data: table,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error adding menu items to table",
+            error: error.message,
+        });
+    }
+};
+
+
 
 
 

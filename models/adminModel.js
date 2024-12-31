@@ -87,6 +87,10 @@ const tableSchema = new mongoose.Schema({
             },
         },
     ],
+    reserved: {
+        type: Boolean,
+        default: false, 
+    },
 }, { timestamps: true });
 
 export const Category = mongoose.model('Category', categorySchema);
