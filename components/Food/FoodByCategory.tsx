@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, FlatList, TextInput, ActivityIndicator } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons'; // Import Icon library
+import { useNavigation } from '@react-navigation/native'; // For navigation
 
 const FoodByCategory = ({ route }: { route: any }) => {
   const { categoryId } = route.params;
   const [foodItems, setFoodItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [itemQuantities, setItemQuantities] = useState({});
+  const navigation = useNavigation(); // Access navigation
 
   const fetchFoodItems = async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`https://efc-app-sprp.onrender.com/api/v1/admin/get-item?category=${categoryId}`);
-      // Check if response is JSON
       if (response.headers.get('content-type')?.includes('application/json')) {
         const data = await response.json();
         if (data.items) {
@@ -33,6 +36,62 @@ const FoodByCategory = ({ route }: { route: any }) => {
     fetchFoodItems();
   }, [categoryId]);
 
+  const handleAdd = (item) => {
+    setItemQuantities((prev) => ({ ...prev, [item.id]: 1 }));
+  };
+
+  const handleIncrement = (item) => {
+    setItemQuantities((prev) => ({ ...prev, [item.id]: prev[item.id] + 1 }));
+  };
+
+  const handleDecrement = (item) => {
+    setItemQuantities((prev) => {
+      const newQuantities = { ...prev };
+      if (newQuantities[item.id] > 1) {
+        newQuantities[item.id] -= 1;
+      } else {
+        delete newQuantities[item.id];
+      }
+      return newQuantities;
+    });
+  };
+
+  const handleAddToCart = async () => {
+    const itemsToAdd = Object.entries(itemQuantities).map(([itemId, quantity]) => {
+      const item = foodItems.find((food) => food.id === itemId);
+      return {
+        itemId: item.id,
+        itemName: item.itemName,
+        quantity,
+        price: item.price,
+      };
+    });
+
+    try {
+      for (const item of itemsToAdd) {
+        const response = await fetch('https://efc-app-sprp.onrender.com/api/v1/cart/add', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(item),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Error adding item to cart (${item.itemName}):`, errorText);
+          alert(`Failed to add ${item.itemName} to the cart.`);
+        }
+      }
+
+      alert('All items added to cart successfully!');
+      setItemQuantities({});
+    } catch (error) {
+      console.error('Error adding items to cart:', error);
+      alert('Failed to add items to cart.');
+    }
+  };
+
   const filteredFoodItems = foodItems.filter((item: any) =>
     item.itemName.toLowerCase().includes(searchText.toLowerCase())
   );
@@ -47,16 +106,27 @@ const FoodByCategory = ({ route }: { route: any }) => {
         <Text style={styles.foodName}>{item.itemName}</Text>
         <Text style={styles.description}>{item.description}</Text>
         <Text style={styles.price}>{`₹${item.price}`}</Text>
-        <TouchableOpacity style={styles.addButton}>
-          <Text style={styles.addButtonText}>ADD</Text>
-        </TouchableOpacity>
+        {itemQuantities[item.id] ? (
+          <View style={styles.quantityContainer}>
+            <TouchableOpacity onPress={() => handleDecrement(item)} style={styles.quantityButton}>
+              <Text style={styles.quantityButtonText}>-</Text>
+            </TouchableOpacity>
+            <Text style={styles.quantityText}>{itemQuantities[item.id]}</Text>
+            <TouchableOpacity onPress={() => handleIncrement(item)} style={styles.quantityButton}>
+              <Text style={styles.quantityButtonText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.addButton} onPress={() => handleAdd(item)}>
+            <Text style={styles.addButtonText}>ADD</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      {/* Search Bar */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -64,99 +134,143 @@ const FoodByCategory = ({ route }: { route: any }) => {
           value={searchText}
           onChangeText={setSearchText}
         />
+        <TouchableOpacity onPress={() => navigation.navigate('Cart')} style={styles.cartIconContainer}>
+          <Icon name="cart" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
 
-      {/* Food Items List */}
       {isLoading ? (
         <ActivityIndicator size="large" color="#FFFFFF" />
       ) : (
-        <FlatList
-          data={filteredFoodItems}
-          renderItem={renderFoodItem}
-          keyExtractor={(item: any) => item.id}
-          contentContainerStyle={styles.listContainer}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No items found for this category.</Text>
-          }
-        />
+        <>
+          <FlatList
+            data={filteredFoodItems}
+            renderItem={renderFoodItem}
+            keyExtractor={(item: any) => item.id}
+            contentContainerStyle={styles.listContainer}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>No items found for this category.</Text>
+            }
+          />
+          {Object.keys(itemQuantities).length > 0 && (
+            <TouchableOpacity style={styles.cartButton} onPress={handleAddToCart}>
+              <Text style={styles.cartButtonText}>Add to Cart</Text>
+            </TouchableOpacity>
+          )}
+        </>
       )}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#B71C1C', 
-    paddingHorizontal: 16,
-    paddingTop: 50,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  searchInput: {
-    flex: 1,
-    backgroundColor: '#F8F8F8',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 16,
-  },
-  listContainer: {
-    paddingBottom: 16,
-  },
-  cardContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFA000', // Yellow background for the card
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  foodImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  infoContainer: {
-    flex: 1,
-  },
-  foodName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#000',
-  },
-  description: {
-    fontSize: 14,
-    color: '#757575',
-    marginBottom: 4,
-  },
-  price: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#000',
-  },
-  addButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#FFFFFF',
-    fontSize: 16,
-    marginTop: 20,
-  },
-});
-
-export default FoodByCategory;
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#B71C1C',
+      paddingHorizontal: 16,
+      paddingTop: 50,
+    },
+    cartIconContainer: { marginLeft: 12, justifyContent: 'center' },
+    searchContainer: {
+      flexDirection: 'row',
+      marginBottom: 16,
+      alignItems: 'center'
+    },
+    searchInput: {
+      flex: 1,
+      backgroundColor: '#F8F8F8',
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      fontSize: 16,
+    },
+    listContainer: {
+      paddingBottom: 16,
+    },
+    cardContainer: {
+      flexDirection: 'row',
+      backgroundColor: '#ffe500',
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 16,
+      alignItems: 'center',
+    },
+    foodImage: {
+      width: 80,
+      height: 80,
+      borderRadius: 8,
+      marginRight: 12,
+    },
+    infoContainer: {
+      flex: 1,
+    },
+    foodName: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 4,
+      color: '#000',
+    },
+    description: {
+      fontSize: 14,
+      color: '#757575',
+      marginBottom: 4,
+    },
+    cartButton: {
+        backgroundColor: '#FF5722',
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginVertical: 16,
+      },
+      cartButtonText: {
+        color: '#FFFFFF',
+        fontWeight: 'bold',
+        fontSize: 16,
+      },
+    price: {
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: 8,
+      color: '#000',
+    },
+    addButton: {
+      backgroundColor: '#4CAF50',
+      borderRadius: 8,
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+    },
+    addButtonText: {
+      color: '#FFFFFF',
+      fontWeight: 'bold',
+      textAlign: 'center',
+    },
+    quantityContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    quantityButton: {
+      backgroundColor: '#4CAF50',
+      borderRadius: 4,
+      padding: 6,
+      marginHorizontal: 8,
+    },
+    quantityButtonText: {
+      color: '#FFFFFF',
+      fontWeight: 'bold',
+      textAlign: 'center',
+      fontSize: 16,
+    },
+    quantityText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#000',
+    },
+    emptyText: {
+      textAlign: 'center',
+      color: '#FFFFFF',
+      fontSize: 16,
+      marginTop: 20,
+    },
+  });
+  
+  export default FoodByCategory;

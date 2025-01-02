@@ -11,13 +11,13 @@ import {
   Dimensions,
   ScrollView,
 } from 'react-native';
-
+import Icon from 'react-native-vector-icons/Ionicons';
 const { width } = Dimensions.get('window');
 
 const HomeScreen = ({ navigation }) => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentBannerIndex, setCurrentBannerIndex] = useState(0); 
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
 
   const banners = [
     {
@@ -91,7 +91,6 @@ const HomeScreen = ({ navigation }) => {
       <Text style={styles.categoryText}>{item.name}</Text>
     </TouchableOpacity>
   );
-  
 
   const foodItems = [
     { id: 1, name: "EFC's Special Combo", price: '₹210', image: require('/Users/iceberg/efcApk/assets/images/image.png') },
@@ -114,91 +113,90 @@ const HomeScreen = ({ navigation }) => {
 
   const handleBannerScroll = (event) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.floor(contentOffsetX / (width * 0.9)); 
+    const index = Math.floor(contentOffsetX / (width * 0.9));
     setCurrentBannerIndex(index);
   };
 
-  const renderDots = () => (
-    <View style={styles.dotsContainer}>
-      {banners.map((_, index) => (
-        <View
-          key={index}
-          style={[
-            styles.dot,
-            currentBannerIndex === index && styles.activeDot,
-          ]}
-        />
-      ))}
-    </View>
-  );
-
   return (
     <View style={styles.container}>
+      {/* Fixed Header */}
       <View style={styles.header}>
         <Image source={require('/Users/iceberg/efcApk/assets/images/profile.png')} style={styles.profileIcon} />
         <TextInput placeholder="Search by dishes..." style={styles.searchBar} />
-        <TouchableOpacity>
-          <Image source={require('/Users/iceberg/efcApk/assets/images/filter.png')} style={styles.filterIcon} />
+        <TouchableOpacity onPress={() => navigation.navigate('Cart')} style={styles.cartIconContainer}>
+          <Icon name="cart" size={24} color="#FFFFFF" />
         </TouchableOpacity>
+
       </View>
 
-      <Text style={styles.greeting}>ROHIT, WHAT’S ON YOUR MIND?</Text>
+      {/* Scrollable Content */}
+      <ScrollView>
+        <Text style={styles.greeting}>ROHIT, WHAT’S ON YOUR MIND?</Text>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#fff" />
-      ) : (
+        {loading ? (
+          <ActivityIndicator size="large" color="#fff" />
+        ) : (
+          <FlatList
+            data={categories}
+            renderItem={renderCategory}
+            keyExtractor={(item) => item.name}
+            horizontal
+            contentContainerStyle={styles.categoryList}
+            showsHorizontalScrollIndicator={false}
+          />
+        )}
+
         <FlatList
-          data={categories}
-          renderItem={renderCategory}
-          keyExtractor={(item) => item.name}
+          data={banners}
+          renderItem={renderBanner}
+          keyExtractor={(item) => item.id.toString()}
           horizontal
-          contentContainerStyle={styles.categoryList}
           showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.bannerList}
+          pagingEnabled
+          snapToInterval={width * 0.9}
+          decelerationRate="fast"
+          onMomentumScrollEnd={handleBannerScroll}
         />
-      )}
 
-      <FlatList
-        data={banners}
-        renderItem={renderBanner}
-        keyExtractor={(item) => item.id.toString()}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.bannerList}
-        pagingEnabled
-        snapToInterval={width * 0.9}
-        decelerationRate="fast"
-        onMomentumScrollEnd={handleBannerScroll} 
-      />
+        <Text style={styles.sectionHeading}>Top Deals🔥</Text>
 
-      {renderDots()}
-
-      <FlatList
-        data={foodItems}
-        renderItem={renderFoodItem}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.foodList}
-        showsVerticalScrollIndicator={false}
-      />
+        <FlatList
+          data={foodItems}
+          renderItem={renderFoodItem}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.foodList}
+          showsVerticalScrollIndicator={false}
+        />
+      </ScrollView>
     </View>
   );
 };
 
-
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#a00000', padding: 10, paddingTop: 20 },
-  greeting: { 
-    color: '#fff', 
-    fontSize: 13, 
-    fontWeight: 'bold', 
-    marginTop: 20, 
-    marginBottom: 18,
-    letterSpacing: 2, 
-  },
-  header: { flexDirection: 'row', alignItems: 'center', marginTop: 20 },
-  profileIcon: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
-  searchBar: { flex: 1, backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 10, height: 40 },
-  filterIcon: { width: 25, height: 25, marginLeft: 10 },
+    container: { flex: 1, backgroundColor: '#a00000', paddingTop:30 },
+    header: {
+      backgroundColor: '#a00000',
+      padding: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      elevation: 5,
+      zIndex: 1000,
+    },
+    profileIcon: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
+    searchBar: { flex: 1, backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 10, height: 40, opacity: 0.6 },
+    filterIcon: { width: 25, height: 25, marginLeft: 10 },
+    greeting: {
+      color: '#fff',
+      fontSize: 13,
+      fontWeight: 'bold',
+      marginTop: 20,
+      marginBottom: 18,
+      letterSpacing: 2,
+      paddingHorizontal: 10,
+    },
+    cartIconContainer: { marginLeft: 12, justifyContent: 'center' },
+
   bannerList: { marginBottom: 20 },
   bannerContainer: {
     flexDirection: 'row',
@@ -210,17 +208,26 @@ const styles = StyleSheet.create({
     padding: 10,
     height: 150,
   },
+  sectionHeading: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginVertical: 15,
+    marginLeft: 10,
+    letterSpacing: 1.5,
+  },
+  
   bannerImage: { width: 80, height: 80, borderRadius: 20, marginRight: 10 },
   bannerTextContainer: { flex: 1 },
   bannerTitle: { fontSize: 16, fontWeight: 'bold', color: '#a00000', marginBottom: 5 },
   bannerDescription: { fontSize: 14, color: '#666' },
-  categoryList: { flexDirection: 'row', marginBottom: 20 },
+  categoryList: { flexDirection: 'row', marginBottom: 38 },
   category: { alignItems: 'center', marginRight: 20 },
   categoryImage: { width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderColor: '#fff', marginBottom: 5 },
   categoryText: { color: '#fff', fontSize: 12, textAlign: 'center' },
-  foodList: { paddingBottom: 100 },
+  foodList: { padding:10 },
   foodCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#ffef65',
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
@@ -234,13 +241,14 @@ const styles = StyleSheet.create({
   foodPrice: { fontSize: 14, color: '#888' },
   addButton: { backgroundColor: '#a00000', padding: 10, borderRadius: 8 },
   addButtonText: { color: '#fff', fontWeight: 'bold' },
-  dotsContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 10 },
+  dotsContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 10, paddingBottom:10 },
   dot: {
     width: 10,
     height: 10,
     borderRadius: 5,
     backgroundColor: '#fff',
     margin: 5,
+
   },
   activeDot: {
     backgroundColor: '#FFFF00',
