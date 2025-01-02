@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, FlatList, TextInput, ActivityIndicator } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons'; // Import Icon library
-import { useNavigation } from '@react-navigation/native'; // For navigation
+import Icon from 'react-native-vector-icons/Ionicons'; 
+import { useNavigation } from '@react-navigation/native'; 
 
 const FoodByCategory = ({ route }: { route: any }) => {
   const { categoryId } = route.params;
@@ -9,7 +9,7 @@ const FoodByCategory = ({ route }: { route: any }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [itemQuantities, setItemQuantities] = useState({});
-  const navigation = useNavigation(); // Access navigation
+  const navigation = useNavigation();
 
   const fetchFoodItems = async () => {
     setIsLoading(true);
@@ -69,7 +69,7 @@ const FoodByCategory = ({ route }: { route: any }) => {
 
     try {
       for (const item of itemsToAdd) {
-        const response = await fetch('https://efc-app-sprp.onrender.com/api/v1/cart/add', {
+        const response = await fetch('https://efc-app-1.onrender.com/api/v1/cart/add', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -96,10 +96,12 @@ const FoodByCategory = ({ route }: { route: any }) => {
     item.itemName.toLowerCase().includes(searchText.toLowerCase())
   );
 
+  const totalItemsInCart = Object.values(itemQuantities).reduce((sum, quantity) => sum + quantity, 0);
+
   const renderFoodItem = ({ item }: { item: any }) => (
     <View style={styles.cardContainer}>
       <Image
-        source={{ uri: `https://efc-app-sprp.onrender.com/${item.image.replace('\\', '/')}` }}
+        source={require('/Users/iceberg/efcApk/assets/images/image.png')}
         style={styles.foodImage}
       />
       <View style={styles.infoContainer}>
@@ -154,7 +156,13 @@ const FoodByCategory = ({ route }: { route: any }) => {
           />
           {Object.keys(itemQuantities).length > 0 && (
             <TouchableOpacity style={styles.cartButton} onPress={handleAddToCart}>
-              <Text style={styles.cartButtonText}>Add to Cart</Text>
+              <Text style={styles.cartButtonText}>
+                Add to Cart
+                {totalItemsInCart > 0 && (
+                  <Text style={styles.cartItemCount}>{` (${totalItemsInCart})`}</Text>
+                )}
+                <Icon name="cart" size={20} color="#FFFFFF" style={styles.cartIcon} />
+              </Text>
             </TouchableOpacity>
           )}
         </>
@@ -163,114 +171,124 @@ const FoodByCategory = ({ route }: { route: any }) => {
   );
 };
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: '#B71C1C',
-      paddingHorizontal: 16,
-      paddingTop: 50,
-    },
-    cartIconContainer: { marginLeft: 12, justifyContent: 'center' },
-    searchContainer: {
-      flexDirection: 'row',
-      marginBottom: 16,
-      alignItems: 'center'
-    },
-    searchInput: {
-      flex: 1,
-      backgroundColor: '#F8F8F8',
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      fontSize: 16,
-    },
-    listContainer: {
-      paddingBottom: 16,
-    },
-    cardContainer: {
-      flexDirection: 'row',
-      backgroundColor: '#ffe500',
-      borderRadius: 8,
-      padding: 12,
-      marginBottom: 16,
-      alignItems: 'center',
-    },
-    foodImage: {
-      width: 80,
-      height: 80,
-      borderRadius: 8,
-      marginRight: 12,
-    },
-    infoContainer: {
-      flex: 1,
-    },
-    foodName: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      marginBottom: 4,
-      color: '#000',
-    },
-    description: {
-      fontSize: 14,
-      color: '#757575',
-      marginBottom: 4,
-    },
-    cartButton: {
-        backgroundColor: '#FF5722',
-        padding: 12,
-        borderRadius: 8,
-        alignItems: 'center',
-        marginVertical: 16,
-      },
-      cartButtonText: {
-        color: '#FFFFFF',
-        fontWeight: 'bold',
-        fontSize: 16,
-      },
-    price: {
-      fontSize: 14,
-      fontWeight: '600',
-      marginBottom: 8,
-      color: '#000',
-    },
-    addButton: {
-      backgroundColor: '#4CAF50',
-      borderRadius: 8,
-      paddingVertical: 6,
-      paddingHorizontal: 12,
-    },
-    addButtonText: {
-      color: '#FFFFFF',
-      fontWeight: 'bold',
-      textAlign: 'center',
-    },
-    quantityContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    quantityButton: {
-      backgroundColor: '#4CAF50',
-      borderRadius: 4,
-      padding: 6,
-      marginHorizontal: 8,
-    },
-    quantityButtonText: {
-      color: '#FFFFFF',
-      fontWeight: 'bold',
-      textAlign: 'center',
-      fontSize: 16,
-    },
-    quantityText: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: '#000',
-    },
-    emptyText: {
-      textAlign: 'center',
-      color: '#FFFFFF',
-      fontSize: 16,
-      marginTop: 20,
-    },
-  });
-  
-  export default FoodByCategory;
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#B71C1C',
+    paddingHorizontal: 16,
+    paddingTop: 50,
+  },
+  cartIconContainer: { marginLeft: 12, justifyContent: 'center' },
+  searchContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 16,
+  },
+  listContainer: {
+    paddingBottom: 16,
+  },
+  cardContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#ffe500',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  foodImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  infoContainer: {
+    flex: 1,
+  },
+  foodName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    color: '#000',
+  },
+  description: {
+    fontSize: 14,
+    color: '#757575',
+    marginBottom: 4,
+  },
+  price: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#000',
+  },
+  cartButton: {
+    backgroundColor: '#4CAF50',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginVertical: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  cartButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  cartItemCount: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  cartIcon: {
+    marginLeft: 10,
+  },
+  addButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  quantityButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 4,
+    padding: 6,
+    marginHorizontal: 8,
+  },
+  quantityButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  quantityText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginTop: 20,
+  },
+});
+
+export default FoodByCategory;
