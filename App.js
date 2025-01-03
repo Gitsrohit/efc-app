@@ -1,20 +1,53 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Signup from './components/authentication/Signup';
+import Login from './components/authentication/Login';
 import HomeScreen from './components/Home/HomeScreen';
 import FoodByCategory from './components/Food/FoodByCategory';
 import DineOut from './components/Dineout/DineOut';
-import Footer from './components/Footer/Footer'; 
+import Footer from './components/Footer/Footer';
 import { StatusBar } from 'expo-status-bar';
-
 const Stack = createStackNavigator();
 
 const App = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentRoute, setCurrentRoute] = useState('');
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const user = await AsyncStorage.getItem('user');
+        setIsAuthenticated(!!user); 
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      onStateChange={(state) => {
+        if (state) {
+          const route = state.routes[state.index]?.name;
+          setCurrentRoute(route); 
+        }
+      }}
+    >
       <StatusBar style="auto" />
-      <Stack.Navigator>
+      <Stack.Navigator initialRouteName={isAuthenticated ? 'Home' : 'Signup'}>
+        <Stack.Screen
+          name="Signup"
+          component={Signup}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Login"
+          component={Login}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen
           name="Home"
           component={HomeScreen}
@@ -31,18 +64,9 @@ const App = () => {
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
-
-      {/* Place Footer here, outside the Stack.Navigator */}
-      <Footer />
+      {['Home', 'FoodByCategory', 'DineOut'].includes(currentRoute) && <Footer />}
     </NavigationContainer>
   );
 };
 
 export default App;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-});

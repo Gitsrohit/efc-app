@@ -9,6 +9,7 @@ import {
   Image,
   Linking,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -21,6 +22,8 @@ const Signup = () => {
 
   const [googleAuthUrl, setGoogleAuthUrl] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
+  
+  const navigation = useNavigation();
 
   const handleInputChange = (key, value) => {
     setFormData({ ...formData, [key]: value });
@@ -41,13 +44,13 @@ const Signup = () => {
 
     try {
       const response = await fetch(
-        'https://efc-restaurant-7n01.onrender.com/api/v1/auth/register',
+        'https://efc-app-1.onrender.com/api/v1/auth/register',
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ name, email, password, phone }),
+          body: JSON.stringify({ name, email, password, confirmPassword, phone }),
         }
       );
 
@@ -67,7 +70,7 @@ const Signup = () => {
 
   const getGoogleAuthUrl = async () => {
     try {
-      const apiUrl = 'https://efc-restaurant-7n01.onrender.com/api/v1/auth/google-login';
+      const apiUrl = 'https://efc-app-1.onrender.com/api/v1/auth/google-login';
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
@@ -79,52 +82,12 @@ const Signup = () => {
         const data = await response.json();
         console.log('Google Auth URL:', data);
         setGoogleAuthUrl(data.data);
-
-        // Open the URL in the browser
         Linking.openURL(data.data);
       } else {
         console.error('API Error:', response.statusText);
       }
     } catch (error) {
       console.error('Error during Google Signup:', error);
-    }
-  };
-
-  const handleGoogleCallback = async (url) => {
-    try {
-      const regex = /[?&]code=([^&]+)/;
-      const match = url.match(regex);
-
-      if (match && match[1]) {
-        const authorizationCode = match[1];
-        console.log('Authorization Code:', authorizationCode);
-
-        const apiUrl = 'https://efc-restaurant-7n01.onrender.com/api/v1/auth/oauth2/callback';
-
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ code: authorizationCode }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log('User Info from Backend:', data);
-          setUserInfo(data);
-        } else {
-          const errorData = await response.json();
-          console.error('Backend Error:', errorData.message || response.statusText);
-          Alert.alert('Error', errorData.message || 'Authentication failed');
-        }
-      } else {
-        console.error('Authorization code not found in the callback URL');
-        Alert.alert('Error', 'Authorization code missing in the URL');
-      }
-    } catch (error) {
-      console.error('Error during Google callback processing:', error);
-      Alert.alert('Error', 'Something went wrong while processing the callback');
     }
   };
 
@@ -189,12 +152,16 @@ const Signup = () => {
         <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
           <Text style={styles.signupButtonText}>Signup</Text>
         </TouchableOpacity>
-
+         <View style={styles.loginRedirectContainer}>
+          <Text style={styles.loginText}>Already have an account?</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <Text style={styles.loginLink}> Login</Text>
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity style={styles.googleButton} onPress={getGoogleAuthUrl}>
           <Text style={styles.googleButtonText}>Sign up with Google</Text>
         </TouchableOpacity>
 
-        {/* User Info Section */}
         {userInfo && (
           <View style={styles.userInfo}>
             <Text>Welcome, {userInfo.user.name}</Text>
@@ -244,6 +211,14 @@ const styles = StyleSheet.create({
   },
   googleButtonText: { color: '#fff', fontWeight: 'bold' },
   userInfo: { marginTop: 20, alignItems: 'center' },
+  loginRedirectContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  loginText: { fontSize: 16, color: '#000' },
+  loginLink: { fontSize: 16, color: '#007BFF' },
 });
 
 export default Signup;

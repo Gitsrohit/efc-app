@@ -119,56 +119,59 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Fixed Header */}
-      <View style={styles.header}>
-        <Image source={require('/Users/iceberg/efcApk/assets/images/profile.png')} style={styles.profileIcon} />
-        <TextInput placeholder="Search by dishes..." style={styles.searchBar} />
-        <TouchableOpacity onPress={() => navigation.navigate('Cart')} style={styles.cartIconContainer}>
-          <Icon name="cart" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+    <FlatList
+      data={[{ key: 'header' }]}
+      renderItem={() => (
+        <>
+          <View style={styles.header}>
+            <Image source={require('/Users/iceberg/efcApk/assets/images/profile.png')} style={styles.profileIcon} />
+            <TextInput placeholder="Search by dishes..." style={styles.searchBar} />
+            <TouchableOpacity onPress={() => navigation.navigate('Cart')} style={styles.cartIconContainer}>
+              <Icon name="cart" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
 
-      </View>
+          <Text style={styles.greeting}>ROHIT, WHAT’S ON YOUR MIND?</Text>
 
-      {/* Scrollable Content */}
-      <ScrollView>
-        <Text style={styles.greeting}>ROHIT, WHAT’S ON YOUR MIND?</Text>
+          {loading ? (
+            <ActivityIndicator size="large" color="#fff" />
+          ) : (
+            <FlatList
+              data={categories}
+              renderItem={renderCategory}
+              keyExtractor={(item, index) => `${item.name}-${index}`}
+              horizontal
+              contentContainerStyle={styles.categoryList}
+              showsHorizontalScrollIndicator={false}
+            />
+          )}
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#fff" />
-        ) : (
           <FlatList
-            data={categories}
-            renderItem={renderCategory}
-            keyExtractor={(item) => item.name}
+            data={banners}
+            renderItem={renderBanner}
+            keyExtractor={(item) => item.id.toString()}
             horizontal
-            contentContainerStyle={styles.categoryList}
             showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.bannerList}
+            pagingEnabled
+            snapToInterval={width * 0.9}
+            decelerationRate="fast"
+            onMomentumScrollEnd={handleBannerScroll}
           />
-        )}
 
-        <FlatList
-          data={banners}
-          renderItem={renderBanner}
-          keyExtractor={(item) => item.id.toString()}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.bannerList}
-          pagingEnabled
-          snapToInterval={width * 0.9}
-          decelerationRate="fast"
-          onMomentumScrollEnd={handleBannerScroll}
-        />
+          <Text style={styles.sectionHeading}>Top Deals🔥</Text>
 
-        <Text style={styles.sectionHeading}>Top Deals🔥</Text>
-
-        <FlatList
-          data={foodItems}
-          renderItem={renderFoodItem}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.foodList}
-          showsVerticalScrollIndicator={false}
-        />
-      </ScrollView>
+          <FlatList
+            data={foodItems}
+            renderItem={renderFoodItem}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.foodList}
+            showsVerticalScrollIndicator={false}
+          />
+        </>
+      )}
+      keyExtractor={(item) => item.key}
+    />
     </View>
   );
 };

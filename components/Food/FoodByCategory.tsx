@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, FlatList, TextInput, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons'; 
 import { useNavigation } from '@react-navigation/native'; 
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const FoodByCategory = ({ route }: { route: any }) => {
   const { categoryId } = route.params;
   const [foodItems, setFoodItems] = useState([]);
@@ -66,24 +66,35 @@ const FoodByCategory = ({ route }: { route: any }) => {
         price: item.price,
       };
     });
-
+  
     try {
+      const token = await AsyncStorage.getItem('authToken');
+      const userId = await AsyncStorage.getItem('userId');  // Assuming userId is stored in AsyncStorage
+      console.log('Token:', token);
+      console.log('User ID:', userId);
+  
+      if (!token || !userId) {
+        alert('User is not authenticated. Please log in.');
+        return;
+      }
+  
       for (const item of itemsToAdd) {
-        const response = await fetch('https://efc-app-1.onrender.com/api/v1/cart/add', {
+        const response = await fetch(`https://efc-app-1.onrender.com/api/v1/cart/add/${userId}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(item),
         });
-
+  
         if (!response.ok) {
           const errorText = await response.text();
+          console.log('Adding item:', JSON.stringify(item));
           console.error(`Error adding item to cart (${item.itemName}):`, errorText);
           alert(`Failed to add ${item.itemName} to the cart.`);
         }
       }
-
+  
       alert('All items added to cart successfully!');
       setItemQuantities({});
     } catch (error) {
@@ -91,6 +102,7 @@ const FoodByCategory = ({ route }: { route: any }) => {
       alert('Failed to add items to cart.');
     }
   };
+  
 
   const filteredFoodItems = foodItems.filter((item: any) =>
     item.itemName.toLowerCase().includes(searchText.toLowerCase())
