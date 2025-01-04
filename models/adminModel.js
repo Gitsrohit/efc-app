@@ -91,9 +91,65 @@ const tableSchema = new mongoose.Schema({
         type: Boolean,
         default: false, 
     },
+    kotGeneratedItems: [
+        {
+            item: { type: mongoose.Schema.Types.ObjectId, ref: 'CategoryItem' },
+            quantity: { type: Number, default: 1 },
+        },
+    ],
 }, { timestamps: true });
+
+const kotSchema = new mongoose.Schema({
+    ticketNumber: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    tableName: {
+        type: String,
+        required: true,
+    },
+    billDate: {
+        type: Date,
+        default: Date.now,
+    },
+    operatorId: {
+        type: String, 
+        required: true,
+    },
+    items: [
+        {
+            itemName: { type: String, required: true },
+            quantity: { type: Number, required: true },
+        },
+    ],
+}, { timestamps: true });
+
+const adSchema = new mongoose.Schema(
+    {
+        name: {
+            type: String,
+            required: true,
+        },
+        description: {
+            type: String,
+            required: true,
+        },
+        image: {
+            type: String, 
+            required: true,
+        },
+        isActive: {
+            type: Boolean,
+            default: true, 
+        },
+    },
+    { timestamps: true }
+);
 
 export const Category = mongoose.model('Category', categorySchema);
 export const CategoryItem = mongoose.model('CategoryItem',categoryItemSchema);
 export const Order = mongoose.model('Order', orderSchema);
 export const Table = mongoose.model('Table', tableSchema);
+export const KOT = mongoose.model('KOT', kotSchema);
+export const Ad = mongoose.model('Ad', adSchema);

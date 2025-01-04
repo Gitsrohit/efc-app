@@ -20,7 +20,7 @@ import adminRoutes from './routes/adminRoutes.js';
 
 
 //DOTENV config
-dotenv .config()
+dotenv.config()
 
 //mongodb connection 
 connectDb();

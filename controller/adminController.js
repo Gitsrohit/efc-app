@@ -1,14 +1,31 @@
 import mongoose from "mongoose";
+// const { uploadToBackblaze } = require('../middlewares/multerBackblaze.js');
+// import { uploadToBackblaze } from '../middlewares/multerBackblaze.js';
+// import { uploadToBackblaze, uploadFileToBackblaze } from '../middlewares/multerBackblaze.js';
+import {uploadFile} from '../middlewares/cloudinary.js';
 import {Category} from '../models/adminModel.js';
 import {CategoryItem} from '../models/adminModel.js';
 // import { Order } from '../models/adminModel.js';
 import {Table} from '../models/adminModel.js';
+import {KOT} from '../models/adminModel.js';
+import {Ad} from '../models/adminModel.js';
+
 
 // add-category controller
 export const addCategoryController = async (req, res) => {
     try {
         const {id, name, type} = req.body;
-        const imagePath = req.file ? req.file.path : null;
+        const file = req.file ? req.file.path : null;
+
+        console.log(file);
+
+        if (!file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+
+        // const imageUrl = await uploadFileToBackblaze(file);
+        // const imageUrl = await uploadFile.uploadFile(file);
+        const imageUrl = await uploadFile(file, 'categories');
 
         const existingCategory = await Category.findOne({name,type});
         if (existingCategory) {
@@ -22,7 +39,7 @@ export const addCategoryController = async (req, res) => {
             id,
             name,
             type,
-            image: imagePath
+            image: imageUrl
         });
 
         res.status(201).json(
@@ -358,6 +375,172 @@ export const addMenuItemsToTable = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Error adding menu items to table",
+            error: error.message,
+        });
+    }
+};
+
+// add Advertisement to the template
+export const addAdController = async (req, res) => {
+    try {
+        const {name, description} = req.body;
+        const imagePath = req.file ? req.file.path : null;
+
+        if (!name || !description) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required: foodItemName, description",
+            });
+        }
+
+        const newAd = await Ad.create({
+            name,
+            description,
+            image:imagePath,
+        });
+
+        res.status(201).json({
+            success: true,
+            message: "Ad created successfully",
+            data: newAd,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error creating ad",
+            error: error.message,
+        });
+    }
+};
+
+// get active ads controller
+export const getActiveAdsController = async (req, res) => {
+    try {
+        const ads = await Ad.find({isActive: true});
+
+        res.status(200).json({
+            success: true,
+            message: "Active ads fetched successfully",
+            data: ads,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error fetching ads",
+            error: error.message,
+        });
+    }
+};
+
+// deactivate ads 
+export const deactivateAdController = async (req, res) => {
+    try {
+        const {adId} = req.params;
+        const ad = await Ad.findById(adId);
+
+        if (!ad) {
+            return res.status(404).json({ success: false, message: "Ad not found" });
+        }
+
+        ad.isActive = false;
+        await ad.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Ad deactivated successfully",
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error deactivating ad",
+            error: error.message,
+        });
+    }
+};
+
+// kot generation for a table
+export const generateKOTController = async (req, res) => {
+    try {
+        const { tableId, operatorId } = req.body;
+
+        const table = await Table.findById(tableId).populate(
+            'menuItems.item',
+            'itemName'
+        );
+
+        if (!table) {
+            return res.status(404).json({ success: false, message: "Table not found" });
+        }
+
+        const newItems = table.menuItems
+            .map((menuItem) => {
+                const alreadyInKOT = table.kotGeneratedItems.find(
+                    (kotItem) => kotItem.item.toString() === menuItem.item._id.toString()
+                );
+
+                const newQuantity = alreadyInKOT
+                    ? menuItem.quantity - alreadyInKOT.quantity
+                    : menuItem.quantity; 
+
+                if (newQuantity > 0) {
+                    return {
+                        item: menuItem.item,
+                        quantity: newQuantity, 
+                    };
+                }
+
+                return null; 
+            })
+            .filter(Boolean);
+
+        if (newItems.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "No new items to generate KOT for",
+            });
+        }
+
+        const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
+
+        const kotItems = newItems.map((newItem) => ({
+            itemName: newItem.item.itemName,
+            quantity: newItem.quantity,
+        }));
+
+        const kot = await KOT.create({
+            ticketNumber,
+            tableName: table.name,
+            operatorId,
+            items: kotItems,
+        });
+
+        newItems.forEach((newItem) => {
+            const existingGeneratedItem = table.kotGeneratedItems.find(
+                (kotItem) => kotItem.item.toString() === newItem.item._id.toString()
+            );
+
+            if (existingGeneratedItem) {
+                existingGeneratedItem.quantity += newItem.quantity;
+            } else {
+                table.kotGeneratedItems.push({
+                    item: newItem.item._id,
+                    quantity: newItem.quantity, 
+                });
+            }
+        });
+
+        await table.save();
+
+        res.status(201).json({
+            success: true,
+            message: "Kitchen Order Ticket generated successfully",
+            data: kot,
+        });
+    } catch (error) {
+        console.error("Error generating KOT:", error.message);
+        res.status(500).json({
+            success: false,
+            message: "Error generating KOT",
             error: error.message,
         });
     }
