@@ -8,6 +8,7 @@ import HomeScreen from './components/Home/HomeScreen';
 import FoodByCategory from './components/Food/FoodByCategory';
 import DineOut from './components/Dineout/DineOut';
 import Footer from './components/Footer/Footer';
+import ViewCart from './components/Cart/ViewCart'
 import { StatusBar } from 'expo-status-bar';
 const Stack = createStackNavigator();
 
@@ -61,6 +62,11 @@ const App = () => {
         <Stack.Screen
           name="DineOut"
           component={DineOut}
+          options={{ headerShown: false }}
+        />
+         <Stack.Screen
+          name="ViewCart"
+          component={ViewCart}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

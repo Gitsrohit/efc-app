@@ -79,10 +79,11 @@ const FoodByCategory = ({ route }: { route: any }) => {
       }
   
       for (const item of itemsToAdd) {
-        const response = await fetch(`https://efc-app-1.onrender.com/api/v1/cart/add/${userId}`, {
+        const response = await fetch(`https://efc-app-1.onrender.com/api/v1/cart/add`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(item),
         });
@@ -148,7 +149,7 @@ const FoodByCategory = ({ route }: { route: any }) => {
           value={searchText}
           onChangeText={setSearchText}
         />
-        <TouchableOpacity onPress={() => navigation.navigate('Cart')} style={styles.cartIconContainer}>
+        <TouchableOpacity onPress={() => navigation.navigate('ViewCart')} style={styles.cartIconContainer}>
           <Icon name="cart" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>

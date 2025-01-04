@@ -126,7 +126,7 @@ const HomeScreen = ({ navigation }) => {
           <View style={styles.header}>
             <Image source={require('/Users/iceberg/efcApk/assets/images/profile.png')} style={styles.profileIcon} />
             <TextInput placeholder="Search by dishes..." style={styles.searchBar} />
-            <TouchableOpacity onPress={() => navigation.navigate('Cart')} style={styles.cartIconContainer}>
+            <TouchableOpacity onPress={() => navigation.navigate('ViewCart')} style={styles.cartIconContainer}>
               <Icon name="cart" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
