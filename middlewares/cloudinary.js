@@ -4,9 +4,12 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 cloudinary.config({
-    cloud_name:process.env.CLOUD_NAME,
-    api_key:process.env.API_KEY, 
-    api_secret:process.env.API_SECRET,
+    // cloud_name:process.env.CLOUD_NAME,
+    cloud_name:dhhxbqoab,
+    // api_key:process.env.API_KEY, 
+    api_key:474532251776149, 
+    // api_secret:process.env.API_SECRET,
+    api_secret:BhPIjssdZQgB_z7M2VCK76-dWgU,
 })
 
 export const uploadFile = async(filePath,folderName)=>{
