@@ -11,11 +11,6 @@ const categorySchema = new mongoose.Schema({
         type: String, 
         required: true 
     },
-    type: { 
-        type: String, 
-        // enum: ['veg', 'non-veg'],
-        required: true 
-    },
     image: { 
         type: String,
         required: true
@@ -37,6 +32,15 @@ const categoryItemSchema = new mongoose.Schema({
     itemName: { 
         type: String, 
         required: true 
+    },
+    type: { 
+        type: String, 
+        // enum: ['veg', 'non-veg'],
+        required: true 
+    },
+    kitchen:{
+        type: String,
+        required: true
     },
     price: { 
         type: Number, 
@@ -147,9 +151,27 @@ const adSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+const AdminProfileSchema = new mongoose.Schema({
+    restaurantName: { type: String, required: true },
+    addressLine1: { type: String, required: true },
+    addressLine2: { type: String },
+    state: { type: String, required: true },
+    contactNo: { type: String, required: true },
+    emailId: { type: String, required: true },
+    gstin: { type: String },
+    cin: { type: String },
+    baseCurrency: { type: String, required: true },
+    currencyCode: { type: String, required: true },
+    ticketFooterMessage: { type: String },
+    startBillNo: { type: Number, default: 1 },
+    showLogoInReceipts: { type: Boolean, default: false },
+    companyId: { type: String, required: true, unique: true },
+  }, { timestamps: true });
+
 export const Category = mongoose.model('Category', categorySchema);
 export const CategoryItem = mongoose.model('CategoryItem',categoryItemSchema);
 export const Order = mongoose.model('Order', orderSchema);
 export const Table = mongoose.model('Table', tableSchema);
 export const KOT = mongoose.model('KOT', kotSchema);
 export const Ad = mongoose.model('Ad', adSchema);
+export const AdminProfile = mongoose.model('AdminProfile', AdminProfileSchema);

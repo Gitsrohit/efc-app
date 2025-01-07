@@ -27,13 +27,13 @@ const uploader = multer({ storage });
 //category routes
 router.post('/add-category',uploader.single('image'), addCategoryController);
 router.get('/get-category', getAllCategories);
-router.put("/edit-category/:id",upload.single('image'), editCategoryController);
+router.put("/edit-category/:id",uploader.single('image'), editCategoryController);
 router.delete("/delete-category/:id", deleteCategoryController);
 
 //item routes
-router.post('/add-item', upload.single('image'), addCategoryItem);
-router.get('/get-item', getCategoryItems);
-router.put("/edit-category-item/:id",upload.single('image'), editCategoryItemController);
+router.post('/add-item', uploader.single('image'), addCategoryItem);
+router.get('/get-item/:id', getCategoryItems);
+router.put("/edit-category-item/:id",uploader.single('image'), editCategoryItemController);
 router.delete("/delete-category-item/:id", deleteCategoryItemController);
 
 //table routes

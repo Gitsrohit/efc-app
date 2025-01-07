@@ -14,20 +14,17 @@ import {Ad} from '../models/adminModel.js';
 // add-category controller
 export const addCategoryController = async (req, res) => {
     try {
-        const {id, name, type} = req.body;
+        const {name} = req.body;
         const file = req.file ? req.file.path : null;
-
-        console.log(file);
 
         if (!file) {
             return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
 
-        // const imageUrl = await uploadFileToBackblaze(file);
         // const imageUrl = await uploadFile.uploadFile(file);
         const imageUrl = await uploadFile(file, 'categories');
 
-        const existingCategory = await Category.findOne({name,type});
+        const existingCategory = await Category.findOne({name});
         if (existingCategory) {
             return res.status(400).json({
                 success: false,
@@ -36,9 +33,7 @@ export const addCategoryController = async (req, res) => {
         }
 
         const newCategory = await Category.create({
-            id,
             name,
-            type,
             image: imageUrl
         });
 
@@ -73,13 +68,17 @@ export const getAllCategories = async (req, res) => {
 export const editCategoryController = async (req, res) => {
     try {
         const categoryId = req.params.id; 
-        const {name, type} = req.body; 
+        const {name} = req.body; 
         const imagePath = req.file ? req.file.path : null; 
 
         const updateData = {};
         if (name) updateData.name = name;
-        if (type) updateData.type = type;
-        if (imagePath) updateData.image = imagePath;
+
+        if (imagePath) {
+            const imageUrl = await uploadFile(imagePath, 'categories');
+            updateData.image = imageUrl;
+        }
+        // if (imagePath) updateData.image = imagePath;
 
         console.log("Update Data:", updateData);
 
@@ -145,19 +144,23 @@ export const deleteCategoryController = async (req, res) => {
 // add category item controller
 export const addCategoryItem = async (req, res) => {
     try {
-        const {itemName, price, categoryId, description} = req.body;
-        const image = req.file ? req.file.path : null; 
+        const {itemName, type, kitchen, price, categoryId, description} = req.body;
+        const file = req.file ? req.file.path : null; 
 
         const category = await Category.findById(categoryId);
         if (!category) {
             return res.status(404).json({ message:'Category not found'});
         }
 
+        const imageUrl = await uploadFile(file, 'categories');
+
         const newItem = await CategoryItem.create({
             itemName,
+            type,
+            kitchen,
             price,
             description,
-            image,
+            image:imageUrl,
             category: categoryId
         });
 
@@ -171,36 +174,75 @@ export const addCategoryItem = async (req, res) => {
 };
 
 // get category item controller
+// export const getCategoryItems = async (req, res) => {
+//     try {
+//         const {itemId} = req.query; 
+
+//         const query = itemId ? {category: itemId} : {};
+//         const items = await CategoryItem.find(query).populate('category', 'name type');
+
+//         if (items.length === 0) {
+//             return res.status(404).json({ message: 'No items found' });
+//         }
+
+//         res.status(200).json({ message: 'Category items retrieved successfully', items });
+//     } catch (error) {
+//         res.status(500).json({ message: 'Error retrieving category items', error: error.message });
+//     }
+// };
 export const getCategoryItems = async (req, res) => {
     try {
-        const {itemId} = req.query; 
+        const categoryId  = req.params.id;
 
-        const query = itemId ? {category: itemId} : {};
-        const items = await CategoryItem.find(query).populate('category', 'name type');
-
-        if (items.length === 0) {
-            return res.status(404).json({ message: 'No items found' });
+        if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid category ID',
+            });
         }
 
-        res.status(200).json({ message: 'Category items retrieved successfully', items });
+        const category = await Category.findById(categoryId).populate('items');
+
+        if (!category) {
+            return res.status(404).json({
+                success: false,
+                message: 'Category not found',
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Category items retrieved successfully',
+            data: category.items, 
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Error retrieving category items', error: error.message });
+        res.status(500).json({
+            success: false,
+            message: 'Error retrieving category items',
+            error: error.message,
+        });
     }
 };
+
 
 // edit category item controller
 export const editCategoryItemController = async (req, res) => {
     try {
         const itemId = req.params.id; 
-        const {itemName, price, description, categoryId} = req.body; 
+        const {itemName, price, description, categoryId,type} = req.body; 
         const imagePath = req.file ? req.file.path : null; 
 
         const updateData = {};
         if (itemName) updateData.itemName = itemName;
         if (price) updateData.price = price;
         if (description) updateData.description = description;
-        if (imagePath) updateData.image = imagePath;
+        if (imagePath) {
+            const imageUrl = await uploadFile(imagePath, 'categories');
+            updateData.image = imageUrl;
+        }
+        // if (imagePath) updateData.image = imagePath;
         if (categoryId) updateData.category = categoryId;
+        if (type) updateData.type = type;
 
         console.log("Update Data:", updateData);
 
@@ -393,10 +435,12 @@ export const addAdController = async (req, res) => {
             });
         }
 
+        const imageUrl = await uploadFile(file, 'categories');
+
         const newAd = await Ad.create({
             name,
             description,
-            image:imagePath,
+            image:imageUrl,
         });
 
         res.status(201).json({
