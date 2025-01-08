@@ -45,11 +45,12 @@ const HomeScreen = ({ navigation }) => {
       try {
         const response = await fetch('https://efc-app-sprp.onrender.com/api/v1/admin/get-category');
         const result = await response.json();
-
+    
         console.log('API Response:', result);
-
+    
         if (result && result.success && Array.isArray(result.data)) {
           const formattedCategories = result.data.map((category) => ({
+            id: category._id, // Ensure the API provides an `id` field or equivalent
             name: category.name,
             image: require('/Users/iceberg/efcApk/assets/images/image.png'),
           }));
@@ -63,6 +64,7 @@ const HomeScreen = ({ navigation }) => {
         setLoading(false);
       }
     };
+    
 
     fetchCategories();
   }, []);
@@ -85,12 +87,15 @@ const HomeScreen = ({ navigation }) => {
   const renderCategory = ({ item }) => (
     <TouchableOpacity
       style={styles.category}
-      onPress={() => navigation.navigate('FoodByCategory', { categoryName: item.name })}
+      onPress={() =>
+        navigation.navigate('FoodByCategory', { categoryId: item.id, categoryName: item.name })
+      }
     >
       <Image source={item.image} style={styles.categoryImage} />
       <Text style={styles.categoryText}>{item.name}</Text>
     </TouchableOpacity>
   );
+  
 
   const foodItems = [
     { id: 1, name: "EFC's Special Combo", price: '₹210', image: require('/Users/iceberg/efcApk/assets/images/image.png') },

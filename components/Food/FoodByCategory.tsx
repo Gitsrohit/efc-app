@@ -1,9 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, FlatList, TextInput, ActivityIndicator } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons'; 
-import { useNavigation } from '@react-navigation/native'; 
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  TextInput,
+  ActivityIndicator,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-const FoodByCategory = ({ route }: { route: any }) => {
+
+const FoodByCategory = ({ route }) => {
   const { categoryId } = route.params;
   const [foodItems, setFoodItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -12,50 +22,61 @@ const FoodByCategory = ({ route }: { route: any }) => {
   const navigation = useNavigation();
 
   const fetchFoodItems = async () => {
+    if (!categoryId) {
+      alert('Invalid category ID.');
+      navigation.goBack();
+      return;
+    }
+  
     setIsLoading(true);
     try {
-      const response = await fetch(`https://efc-app-sprp.onrender.com/api/v1/admin/get-item?category=${categoryId}`);
-      if (response.headers.get('content-type')?.includes('application/json')) {
-        const data = await response.json();
-        if (data.items) {
-          setFoodItems(data.items);
+      const response = await fetch(`https://efc-app-sprp.onrender.com/api/v1/admin/get-item/${categoryId}`);
+      const result = await response.json();
+  
+      if (response.ok && result.success) {
+        if (Array.isArray(result.data) && result.data.length > 0) {
+          setFoodItems(result.data);
         } else {
-          console.error('Error: Items not found in response');
+          alert('No items found for this category.');
+          setFoodItems([]); 
         }
       } else {
-        const errorText = await response.text();
-        console.error('Non-JSON response:', errorText);
+        console.error('Error message:', result.message);
+        alert(result.message || 'Failed to fetch food items.');
       }
     } catch (error) {
       console.error('Error fetching food items:', error);
+      alert('An error occurred while fetching food items.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
+  
 
   useEffect(() => {
     fetchFoodItems();
   }, [categoryId]);
 
   const handleAdd = (item) => {
-    setItemQuantities((prev) => ({ ...prev, [item.id]: 1 }));
+    setItemQuantities((prev) => ({ ...prev, [item._id]: 1 }));
   };
-
+  
   const handleIncrement = (item) => {
-    setItemQuantities((prev) => ({ ...prev, [item.id]: prev[item.id] + 1 }));
+    setItemQuantities((prev) => ({ ...prev, [item._id]: (prev[item._id] || 0) + 1 }));
   };
-
+  
   const handleDecrement = (item) => {
     setItemQuantities((prev) => {
-      const newQuantities = { ...prev };
-      if (newQuantities[item.id] > 1) {
-        newQuantities[item.id] -= 1;
+      const updatedQuantities = { ...prev };
+      if (updatedQuantities[item._id] > 1) {
+        updatedQuantities[item._id] -= 1;
       } else {
-        delete newQuantities[item.id];
+        delete updatedQuantities[item._id];
       }
-      return newQuantities;
+      return updatedQuantities;
     });
   };
-
+  
   const handleAddToCart = async () => {
     const itemsToAdd = Object.entries(itemQuantities).map(([itemId, quantity]) => {
       const item = foodItems.find((food) => food.id === itemId);
@@ -66,20 +87,18 @@ const FoodByCategory = ({ route }: { route: any }) => {
         price: item.price,
       };
     });
-  
+
     try {
       const token = await AsyncStorage.getItem('authToken');
-      const userId = await AsyncStorage.getItem('userId');  // Assuming userId is stored in AsyncStorage
-      console.log('Token:', token);
-      console.log('User ID:', userId);
-  
+      const userId = await AsyncStorage.getItem('userId');
+
       if (!token || !userId) {
         alert('User is not authenticated. Please log in.');
         return;
       }
-  
+
       for (const item of itemsToAdd) {
-        const response = await fetch(`https://efc-app-1.onrender.com/api/v1/cart/add`, {
+        const response = await fetch('https://efc-app-1.onrender.com/api/v1/cart/add', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -87,15 +106,14 @@ const FoodByCategory = ({ route }: { route: any }) => {
           },
           body: JSON.stringify(item),
         });
-  
+
         if (!response.ok) {
           const errorText = await response.text();
-          console.log('Adding item:', JSON.stringify(item));
-          console.error(`Error adding item to cart (${item.itemName}):`, errorText);
+          console.error(`Error adding item (${item.itemName}):`, errorText);
           alert(`Failed to add ${item.itemName} to the cart.`);
         }
       }
-  
+
       alert('All items added to cart successfully!');
       setItemQuantities({});
     } catch (error) {
@@ -103,32 +121,37 @@ const FoodByCategory = ({ route }: { route: any }) => {
       alert('Failed to add items to cart.');
     }
   };
-  
 
-  const filteredFoodItems = foodItems.filter((item: any) =>
+  const filteredFoodItems = foodItems.filter((item) =>
     item.itemName.toLowerCase().includes(searchText.toLowerCase())
   );
 
   const totalItemsInCart = Object.values(itemQuantities).reduce((sum, quantity) => sum + quantity, 0);
 
-  const renderFoodItem = ({ item }: { item: any }) => (
+  const renderFoodItem = ({ item }) => (
     <View style={styles.cardContainer}>
       <Image
-        source={require('/Users/iceberg/efcApk/assets/images/image.png')}
+        source={
+          item.image
+            ? { uri: `https://efc-app-sprp.onrender.com/${item.image}` }
+            : require('/Users/iceberg/efcApk/assets/images/image.png')
+        }
         style={styles.foodImage}
       />
       <View style={styles.infoContainer}>
         <Text style={styles.foodName}>{item.itemName}</Text>
-        <Text style={styles.description}>{item.description}</Text>
+        <Text style={styles.description}>{item.description || 'No description available'}</Text>
         <Text style={styles.price}>{`₹${item.price}`}</Text>
-        {itemQuantities[item.id] ? (
-          <View style={styles.quantityContainer}>
-            <TouchableOpacity onPress={() => handleDecrement(item)} style={styles.quantityButton}>
-              <Text style={styles.quantityButtonText}>-</Text>
+        {itemQuantities[item._id] ? (
+          <View style={styles.quantityWrapper}>
+            <TouchableOpacity onPress={() => handleDecrement(item)} style={styles.decrementButton}>
+              <Text style={styles.buttonText}>-</Text>
             </TouchableOpacity>
-            <Text style={styles.quantityText}>{itemQuantities[item.id]}</Text>
-            <TouchableOpacity onPress={() => handleIncrement(item)} style={styles.quantityButton}>
-              <Text style={styles.quantityButtonText}>+</Text>
+            <View style={styles.quantityDisplay}>
+              <Text style={styles.quantityText}>{itemQuantities[item._id]}</Text>
+            </View>
+            <TouchableOpacity onPress={() => handleIncrement(item)} style={styles.incrementButton}>
+              <Text style={styles.buttonText}>+</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -139,6 +162,9 @@ const FoodByCategory = ({ route }: { route: any }) => {
       </View>
     </View>
   );
+  
+  
+  
 
   return (
     <View style={styles.container}>
@@ -161,7 +187,7 @@ const FoodByCategory = ({ route }: { route: any }) => {
           <FlatList
             data={filteredFoodItems}
             renderItem={renderFoodItem}
-            keyExtractor={(item: any) => item.id}
+            keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContainer}
             ListEmptyComponent={
               <Text style={styles.emptyText}>No items found for this category.</Text>
@@ -191,7 +217,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 50,
   },
-  cartIconContainer: { marginLeft: 12, justifyContent: 'center' },
+  cartIconContainer: {
+    marginLeft: 12,
+    justifyContent: 'center',
+  },
   searchContainer: {
     flexDirection: 'row',
     marginBottom: 16,
@@ -292,9 +321,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   quantityText: {
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#000',
   },
   emptyText: {
     textAlign: 'center',
@@ -302,6 +331,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 20,
   },
+  quantityWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    // borderRadius: 8,
+    overflow: 'hidden',
+  },
+  decrementButton: {
+    height:35,
+    borderBottomLeftRadius:10,
+    borderTopLeftRadius:10,
+    backgroundColor: '#00C853', 
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  incrementButton: {
+    height:35,
+    backgroundColor: '#00C853',
+    borderTopRightRadius:10,
+    borderBottomRightRadius:10,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quantityDisplay: {
+    height:35,
+    backgroundColor: '#B71C1C', 
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+ 
 });
 
 export default FoodByCategory;
