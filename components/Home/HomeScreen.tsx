@@ -9,7 +9,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   Dimensions,
-  ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 const { width } = Dimensions.get('window');
@@ -45,12 +44,12 @@ const HomeScreen = ({ navigation }) => {
       try {
         const response = await fetch('https://efc-app-sprp.onrender.com/api/v1/admin/get-category');
         const result = await response.json();
-    
+
         console.log('API Response:', result);
-    
+
         if (result && result.success && Array.isArray(result.data)) {
           const formattedCategories = result.data.map((category) => ({
-            id: category._id, // Ensure the API provides an `id` field or equivalent
+            id: category._id,
             name: category.name,
             image: require('/Users/iceberg/efcApk/assets/images/image.png'),
           }));
@@ -64,7 +63,6 @@ const HomeScreen = ({ navigation }) => {
         setLoading(false);
       }
     };
-    
 
     fetchCategories();
   }, []);
@@ -95,7 +93,6 @@ const HomeScreen = ({ navigation }) => {
       <Text style={styles.categoryText}>{item.name}</Text>
     </TouchableOpacity>
   );
-  
 
   const foodItems = [
     { id: 1, name: "EFC's Special Combo", price: '₹210', image: require('/Users/iceberg/efcApk/assets/images/image.png') },
@@ -124,87 +121,84 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-    <FlatList
-      data={[{ key: 'header' }]}
-      renderItem={() => (
-        <>
-          <View style={styles.header}>
-            <Image source={require('/Users/iceberg/efcApk/assets/images/profile.png')} style={styles.profileIcon} />
-            <TextInput placeholder="Search by dishes..." style={styles.searchBar} />
-            <TouchableOpacity onPress={() => navigation.navigate('ViewCart')} style={styles.cartIconContainer}>
-              <Icon name="cart" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
+      <FlatList
+        data={[{ key: 'header' }]}
+        renderItem={() => (
+          <View>
+            <View style={styles.header}>
+              <Image source={require('/Users/iceberg/efcApk/assets/images/profile.png')} style={styles.profileIcon} />
+              <TextInput placeholder="Search by dishes..." style={styles.searchBar} />
+              <TouchableOpacity onPress={() => navigation.navigate('ViewCart')} style={styles.cartIconContainer}>
+                <Icon name="cart" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.greeting}>ROHIT, WHAT’S ON YOUR MIND?</Text>
 
-          <Text style={styles.greeting}>ROHIT, WHAT’S ON YOUR MIND?</Text>
+            {loading ? (
+              <ActivityIndicator size="large" color="#fff" />
+            ) : (
+              <FlatList
+                data={categories}
+                renderItem={renderCategory}
+                keyExtractor={(item, index) => `${item.name}-${index}`}
+                horizontal
+                contentContainerStyle={styles.categoryList}
+                showsHorizontalScrollIndicator={false}
+              />
+            )}
 
-          {loading ? (
-            <ActivityIndicator size="large" color="#fff" />
-          ) : (
             <FlatList
-              data={categories}
-              renderItem={renderCategory}
-              keyExtractor={(item, index) => `${item.name}-${index}`}
+              data={banners}
+              renderItem={renderBanner}
+              keyExtractor={(item) => item.id.toString()}
               horizontal
-              contentContainerStyle={styles.categoryList}
               showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.bannerList}
+              pagingEnabled
+              snapToInterval={width * 0.9}
+              decelerationRate="fast"
+              onMomentumScrollEnd={handleBannerScroll}
             />
-          )}
 
-          <FlatList
-            data={banners}
-            renderItem={renderBanner}
-            keyExtractor={(item) => item.id.toString()}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.bannerList}
-            pagingEnabled
-            snapToInterval={width * 0.9}
-            decelerationRate="fast"
-            onMomentumScrollEnd={handleBannerScroll}
-          />
+            <Text style={styles.sectionHeading}>Top Deals🔥</Text>
 
-          <Text style={styles.sectionHeading}>Top Deals🔥</Text>
-
-          <FlatList
-            data={foodItems}
-            renderItem={renderFoodItem}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.foodList}
-            showsVerticalScrollIndicator={false}
-          />
-        </>
-      )}
-      keyExtractor={(item) => item.key}
-    />
+            <FlatList
+              data={foodItems}
+              renderItem={renderFoodItem}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.foodList}
+              showsVerticalScrollIndicator={false}
+            />
+          </View>
+        )}
+        keyExtractor={(item) => item.key}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#a00000', paddingTop:30 },
-    header: {
-      backgroundColor: '#a00000',
-      padding: 10,
-      flexDirection: 'row',
-      alignItems: 'center',
-      elevation: 5,
-      zIndex: 1000,
-    },
-    profileIcon: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
-    searchBar: { flex: 1, backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 10, height: 40, opacity: 0.6 },
-    filterIcon: { width: 25, height: 25, marginLeft: 10 },
-    greeting: {
-      color: '#fff',
-      fontSize: 13,
-      fontWeight: 'bold',
-      marginTop: 20,
-      marginBottom: 18,
-      letterSpacing: 2,
-      paddingHorizontal: 10,
-    },
-    cartIconContainer: { marginLeft: 12, justifyContent: 'center' },
-
+  container: { flex: 1, backgroundColor: '#a00000', paddingTop: 30 },
+  header: {
+    backgroundColor: '#a00000',
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    elevation: 5,
+    zIndex: 1000,
+  },
+  profileIcon: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
+  searchBar: { flex: 1, backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 10, height: 40, opacity: 0.6 },
+  cartIconContainer: { marginLeft: 12, justifyContent: 'center' },
+  greeting: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 18,
+    letterSpacing: 2,
+    paddingHorizontal: 10,
+  },
   bannerList: { marginBottom: 20 },
   bannerContainer: {
     flexDirection: 'row',
@@ -224,7 +218,6 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     letterSpacing: 1.5,
   },
-  
   bannerImage: { width: 80, height: 80, borderRadius: 20, marginRight: 10 },
   bannerTextContainer: { flex: 1 },
   bannerTitle: { fontSize: 16, fontWeight: 'bold', color: '#a00000', marginBottom: 5 },
@@ -233,7 +226,7 @@ const styles = StyleSheet.create({
   category: { alignItems: 'center', marginRight: 20 },
   categoryImage: { width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderColor: '#fff', marginBottom: 5 },
   categoryText: { color: '#fff', fontSize: 12, textAlign: 'center' },
-  foodList: { padding:10 },
+  foodList: { padding: 10 },
   foodCard: {
     backgroundColor: '#ffef65',
     flexDirection: 'row',
@@ -249,18 +242,6 @@ const styles = StyleSheet.create({
   foodPrice: { fontSize: 14, color: '#888' },
   addButton: { backgroundColor: '#a00000', padding: 10, borderRadius: 8 },
   addButtonText: { color: '#fff', fontWeight: 'bold' },
-  dotsContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 10, paddingBottom:10 },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#fff',
-    margin: 5,
-
-  },
-  activeDot: {
-    backgroundColor: '#FFFF00',
-  },
 });
 
 export default HomeScreen;

@@ -6,8 +6,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Image,
+  Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 const Cart = () => {
   const [cartData, setCartData] = useState(null);
@@ -35,7 +38,11 @@ const Cart = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setCartData(data.data);
+          const itemsWithAnimation = data.data.items.map((item) => ({
+            ...item,
+            animationValue: new Animated.Value(1), // Add animation value for each item
+          }));
+          setCartData({ ...data.data, items: itemsWithAnimation });
         } else {
           Alert.alert('Error', data.message || 'Failed to fetch cart data');
         }
@@ -45,6 +52,51 @@ const Cart = () => {
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Something went wrong while fetching cart data');
+    }
+  };
+
+  const handleRemoveItem = async (itemId) => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      if (!token) {
+        Alert.alert('Error', 'User is not authenticated. Please log in.');
+        return;
+      }
+
+      const response = await fetch(`https://efc-app-1.onrender.com/api/v1/cart/remove?itemId=${itemId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          const itemIndex = cartData.items.findIndex((item) => item.itemId === itemId);
+          if (itemIndex !== -1) {
+            const itemToRemove = cartData.items[itemIndex];
+            Animated.timing(itemToRemove.animationValue, {
+              toValue: 0, 
+              duration: 300, 
+              useNativeDriver: true, 
+            }).start(() => {
+              setCartData((prevState) => ({
+                ...prevState,
+                items: prevState.items.filter((item) => item.itemId !== itemId),
+              }));
+            });
+          }
+        } else {
+          Alert.alert('Error', data.message || 'Failed to remove item');
+        }
+      } else {
+        Alert.alert('Error', 'Failed to remove item');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Something went wrong while removing the item');
     }
   };
 
@@ -59,41 +111,57 @@ const Cart = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Your Cart is Ready!</Text>
+      <Text style={styles.heading}>Your Cart</Text>
 
-      {/* Cart Items Section */}
       <View style={styles.cartContainer}>
         {cartData && cartData.items.length > 0 ? (
           <FlatList
             data={cartData.items}
             keyExtractor={(item) => item.itemId}
-            ListHeaderComponent={() => (
-              <View style={styles.cartHeader}>
-                <Text style={styles.cartHeaderText}>Items</Text>
-                <Text style={styles.cartHeaderText}>Quantity</Text>
-                <Text style={styles.cartHeaderText}>Price</Text>
-              </View>
-            )}
             renderItem={({ item }) => (
-              <View style={styles.cartItem}>
-                <Text style={styles.cartText}>{item.itemName}</Text>
-                <Text style={styles.cartText}>{item.quantity}</Text>
-                <Text style={styles.cartText}>{item.quantity * item.price}</Text>
-              </View>
+              <Animated.View
+                style={[
+                  styles.cartItem,
+                  {
+                    opacity: item.animationValue,
+                    transform: [
+                      {
+                        translateX: item.animationValue.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [500, 0], 
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <Image source={{ uri: item.image }} style={styles.itemImage} />
+                <View style={styles.itemDetails}>
+                  <Text style={styles.itemName}>{item.itemName}</Text>
+                  <Text style={styles.itemQuantity}>Quantity: {item.quantity}</Text>
+                  <Text style={styles.itemPrice}>Price: ₹{item.quantity * item.price}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => handleRemoveItem(item.itemId)}
+                >
+                  <Icon name="trash" size={20} color="#fff" />
+                </TouchableOpacity>
+              </Animated.View>
             )}
           />
         ) : (
           <Text style={styles.noItemsText}>Your cart is empty</Text>
         )}
+
         {cartData && (
           <View style={styles.subtotalContainer}>
-            <Text style={styles.subtotalText}>Sub total:</Text>
-            <Text style={styles.subtotalText}>{cartData.totalPrice}</Text>
+            <Text style={styles.subtotalText}>Subtotal:</Text>
+            <Text style={styles.subtotalText}>₹{cartData.totalPrice}</Text>
           </View>
         )}
       </View>
 
-      {/* Order Type Section */}
       <View style={styles.orderTypeContainer}>
         <Text style={styles.orderTypeLabel}>Order Type:</Text>
         <View style={styles.orderTypeOptions}>
@@ -118,74 +186,55 @@ const Cart = () => {
         </View>
       </View>
 
-      {/* Place Order Button */}
       <TouchableOpacity style={styles.placeOrderButton} onPress={handlePlaceOrder}>
-        <Text style={styles.placeOrderText}>Place Order</Text>
+        <Text style={styles.placeOrderText}>Place Order 🛵</Text>
       </TouchableOpacity>
     </View>
   );
 };
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#a00000', padding: 20, paddingTop: 40 },
+  container: { flex: 1, backgroundColor: '#B71C1C', padding: 20, paddingTop: 40 },
   heading: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
     marginBottom: 20,
   },
-  cartContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 20,
-  },
-  cartHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    paddingBottom: 5,
-  },
-  cartHeaderText: {
-    fontWeight: 'bold',
-    color: '#000',
-    flex: 1,
-    textAlign: 'center',
-  },
+  cartContainer: { flex: 1, backgroundColor: '#fffd81', borderRadius: 10, padding: 15, borderColor: '#fff', borderWidth: 1, },
   cartItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+    alignItems: 'center',
+    marginBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    paddingBottom: 10,
   },
-  cartText: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#000',
+  itemImage: { width: 60, height: 60, borderRadius: 8, marginRight: 10 },
+  itemDetails: { flex: 1 },
+  itemName: { fontSize: 16, fontWeight: 'bold', color: '#333' },
+  itemQuantity: { fontSize: 14, color: '#666', marginTop: 5 },
+  itemPrice: { fontSize: 14, color: '#333', marginTop: 5 },
+  removeButton: {
+    backgroundColor: '#ff4d4d',
+    padding: 10,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  noItemsText: { textAlign: 'center', color: '#000', marginTop: 20 },
+  noItemsText: { textAlign: 'center', color: '#999', marginTop: 20 },
   subtotalContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: '#ccc',
-    paddingTop: 10,
-    marginTop: 10,
+    marginTop: 20,
   },
-  subtotalText: { fontWeight: 'bold', color: '#000' },
-  orderTypeContainer: { marginBottom: 20 },
-  orderTypeLabel: {
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
+  subtotalText: { fontSize: 16, fontWeight: 'bold', color: '#333' },
+  orderTypeContainer: { marginTop: 20 },
+  orderTypeLabel: { fontWeight: 'bold', color: '#fff', marginBottom: 10, textAlign: 'center' },
   orderTypeOptions: {
     flexDirection: 'row',
     justifyContent: 'space-evenly',
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#f0f0f0',
     padding: 10,
     borderRadius: 10,
   },
@@ -193,17 +242,18 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#ddd',
   },
-  selectedOption: { backgroundColor: '#a00000', borderColor: '#a00000' },
-  orderTypeText: { color: '#fff', fontWeight: 'bold', textAlign: 'center' },
+  selectedOption: { backgroundColor: '#4caf50', borderColor: '#4caf50' },
+  orderTypeText: { color: '#333', fontWeight: 'bold', textAlign: 'center' },
   placeOrderButton: {
-    backgroundColor: '#a00000',
+    backgroundColor: '#4caf50',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
+    marginTop: 20,
   },
-  placeOrderText: { color: '#fff', fontWeight: 'bold' },
+  placeOrderText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 });
 
 export default Cart;
