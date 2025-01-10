@@ -33,18 +33,6 @@ const DineOut = () => {
 
       <View style={styles.cardContainer}>
         <ImageBackground
-          source={require('/Users/iceberg/efcApk/assets/images/cabin.jpeg')}
-          style={styles.customCard}
-          resizeMode="cover"
-        >
-          <View style={styles.overlay} />
-          <Text style={styles.greenZoneText}>CABINS</Text>
-          <TouchableOpacity style={styles.bookNowButton}>
-            <Text style={styles.bookNowText}>Book Now</Text>
-          </TouchableOpacity>
-        </ImageBackground>
-
-        <ImageBackground
           source={require('/Users/iceberg/efcApk/assets/images/greenzone.jpeg')}
           style={styles.customCard}
           resizeMode="cover"
@@ -107,7 +95,7 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     flex: 1,
-    justifyContent: 'space-between',
+    // justifyContent: 'space-between',
     alignItems: 'center',
   },
   customCard: {

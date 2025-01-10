@@ -11,6 +11,7 @@ import {
   Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+
 const { width } = Dimensions.get('window');
 
 const HomeScreen = ({ navigation }) => {
@@ -21,19 +22,19 @@ const HomeScreen = ({ navigation }) => {
   const banners = [
     {
       id: 1,
-      image: require('/Users/iceberg/efcApk/assets/images/image.png'),
+      image: require('../../assets/images/image.png'),
       title: "20% OFF on Pizza",
       description: "Get 20% off on orders above ₹700. Order your favorite pizza now!",
     },
     {
       id: 2,
-      image: require('/Users/iceberg/efcApk/assets/images/image.png'),
+      image: require('../../assets/images/image.png'),
       title: "Buy 1 Get 1 Free",
       description: "Enjoy a free burger with every burger you order today!",
     },
     {
       id: 3,
-      image: require('/Users/iceberg/efcApk/assets/images/image.png'),
+      image: require('../../assets/images/image.png'),
       title: "Flat ₹100 Off",
       description: "Flat ₹100 off on all dine-in orders this weekend. Don't miss out!",
     },
@@ -45,13 +46,11 @@ const HomeScreen = ({ navigation }) => {
         const response = await fetch('https://efc-app-sprp.onrender.com/api/v1/admin/get-category');
         const result = await response.json();
 
-        console.log('API Response:', result);
-
         if (result && result.success && Array.isArray(result.data)) {
           const formattedCategories = result.data.map((category) => ({
             id: category._id,
             name: category.name,
-            image: require('/Users/iceberg/efcApk/assets/images/image.png'),
+            image: require('../../assets/images/image.png'),
           }));
           setCategories(formattedCategories);
         } else {
@@ -95,9 +94,9 @@ const HomeScreen = ({ navigation }) => {
   );
 
   const foodItems = [
-    { id: 1, name: "EFC's Special Combo", price: '₹210', image: require('/Users/iceberg/efcApk/assets/images/image.png') },
-    { id: 2, name: 'Grilled Sandwich', price: '₹150', image: require('/Users/iceberg/efcApk/assets/images/image.png') },
-    { id: 3, name: 'Cheese Burger', price: '₹180', image: require('/Users/iceberg/efcApk/assets/images/image.png') },
+    { id: 1, name: "EFC's Special Combo", price: '₹210', image: require('../../assets/images/image.png') },
+    { id: 2, name: 'Grilled Sandwich', price: '₹150', image: require('../../assets/images/image.png') },
+    { id: 3, name: 'Cheese Burger', price: '₹180', image: require('../../assets/images/image.png') },
   ];
 
   const renderFoodItem = ({ item }) => (
@@ -126,7 +125,7 @@ const HomeScreen = ({ navigation }) => {
         renderItem={() => (
           <View>
             <View style={styles.header}>
-              <Image source={require('/Users/iceberg/efcApk/assets/images/profile.png')} style={styles.profileIcon} />
+              <Image source={require('../../assets/images/profile.png')} style={styles.profileIcon} />
               <TextInput placeholder="Search by dishes..." style={styles.searchBar} />
               <TouchableOpacity onPress={() => navigation.navigate('ViewCart')} style={styles.cartIconContainer}>
                 <Icon name="cart" size={24} color="#FFFFFF" />
@@ -242,6 +241,33 @@ const styles = StyleSheet.create({
   foodPrice: { fontSize: 14, color: '#888' },
   addButton: { backgroundColor: '#a00000', padding: 10, borderRadius: 8 },
   addButtonText: { color: '#fff', fontWeight: 'bold' },
+  quantityWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: 80,
+    backgroundColor: '#fff',
+    borderRadius: 5,
+    padding: 5,
+  },
+  decrementButton: {
+    backgroundColor: '#a00000',
+    padding: 5,
+    borderRadius: 3,
+  },
+  incrementButton: {
+    backgroundColor: '#a00000',
+    padding: 5,
+    borderRadius: 3,
+  },
+  quantityText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
 });
 
 export default HomeScreen;

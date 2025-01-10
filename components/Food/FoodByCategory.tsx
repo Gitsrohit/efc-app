@@ -79,24 +79,25 @@ const FoodByCategory = ({ route }) => {
   
   const handleAddToCart = async () => {
     const itemsToAdd = Object.entries(itemQuantities).map(([itemId, quantity]) => {
-      const item = foodItems.find((food) => food.id === itemId);
+      const item = foodItems.find((food) => food._id === itemId); // Match using `_id`
       return {
-        itemId: item.id,
+        itemId: item._id, // Use `_id` as the identifier
         itemName: item.itemName,
         quantity,
         price: item.price,
       };
     });
-
+  
+    console.log('Items to add to cart:', itemsToAdd);
+  
     try {
       const token = await AsyncStorage.getItem('authToken');
-      const userId = await AsyncStorage.getItem('userId');
-
-      if (!token || !userId) {
+  
+      if (!token) {
         alert('User is not authenticated. Please log in.');
         return;
       }
-
+  
       for (const item of itemsToAdd) {
         const response = await fetch('https://efc-app-1.onrender.com/api/v1/cart/add', {
           method: 'POST',
@@ -104,16 +105,18 @@ const FoodByCategory = ({ route }) => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(item),
+          body: JSON.stringify(item), // Send each item in the correct format
         });
-
+  
         if (!response.ok) {
           const errorText = await response.text();
           console.error(`Error adding item (${item.itemName}):`, errorText);
           alert(`Failed to add ${item.itemName} to the cart.`);
+        } else {
+          console.log(`Item (${item.itemName}) added successfully.`);
         }
       }
-
+  
       alert('All items added to cart successfully!');
       setItemQuantities({});
     } catch (error) {
@@ -121,6 +124,7 @@ const FoodByCategory = ({ route }) => {
       alert('Failed to add items to cart.');
     }
   };
+  
 
   const filteredFoodItems = foodItems.filter((item) =>
     item.itemName.toLowerCase().includes(searchText.toLowerCase())
