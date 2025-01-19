@@ -15,6 +15,10 @@ const categorySchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    companyId: { 
+        type: String, 
+        required: true 
+    },
     items: [{ 
         type: mongoose.Schema.Types.ObjectId, ref: 'CategoryItem' 
     }]
@@ -54,6 +58,10 @@ const categoryItemSchema = new mongoose.Schema({
         type: String,
         required: true 
     },
+    companyId: { 
+        type: String, 
+        required: true 
+    },
     category: { 
         type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true 
     } 
@@ -89,11 +97,19 @@ const tableSchema = new mongoose.Schema({
                 type: Number, 
                 default: 1 
             },
+            price: { 
+                type: Number, 
+                required: true, 
+            },
         },
     ],
     reserved: {
         type: Boolean,
         default: false, 
+    },
+    companyId: { 
+        type: String, 
+        required: true 
     },
     kotGeneratedItems: [
         {
@@ -102,6 +118,7 @@ const tableSchema = new mongoose.Schema({
         },
     ],
 }, { timestamps: true });
+
 
 const kotSchema = new mongoose.Schema({
     ticketNumber: {
@@ -117,6 +134,10 @@ const kotSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    companyId: { 
+        type: String, 
+        required: true 
+    },
     operatorId: {
         type: String, 
         required: true,
@@ -125,9 +146,11 @@ const kotSchema = new mongoose.Schema({
         {
             itemName: { type: String, required: true },
             quantity: { type: Number, required: true },
+            price: { type: Number, required: true }, 
         },
     ],
 }, { timestamps: true });
+
 
 const adSchema = new mongoose.Schema(
     {
@@ -142,6 +165,10 @@ const adSchema = new mongoose.Schema(
         image: {
             type: String, 
             required: true,
+        },
+        companyId: { 
+            type: String, 
+            required: true 
         },
         isActive: {
             type: Boolean,
@@ -167,6 +194,40 @@ const AdminProfileSchema = new mongoose.Schema({
     showLogoInReceipts: { type: Boolean, default: false },
     companyId: { type: String, required: true, unique: true },
   }, { timestamps: true });
+  
+
+const billSchema = new mongoose.Schema({
+    tableName: {
+        type: String,
+        required: true,
+    },
+    items: [
+        {
+            itemName: { type: String, required: true },
+            quantity: { type: Number, required: true },
+            rate: { type: Number, required: true },
+            amount: { type: Number, required: true },
+        },
+    ],
+    totalAmount: {
+        type: Number,
+        required: true,
+    },
+    operatorId: {
+        type: String,
+        required: true,
+    },
+    companyId: {
+        type: String,
+        required: true,
+    },
+    generatedAt: {
+        type: Date,
+        default: Date.now,
+    },
+}, { timestamps: true });
+
+
 
 export const Category = mongoose.model('Category', categorySchema);
 export const CategoryItem = mongoose.model('CategoryItem',categoryItemSchema);
@@ -175,3 +236,4 @@ export const Table = mongoose.model('Table', tableSchema);
 export const KOT = mongoose.model('KOT', kotSchema);
 export const Ad = mongoose.model('Ad', adSchema);
 export const AdminProfile = mongoose.model('AdminProfile', AdminProfileSchema);
+export const Bill = mongoose.model('Bill', billSchema);

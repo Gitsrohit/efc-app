@@ -4,7 +4,9 @@ import userAuth from '../middlewares/authMiddlewares.js'
 import upload from '../middlewares/fileUploadMiddlewares.js';
 import multer from 'multer';
 import path from 'path';
-import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController} from "../controller/adminController.js";
+import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController} from "../controller/adminController.js";
+
+import { companyMiddleware } from "../middlewares/companyAuthMiddleware.js";
 
 const router = express.Router();
 
@@ -12,43 +14,64 @@ const router = express.Router();
 //     storage : multer.diskStorage({}),
 //     limits : {fileSize : 500000}
 // })
+// const storage = multer.diskStorage({
+//     destination: (req, file, cb) => {
+//         cb(null, 'uploads/'); 
+//     },
+//     filename: (req, file, cb) => {
+//         cb(null, `${Date.now()}-${file.originalname}`);
+//     },
+// });
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/'); 
-    },
-    filename: (req, file, cb) => {
-        cb(null, `${Date.now()}-${file.originalname}`);
-    },
-});
+const storage = multer.memoryStorage();
 const uploader = multer({ storage });
+
+// const storage = multer.diskStorage({
+//     destination: (req, file, cb) => {
+//         const uploadPath = 'uploads/';
+//         console.log('Destination Path:', uploadPath);
+//         cb(null, uploadPath);
+//     },
+//     filename: (req, file, cb) => {
+//         const fileName = `${Date.now()}-${file.originalname}`;
+//         console.log('File Name:', fileName);
+//         cb(null, fileName);
+//     },
+// });
+// const uploader = multer({ storage });
 
 //create routes
 //category routes
-router.post('/add-category',uploader.single('image'), addCategoryController);
-router.get('/get-category', getAllCategories);
-router.put("/edit-category/:id",uploader.single('image'), editCategoryController);
-router.delete("/delete-category/:id", deleteCategoryController);
+router.post('/add-category',companyMiddleware,uploader.single('image'), addCategoryController);
+router.get('/get-category', companyMiddleware,getAllCategories);
+router.put("/edit-category/:id",companyMiddleware,uploader.single('image'), editCategoryController);
+router.delete("/delete-category/:id",companyMiddleware, deleteCategoryController);
 
 //item routes
-router.post('/add-item', uploader.single('image'), addCategoryItem);
-router.get('/get-item/:id', getCategoryItems);
-router.put("/edit-category-item/:id",uploader.single('image'), editCategoryItemController);
-router.delete("/delete-category-item/:id", deleteCategoryItemController);
+router.post('/add-item', companyMiddleware,uploader.single('image'), addCategoryItem);
+router.get('/get-item/:id',companyMiddleware, getCategoryItems);
+router.put("/edit-category-item/:id",companyMiddleware,uploader.single('image'), editCategoryItemController);
+router.delete("/delete-category-item/:id", companyMiddleware,deleteCategoryItemController);
 
 //table routes
-router.post('/add-table',  addTableController);
-router.get('/get-all-table',  getAllTables);
-router.delete("/delete-table/:id", deleteTableController);
-router.post("/reserve-table/:tableId", addMenuItemsToTable);
+router.post('/add-table', companyMiddleware, addTableController);
+router.get('/get-all-table', companyMiddleware, getAllTables);
+router.delete("/delete-table/:id",companyMiddleware, deleteTableController);
+router.post("/reserve-table/:tableId",companyMiddleware, addMenuItemsToTable);
 
 //kot and billing rutes
-router.post("/generate-table-kot",generateKOTController)
+router.post("/generate-table-kot",companyMiddleware,generateKOTController)
+router.post("/generate-table-bill",companyMiddleware,generateBillController)
 
 //advertisment routes
-router.post('/add-Ad', upload.single('image'), addAdController);
-router.get('/active-ads',getActiveAdsController)
-router.patch('/deactivate-ads/:adId',deactivateAdController)
+router.post('/add-Ad',companyMiddleware, upload.single('image'), addAdController);
+router.get('/active-ads',companyMiddleware, getActiveAdsController)
+router.patch('/deactivate-ads/:adId',companyMiddleware, deactivateAdController)
+
+//adminProfile routes
+router.post('/adminProfile',upsertAdminProfile);
+router.get('/adminProfile/:companyId',getAdminProfile);
+router.post('/register-admin',registerAdminController)
 
 export default router
 

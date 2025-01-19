@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import jwt from 'jsonwebtoken';
 // const { uploadToBackblaze } = require('../middlewares/multerBackblaze.js');
 // import { uploadToBackblaze } from '../middlewares/multerBackblaze.js';
 // import { uploadToBackblaze, uploadFileToBackblaze } from '../middlewares/multerBackblaze.js';
@@ -9,22 +10,25 @@ import {CategoryItem} from '../models/adminModel.js';
 import {Table} from '../models/adminModel.js';
 import {KOT} from '../models/adminModel.js';
 import {Ad} from '../models/adminModel.js';
+import {AdminProfile} from '../models/adminModel.js';
+import {Bill} from '../models/adminModel.js';
+// const onlineOrder = require("../middlewares/kafkaConsumer.js");
 
 
 // add-category controller
 export const addCategoryController = async (req, res) => {
     try {
-        const {name} = req.body;
-        const file = req.file ? req.file.path : null;
+        const { name } = req.body;
+        const companyId = req.companyId;
 
-        if (!file) {
+        if (!req.file) {
             return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
 
-        // const imageUrl = await uploadFile.uploadFile(file);
-        const imageUrl = await uploadFile(file, 'categories');
+        // Pass file buffer to Cloudinary uploader
+        const imageUrl = await uploadFile(req.file.buffer, 'categories');
 
-        const existingCategory = await Category.findOne({name});
+        const existingCategory = await Category.findOne({ name, companyId });
         if (existingCategory) {
             return res.status(400).json({
                 success: false,
@@ -34,22 +38,31 @@ export const addCategoryController = async (req, res) => {
 
         const newCategory = await Category.create({
             name,
-            image: imageUrl
+            companyId,
+            image: imageUrl,
         });
 
-        res.status(201).json(
-            {success: true,
+        res.status(201).json({
+            success: true,
             message: "New category added successfully",
-            data: newCategory,})
+            data: newCategory,
+        });
     } catch (error) {
+        console.error('Error:', error.message);
         res.status(500).json({ error: error.message });
     }
 };
 
+
 // get all category controller
 export const getAllCategories = async (req, res) => {
     try {
-        const categories = await Category.find(); 
+        const companyId = req.companyId;
+
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: 'companyId is required' });
+        }
+        const categories = await Category.find({companyId}); 
         res.status(200).json({
             success: true,
             message: "Categories retrieved successfully",
@@ -69,10 +82,27 @@ export const editCategoryController = async (req, res) => {
     try {
         const categoryId = req.params.id; 
         const {name} = req.body; 
+        const companyId = req.companyId; 
         const imagePath = req.file ? req.file.path : null; 
+
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: "companyId is required",
+            });
+        }
+
+        const category = await Category.findOne({ _id: categoryId, companyId });
+        if (!category) {
+            return res.status(404).json({
+                success: false,
+                message: "Category not found or access denied",
+            });
+        }
 
         const updateData = {};
         if (name) updateData.name = name;
+        if (companyId) updateData.companyId = companyId;
 
         if (imagePath) {
             const imageUrl = await uploadFile(imagePath, 'categories');
@@ -84,6 +114,7 @@ export const editCategoryController = async (req, res) => {
 
         const updatedCategory = await Category.findByIdAndUpdate(
             categoryId,
+
             updateData, 
             {new: true} 
         );
@@ -113,13 +144,21 @@ export const editCategoryController = async (req, res) => {
 // delete category controller
 export const deleteCategoryController = async (req, res) => {
     try {
-        const categoryId = req.params.id;
+        const categoryId = req.params.id; 
+        const companyId = req.companyId; 
 
-        const category = await Category.findById(categoryId);
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: "companyId is required",
+            });
+        }
+
+        const category = await Category.findOne({ _id: categoryId, companyId });
         if (!category) {
             return res.status(404).json({
                 success: false,
-                message: "Category not found",
+                message: "Category not found or you don't have access to delete this category",
             });
         }
 
@@ -140,12 +179,16 @@ export const deleteCategoryController = async (req, res) => {
 };
 
 
-
 // add category item controller
 export const addCategoryItem = async (req, res) => {
     try {
         const {itemName, type, kitchen, price, categoryId, description} = req.body;
+        const companyId = req.companyId; 
         const file = req.file ? req.file.path : null; 
+
+        if (!companyId) {
+            return res.status(400).json({ message: 'companyId is required' });
+        }
 
         const category = await Category.findById(categoryId);
         if (!category) {
@@ -161,7 +204,8 @@ export const addCategoryItem = async (req, res) => {
             price,
             description,
             image:imageUrl,
-            category: categoryId
+            category: categoryId,
+            companyId
         });
 
         category.items.push(newItem._id);
@@ -193,6 +237,14 @@ export const addCategoryItem = async (req, res) => {
 export const getCategoryItems = async (req, res) => {
     try {
         const categoryId  = req.params.id;
+        const companyId = req.companyId; 
+
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: "companyId is required",
+            });
+        }
 
         if (!mongoose.Types.ObjectId.isValid(categoryId)) {
             return res.status(400).json({
@@ -201,7 +253,7 @@ export const getCategoryItems = async (req, res) => {
             });
         }
 
-        const category = await Category.findById(categoryId).populate('items');
+        const category = await Category.findById({_id: categoryId, companyId}).populate('items');
 
         if (!category) {
             return res.status(404).json({
@@ -229,8 +281,24 @@ export const getCategoryItems = async (req, res) => {
 export const editCategoryItemController = async (req, res) => {
     try {
         const itemId = req.params.id; 
-        const {itemName, price, description, categoryId,type} = req.body; 
+        const {itemName, price, description, categoryId,type} = req.body;
+        const companyId = req.companyId;  
         const imagePath = req.file ? req.file.path : null; 
+
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: "companyId is required",
+            });
+        }
+
+        const categoryItem = await CategoryItem.findOne({ _id: itemId, companyId });
+        if (!categoryItem) {
+            return res.status(404).json({
+                success: false,
+                message: "Category item not found or you don't have access to edit this item",
+            });
+        }
 
         const updateData = {};
         if (itemName) updateData.itemName = itemName;
@@ -243,6 +311,7 @@ export const editCategoryItemController = async (req, res) => {
         // if (imagePath) updateData.image = imagePath;
         if (categoryId) updateData.category = categoryId;
         if (type) updateData.type = type;
+        if (companyId) updateData.companyId = companyId;
 
         console.log("Update Data:", updateData);
 
@@ -278,22 +347,42 @@ export const editCategoryItemController = async (req, res) => {
 export const deleteCategoryItemController = async (req, res) => {
     try {
         const itemId = req.params.id;
+        const companyId = req.companyId; 
 
-        const categoryItem = await CategoryItem.findById(itemId);
+        // const categoryItem = await CategoryItem.findById(itemId);
+        // if (!categoryItem) {
+        //     return res.status(404).json({
+        //         success: false,
+        //         message: "Category item not found",
+        //     });
+        // }
+
+        // const categoryId = categoryItem.category;
+        // await Category.findByIdAndUpdate(
+        //     categoryId,
+        //     {$pull: {items: itemId}},
+        //     {new: true}
+        // );
+
+        // await CategoryItem.findByIdAndDelete(itemId);
+
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: "companyId is required",
+            });
+        }
+
+        const categoryItem = await CategoryItem.findOne({ _id: itemId, companyId });
         if (!categoryItem) {
             return res.status(404).json({
                 success: false,
-                message: "Category item not found",
+                message: "Category item not found or you don't have access to delete this item",
             });
         }
 
         const categoryId = categoryItem.category;
-        await Category.findByIdAndUpdate(
-            categoryId,
-            {$pull: {items: itemId}},
-            {new: true}
-        );
-
+        await Category.findByIdAndUpdate(categoryId, { $pull: { items: itemId } }, { new: true });
         await CategoryItem.findByIdAndDelete(itemId);
         
         res.status(200).json({
@@ -314,13 +403,20 @@ export const deleteCategoryItemController = async (req, res) => {
 export const addTableController = async (req, res) => {
     try {
         const {name} = req.body;
+        const companyId = req.companyId; 
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: "companyId is required",
+            });
+        }
 
         const existingTable = await Table.findOne({name});
         if (existingTable) {
             return res.status(400).json({success: false, message: "Table already exists"});
         }
 
-        const newTable = await Table.create({name});
+        const newTable = await Table.create({name,companyId});
 
         res.status(201).json({ success: true, message: "Table added successfully", data: newTable });
     } catch (error) {
@@ -331,7 +427,22 @@ export const addTableController = async (req, res) => {
 //get table controller
 export const getAllTables = async (req, res) => {
     try {
-        const tables = await Table.find().populate('menuItems.item', 'itemName price');
+        const companyId = req.companyId; 
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: "companyId is required",
+            });
+        }
+
+        const tables = await Table.find({companyId: companyId}).populate('menuItems.item', 'itemName price');
+
+        if (tables.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No tables found for this company",
+            });
+        }
         res.status(200).json({
             success: true,
             message: "Tables fetched successfully",
@@ -351,6 +462,28 @@ export const getAllTables = async (req, res) => {
 export const deleteTableController = async (req, res) => {
     try {
         const tableId = req.params.id; 
+        const companyId = req.companyId; 
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: "companyId is required",
+            });
+        }
+
+        const table = await Table.findById(tableId);
+        if (!table) {
+            return res.status(404).json({
+                success: false,
+                message: "Table not found",
+            });
+        }
+
+        if (table.companyId.toString() !== companyId.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not authorized to delete this table",
+            });
+        }
 
         const deletedTable = await Table.findByIdAndDelete(tableId);
 
@@ -380,16 +513,32 @@ export const addMenuItemsToTable = async (req, res) => {
     try {
         const {tableId} = req.params;
         const {items} = req.body; 
+        const companyId = req.companyId; 
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: "companyId is required",
+            });
+        }
 
         const table = await Table.findById(tableId);
         if (!table) {
             return res.status(404).json({ success: false, message: "Table not found" });
         }
 
+        if (table.companyId.toString() !== companyId.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not authorized to add menu items to this table",
+            });
+        }
+
+        const adminMenuItems = await CategoryItem.find({ companyId });
+
         for (const {itemId, quantity} of items) {
-            const menuItem = await CategoryItem.findById(itemId);
+            const menuItem = adminMenuItems.find(item => item._id.toString() === itemId.toString());
             if (!menuItem) {
-                return res.status(404).json({ success: false, message: `Menu item not found: ${itemId}` });
+                return res.status(404).json({ success: false, message: `Menu item not found or not part of your menu: ${itemId}` });
             }
 
             const existingItem = table.menuItems.find(
@@ -402,9 +551,11 @@ export const addMenuItemsToTable = async (req, res) => {
                 table.menuItems.push({
                     item: itemId,
                     quantity: quantity || 1,
+                    price: menuItem.price,
                 });
             }
         }
+
         table.reserved = true;
         await table.save();
 
@@ -427,6 +578,7 @@ export const addAdController = async (req, res) => {
     try {
         const {name, description} = req.body;
         const imagePath = req.file ? req.file.path : null;
+        const companyId = req.companyId; 
 
         if (!name || !description) {
             return res.status(400).json({
@@ -435,11 +587,19 @@ export const addAdController = async (req, res) => {
             });
         }
 
-        const imageUrl = await uploadFile(file, 'categories');
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: "companyId is required",
+            });
+        }
+
+        const imageUrl = await uploadFile(imagePath, 'categories');
 
         const newAd = await Ad.create({
             name,
             description,
+            companyId,
             image:imageUrl,
         });
 
@@ -460,7 +620,16 @@ export const addAdController = async (req, res) => {
 // get active ads controller
 export const getActiveAdsController = async (req, res) => {
     try {
-        const ads = await Ad.find({isActive: true});
+        const companyId = req.companyId; 
+
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: "companyId is required",
+            });
+        }
+
+        const ads = await Ad.find({isActive: true,companyId});
 
         res.status(200).json({
             success: true,
@@ -479,8 +648,15 @@ export const getActiveAdsController = async (req, res) => {
 // deactivate ads 
 export const deactivateAdController = async (req, res) => {
     try {
+        const companyId = req.companyId; 
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: "companyId is required",
+            });
+        }
         const {adId} = req.params;
-        const ad = await Ad.findById(adId);
+        const ad = await Ad.findOne({ _id: adId, companyId });
 
         if (!ad) {
             return res.status(404).json({ success: false, message: "Ad not found" });
@@ -506,10 +682,18 @@ export const deactivateAdController = async (req, res) => {
 export const generateKOTController = async (req, res) => {
     try {
         const { tableId, operatorId } = req.body;
+        const companyId = req.companyId;
 
-        const table = await Table.findById(tableId).populate(
-            'menuItems.item',
-            'itemName'
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: "companyId is required",
+            });
+        }
+
+        const table = await Table.findOne({ _id: tableId, companyId }).populate(
+            "menuItems.item",
+            "itemName price"
         );
 
         if (!table) {
@@ -524,16 +708,17 @@ export const generateKOTController = async (req, res) => {
 
                 const newQuantity = alreadyInKOT
                     ? menuItem.quantity - alreadyInKOT.quantity
-                    : menuItem.quantity; 
+                    : menuItem.quantity;
 
                 if (newQuantity > 0) {
                     return {
                         item: menuItem.item,
-                        quantity: newQuantity, 
+                        quantity: newQuantity,
+                        price: menuItem.price, // Use the price from the table menu items
                     };
                 }
 
-                return null; 
+                return null;
             })
             .filter(Boolean);
 
@@ -549,12 +734,14 @@ export const generateKOTController = async (req, res) => {
         const kotItems = newItems.map((newItem) => ({
             itemName: newItem.item.itemName,
             quantity: newItem.quantity,
+            price: newItem.price,
         }));
 
         const kot = await KOT.create({
             ticketNumber,
             tableName: table.name,
             operatorId,
+            companyId,
             items: kotItems,
         });
 
@@ -568,7 +755,7 @@ export const generateKOTController = async (req, res) => {
             } else {
                 table.kotGeneratedItems.push({
                     item: newItem.item._id,
-                    quantity: newItem.quantity, 
+                    quantity: newItem.quantity,
                 });
             }
         });
@@ -589,6 +776,244 @@ export const generateKOTController = async (req, res) => {
         });
     }
 };
+
+
+//bill generation api controller
+export const generateBillController = async (req, res) => {
+    try {
+        const { tableId, operatorId } = req.body;
+        const companyId = req.companyId;
+
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: "companyId is required",
+            });
+        }
+
+        const table = await Table.findOne({ _id: tableId, companyId }).populate(
+            "kotGeneratedItems.item",
+            "itemName price"
+        );
+
+        if (!table) {
+            return res.status(404).json({
+                success: false,
+                message: "Table not found",
+            });
+        }
+
+        if (!table.reserved) {
+            return res.status(400).json({
+                success: false,
+                message: "Table is not reserved. No bill to generate.",
+            });
+        }
+
+        const kots = await KOT.find({ tableName: table.name, companyId });
+
+        if (!kots || kots.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "No KOTs found for this table.",
+            });
+        }
+
+        let totalAmount = 0;
+        const billItems = [];
+
+        kots.forEach((kot) => {
+            kot.items.forEach((item) => {
+                const existingItem = billItems.find(
+                    (billItem) => billItem.itemName === item.itemName
+                );
+
+                if (existingItem) {
+                    existingItem.quantity += item.quantity;
+                    existingItem.amount += item.quantity * existingItem.rate;
+                } else {
+                    const rate = item.price;
+                    const amount = item.quantity * rate;
+
+                    billItems.push({
+                        itemName: item.itemName,
+                        quantity: item.quantity,
+                        rate: rate,
+                        amount: amount,
+                    });
+
+                    totalAmount += amount;
+                }
+            });
+        });
+
+        const bill = {
+            tableName: table.name,
+            items: billItems,
+            totalAmount,
+            operatorId,
+            companyId,
+            generatedAt: new Date(),
+        };
+
+        const savedBill = await Bill.create(bill);
+
+        table.reserved = false;
+        table.kotGeneratedItems = [];
+        await table.save();
+
+        res.status(201).json({
+            success: true,
+            message: "Bill generated successfully",
+            data: savedBill,
+        });
+    } catch (error) {
+        console.error("Error generating bill:", error.message);
+        res.status(500).json({
+            success: false,
+            message: "Error generating bill",
+            error: error.message,
+        });
+    }
+};
+
+// admin profile apis
+export const registerAdminController = async (req, res) => {
+    try {
+        const {
+            restaurantName,
+            addressLine1,
+            addressLine2,
+            state,
+            contactNo,
+            emailId,
+            gstin,
+            cin,
+            baseCurrency,
+            currencyCode,
+            ticketFooterMessage,
+            startBillNo,
+            showLogoInReceipts,
+            companyId,
+        } = req.body;
+
+        const existingAdmin = await AdminProfile.findOne({ $or: [{ emailId }, { companyId }] });
+        if (existingAdmin) {
+            return res.status(400).json({
+                success: false,
+                message: 'Admin with this email or company ID already exists',
+            });
+        }
+
+        const newAdmin = await AdminProfile.create({
+            restaurantName,
+            addressLine1,
+            addressLine2,
+            state,
+            contactNo,
+            emailId,
+            gstin,
+            cin,
+            baseCurrency,
+            currencyCode,
+            ticketFooterMessage,
+            startBillNo,
+            showLogoInReceipts,
+            companyId,
+        });
+
+        const token = jwt.sign(
+            { adminId: newAdmin._id, companyId: newAdmin.companyId },
+            process.env.JWT_ADMIN_SECRET,
+            { expiresIn: '1000d' }
+        );
+
+        res.status(201).json({
+            success: true,
+            message: 'Admin registered successfully',
+            token,
+            data: {
+                restaurantName: newAdmin.restaurantName,
+                emailId: newAdmin.emailId,
+                companyId: newAdmin.companyId,
+            },
+        });
+    } catch (error) {
+        console.error('Error registering admin:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Error registering admin',
+            error: error.message,
+        });
+    }
+};
+
+
+export const upsertAdminProfile = async (req, res) => {
+  try {
+    const {
+      restaurantName,
+      addressLine1,
+      addressLine2,
+      state,
+      contactNo,
+      emailId,
+      gstin,
+      cin,
+      baseCurrency,
+      currencyCode,
+      ticketFooterMessage,
+      startBillNo,
+      showLogoInReceipts,
+      companyId,
+    } = req.body;
+
+    const profileData = {
+      restaurantName,
+      addressLine1,
+      addressLine2,
+      state,
+      contactNo,
+      emailId,
+      gstin,
+      cin,
+      baseCurrency,
+      currencyCode,
+      ticketFooterMessage,
+      startBillNo,
+      showLogoInReceipts,
+      companyId,
+    };
+
+    const profile = await AdminProfile.findOneAndUpdate(
+      { companyId },
+      profileData,
+      { new: true, upsert: true }
+    );
+
+    res.status(200).json({ success: true, data: profile });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get Admin Profile
+export const getAdminProfile = async (req, res) => {
+  try {
+    const {companyId} = req.params;
+
+    const profile = await AdminProfile.findOne({ companyId });
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'Profile not found' });
+    }
+
+    res.status(200).json({ success: true, data: profile });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 
 
 
