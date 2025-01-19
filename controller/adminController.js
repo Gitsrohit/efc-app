@@ -105,7 +105,7 @@ export const editCategoryController = async (req, res) => {
         if (companyId) updateData.companyId = companyId;
 
         if (imagePath) {
-            const imageUrl = await uploadFile(imagePath, 'categories');
+            const imageUrl = await uploadFile(imagePath.buffer, 'categories');
             updateData.image = imageUrl;
         }
         // if (imagePath) updateData.image = imagePath;
@@ -195,7 +195,7 @@ export const addCategoryItem = async (req, res) => {
             return res.status(404).json({ message:'Category not found'});
         }
 
-        const imageUrl = await uploadFile(file, 'categories');
+        const imageUrl = await uploadFile(file.buffer, 'categories');
 
         const newItem = await CategoryItem.create({
             itemName,
@@ -305,7 +305,7 @@ export const editCategoryItemController = async (req, res) => {
         if (price) updateData.price = price;
         if (description) updateData.description = description;
         if (imagePath) {
-            const imageUrl = await uploadFile(imagePath, 'categories');
+            const imageUrl = await uploadFile(imagePath.buffer, 'categories');
             updateData.image = imageUrl;
         }
         // if (imagePath) updateData.image = imagePath;
@@ -594,7 +594,7 @@ export const addAdController = async (req, res) => {
             });
         }
 
-        const imageUrl = await uploadFile(imagePath, 'categories');
+        const imageUrl = await uploadFile(imagePath.buffer, 'categories');
 
         const newAd = await Ad.create({
             name,
