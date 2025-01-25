@@ -4,11 +4,13 @@ import userAuth from '../middlewares/authMiddlewares.js'
 import upload from '../middlewares/fileUploadMiddlewares.js';
 import multer from 'multer';
 import path from 'path';
-import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController} from "../controller/adminController.js";
+import resetStocksMiddleware from "../middlewares/resetStocksMiddleware.js";
+import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController} from "../controller/adminController.js";
 
 import { companyMiddleware } from "../middlewares/companyAuthMiddleware.js";
 
 const router = express.Router();
+resetStocksMiddleware();
 
 // const uploader = multer({
 //     storage : multer.diskStorage({}),
@@ -48,10 +50,11 @@ router.put("/edit-category/:id",companyMiddleware,uploader.single('image'), edit
 router.delete("/delete-category/:id",companyMiddleware, deleteCategoryController);
 
 //item routes
-router.post('/add-item', companyMiddleware,uploader.single('image'), addCategoryItem);
+router.post('/add-item', companyMiddleware, uploader.single('image'), addCategoryItem);
 router.get('/get-item/:id',companyMiddleware, getCategoryItems);
 router.put("/edit-category-item/:id",companyMiddleware,uploader.single('image'), editCategoryItemController);
 router.delete("/delete-category-item/:id", companyMiddleware,deleteCategoryItemController);
+router.post('/add-stock', companyMiddleware, addStockController);
 
 //table routes
 router.post('/add-table', companyMiddleware, addTableController);
@@ -62,6 +65,7 @@ router.post("/reserve-table/:tableId",companyMiddleware, addMenuItemsToTable);
 //kot and billing rutes
 router.post("/generate-table-kot",companyMiddleware,generateKOTController)
 router.post("/generate-table-bill",companyMiddleware,generateBillController)
+router.post("/generate-table-bill-new",companyMiddleware,generateNewBillController)
 
 //advertisment routes
 router.post('/add-Ad',companyMiddleware, upload.single('image'), addAdController);

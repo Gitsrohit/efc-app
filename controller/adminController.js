@@ -12,6 +12,7 @@ import {KOT} from '../models/adminModel.js';
 import {Ad} from '../models/adminModel.js';
 import {AdminProfile} from '../models/adminModel.js';
 import {Bill} from '../models/adminModel.js';
+import {NewBill} from '../models/adminModel.js';
 // const onlineOrder = require("../middlewares/kafkaConsumer.js");
 
 
@@ -178,13 +179,11 @@ export const deleteCategoryController = async (req, res) => {
     }
 };
 
-
 // add category item controller
 export const addCategoryItem = async (req, res) => {
     try {
-        const {itemName, type, kitchen, price, categoryId, description} = req.body;
+        const { itemName, type, kitchen, price, categoryId, description } = req.body;
         const companyId = req.companyId; 
-        const file = req.file ? req.file.path : null; 
 
         if (!companyId) {
             return res.status(400).json({ message: 'companyId is required' });
@@ -192,10 +191,16 @@ export const addCategoryItem = async (req, res) => {
 
         const category = await Category.findById(categoryId);
         if (!category) {
-            return res.status(404).json({ message:'Category not found'});
+            return res.status(404).json({ message: 'Category not found' });
         }
 
-        const imageUrl = await uploadFile(file.buffer, 'categories');
+        let imageUrl = null;
+
+        if (req.file && req.file.buffer) {
+            imageUrl = await uploadFile(req.file.buffer, 'categories');
+        } else {
+            return res.status(400).json({ message: 'Image file is required' });
+        }
 
         const newItem = await CategoryItem.create({
             itemName,
@@ -203,7 +208,7 @@ export const addCategoryItem = async (req, res) => {
             kitchen,
             price,
             description,
-            image:imageUrl,
+            image: imageUrl,
             category: categoryId,
             companyId
         });
@@ -213,9 +218,11 @@ export const addCategoryItem = async (req, res) => {
 
         res.status(201).json({ message: 'Menu item added successfully', item: newItem });
     } catch (error) {
+        console.error("Error adding menu item:", error.message);
         res.status(500).json({ message: 'Error adding menu item', error: error.message });
     }
 };
+
 
 // get category item controller
 // export const getCategoryItems = async (req, res) => {
@@ -398,6 +405,35 @@ export const deleteCategoryItemController = async (req, res) => {
         });
     }
 };
+
+//add stocks to each item
+export const addStockController = async (req, res) => {
+    try {
+        const {itemId, stockToAdd} = req.body;
+
+        if (!itemId || stockToAdd === undefined) {
+            return res.status(400).json({ message: "Item ID and stock quantity are required" });
+        }
+
+        const item = await CategoryItem.findById(itemId);
+
+        if (!item) {
+            return res.status(404).json({ message: "Item not found" });
+        }
+
+        item.stock += stockToAdd; 
+        await item.save();
+
+        res.status(200).json({
+            message: "Stock updated successfully",
+            data: { itemName: item.itemName, stock: item.stock },
+        });
+    } catch (error) {
+        console.error("Error updating stock:", error.message);
+        res.status(500).json({ message: "Error updating stock", error: error.message });
+    }
+};
+
 
 // add table controller
 export const addTableController = async (req, res) => {
@@ -691,37 +727,37 @@ export const generateKOTController = async (req, res) => {
             });
         }
 
+        // Fetch the table with menu items and generated KOTs
         const table = await Table.findOne({ _id: tableId, companyId }).populate(
             "menuItems.item",
-            "itemName price"
+            "_id itemName price"
         );
 
         if (!table) {
             return res.status(404).json({ success: false, message: "Table not found" });
         }
 
-        const newItems = table.menuItems
-            .map((menuItem) => {
-                const alreadyInKOT = table.kotGeneratedItems.find(
-                    (kotItem) => kotItem.item.toString() === menuItem.item._id.toString()
-                );
+        // Filter out items already included in previously generated KOTs
+        const newItems = table.menuItems.filter((menuItem) => {
+            const existingGeneratedItem = table.kotGeneratedItems.find(
+                (kotItem) => kotItem.item.toString() === menuItem.item._id.toString()
+            );
 
-                const newQuantity = alreadyInKOT
-                    ? menuItem.quantity - alreadyInKOT.quantity
-                    : menuItem.quantity;
-
-                if (newQuantity > 0) {
-                    return {
-                        item: menuItem.item,
-                        quantity: newQuantity,
-                        price: menuItem.price, // Use the price from the table menu items
-                    };
+            // Exclude items already part of previous KOTs
+            if (existingGeneratedItem) {
+                // Check if the new quantity is greater than the already generated quantity
+                if (menuItem.quantity > existingGeneratedItem.quantity) {
+                    // Update the quantity for the remaining items
+                    menuItem.quantity -= existingGeneratedItem.quantity;
+                    return true;
+                } else {
+                    return false;
                 }
+            }
+            return true; // Include items not in any previous KOT
+        });
 
-                return null;
-            })
-            .filter(Boolean);
-
+        // Return error if no new items to generate KOT
         if (newItems.length === 0) {
             return res.status(400).json({
                 success: false,
@@ -729,42 +765,50 @@ export const generateKOTController = async (req, res) => {
             });
         }
 
-        const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
+        // Generate a ticket number based on whether it is the first or a running KOT
+        const ticketNumber = table.kotGeneratedItems.length === 0 
+            ? `KOT-${Math.floor(10000 + Math.random() * 90000)}`
+            : `RunningKOT-${Math.floor(10000 + Math.random() * 90000)}`;
 
-        const kotItems = newItems.map((newItem) => ({
-            itemName: newItem.item.itemName,
-            quantity: newItem.quantity,
-            price: newItem.price,
-        }));
-
+        // Create a new KOT document
         const kot = await KOT.create({
             ticketNumber,
             tableName: table.name,
             operatorId,
             companyId,
-            items: kotItems,
+            items: newItems.map((menuItem) => ({
+                itemName: menuItem.item.itemName,
+                quantity: menuItem.quantity,
+                price: menuItem.item.price,
+            })),
         });
 
-        newItems.forEach((newItem) => {
+        // Update the table's `kotGeneratedItems` to include the newly generated items
+        newItems.forEach((menuItem) => {
             const existingGeneratedItem = table.kotGeneratedItems.find(
-                (kotItem) => kotItem.item.toString() === newItem.item._id.toString()
+                (kotItem) => kotItem.item.toString() === menuItem.item._id.toString()
             );
 
             if (existingGeneratedItem) {
-                existingGeneratedItem.quantity += newItem.quantity;
+                // Increment the quantity for existing items
+                existingGeneratedItem.quantity += menuItem.quantity;
             } else {
+                // Add new items to `kotGeneratedItems`
                 table.kotGeneratedItems.push({
-                    item: newItem.item._id,
-                    quantity: newItem.quantity,
+                    item: menuItem.item._id,
+                    quantity: menuItem.quantity,
                 });
             }
         });
 
+        // Save the updated table document
         await table.save();
 
         res.status(201).json({
             success: true,
-            message: "Kitchen Order Ticket generated successfully",
+            message: table.kotGeneratedItems.length === 0
+                ? "Kitchen Order Ticket generated successfully"
+                : "Running KOT generated successfully",
             data: kot,
         });
     } catch (error) {
@@ -829,8 +873,11 @@ export const generateBillController = async (req, res) => {
                 );
 
                 if (existingItem) {
+                    const additionalAmount = item.quantity * existingItem.rate;
                     existingItem.quantity += item.quantity;
-                    existingItem.amount += item.quantity * existingItem.rate;
+                    existingItem.amount += additionalAmount;
+
+                    totalAmount += additionalAmount;
                 } else {
                     const rate = item.price;
                     const amount = item.quantity * rate;
@@ -858,8 +905,10 @@ export const generateBillController = async (req, res) => {
 
         const savedBill = await Bill.create(bill);
 
-        table.reserved = false;
+        // Reset table state
+        table.menuItems = [];
         table.kotGeneratedItems = [];
+        table.reserved = false;
         await table.save();
 
         res.status(201).json({
@@ -876,6 +925,87 @@ export const generateBillController = async (req, res) => {
         });
     }
 };
+
+
+// generate new bill 
+export const generateNewBillController = async (req, res) => {
+    try {
+        const { tableId, operatorId } = req.body;
+        const companyId = req.companyId;
+
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: "companyId is required",
+            });
+        }
+
+        const table = await Table.findOne({ _id: tableId, companyId }).populate(
+            "kotGeneratedItems.item",
+            "itemName price"
+        );
+
+        if (!table) {
+            return res.status(404).json({
+                success: false,
+                message: "Table not found",
+            })
+        }
+
+        const kots = await KOT.find({ tableName: table.name, companyId });
+
+        if (!kots || kots.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "No KOTs found for this table.",
+            });
+        }
+
+        let totalAmount = 0;
+        const billItems = [];
+
+        kots.forEach((kot) => {
+            kot.items.forEach((item) => {
+                const rate = item.price;
+                const amount = item.quantity * rate * 0.1; 
+
+                billItems.push({
+                    itemName: item.itemName,
+                    quantity: item.quantity,
+                    rate: rate,
+                    amount: amount,
+                });
+
+                totalAmount += amount;
+            });
+        });
+
+        const tenPercentBill = {
+            tableName: table.name,
+            items: billItems,
+            totalAmount,
+            operatorId,
+            companyId,
+            generatedAt: new Date(),
+        };
+
+        const savedTenPercentBill = await NewBill.create(tenPercentBill);
+
+        res.status(201).json({
+            success: true,
+            message: "10% Bill generated successfully",
+            data: savedTenPercentBill,
+        });
+    } catch (error) {
+        console.error("Error generating 10% bill:", error.message);
+        res.status(500).json({
+            success: false,
+            message: "Error generating 10% bill",
+            error: error.message,
+        });
+    }
+};
+
 
 // admin profile apis
 export const registerAdminController = async (req, res) => {
