@@ -183,7 +183,7 @@ export const deleteCategoryController = async (req, res) => {
 export const addCategoryItem = async (req, res) => {
     try {
         const { itemName, type, kitchen, price, categoryId, description } = req.body;
-        const companyId = req.companyId; 
+        const companyId = req.companyId;
 
         if (!companyId) {
             return res.status(400).json({ message: 'companyId is required' });
@@ -192,6 +192,19 @@ export const addCategoryItem = async (req, res) => {
         const category = await Category.findById(categoryId);
         if (!category) {
             return res.status(404).json({ message: 'Category not found' });
+        }
+
+        // Check for duplicate items with the same itemName, type, and companyId
+        const existingItem = await CategoryItem.findOne({ 
+            itemName, 
+            type, 
+            companyId 
+        });
+
+        if (existingItem) {
+            return res.status(400).json({
+                message: 'An item with the same name and type already exists for this company.',
+            });
         }
 
         let imageUrl = null;
@@ -210,7 +223,7 @@ export const addCategoryItem = async (req, res) => {
             description,
             image: imageUrl,
             category: categoryId,
-            companyId
+            companyId,
         });
 
         category.items.push(newItem._id);
@@ -222,6 +235,7 @@ export const addCategoryItem = async (req, res) => {
         res.status(500).json({ message: 'Error adding menu item', error: error.message });
     }
 };
+
 
 
 // get category item controller
@@ -715,6 +729,112 @@ export const deactivateAdController = async (req, res) => {
 };
 
 // kot generation for a table
+// export const generateKOTController = async (req, res) => {
+//     try {
+//         const { tableId, operatorId } = req.body;
+//         const companyId = req.companyId;
+
+//         if (!companyId) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "companyId is required",
+//             });
+//         }
+
+//         // Fetch the table with menu items and generated KOTs
+//         const table = await Table.findOne({ _id: tableId, companyId }).populate(
+//             "menuItems.item",
+//             "_id itemName price"
+//         );
+
+//         if (!table) {
+//             return res.status(404).json({ success: false, message: "Table not found" });
+//         }
+
+//         // Filter out items already included in previously generated KOTs
+//         const newItems = table.menuItems.filter((menuItem) => {
+//             const existingGeneratedItem = table.kotGeneratedItems.find(
+//                 (kotItem) => kotItem.item.toString() === menuItem.item._id.toString()
+//             );
+
+//             // Exclude items already part of previous KOTs
+//             if (existingGeneratedItem) {
+//                 // Check if the new quantity is greater than the already generated quantity
+//                 if (menuItem.quantity > existingGeneratedItem.quantity) {
+//                     // Update the quantity for the remaining items
+//                     menuItem.quantity -= existingGeneratedItem.quantity;
+//                     return true;
+//                 } else {
+//                     return false;
+//                 }
+//             }
+//             return true; // Include items not in any previous KOT
+//         });
+
+//         // Return error if no new items to generate KOT
+//         if (newItems.length === 0) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "No new items to generate KOT for",
+//             });
+//         }
+
+//         // Generate a ticket number based on whether it is the first or a running KOT
+//         const ticketNumber = table.kotGeneratedItems.length === 0 
+//             ? `KOT-${Math.floor(10000 + Math.random() * 90000)}`
+//             : `RunningKOT-${Math.floor(10000 + Math.random() * 90000)}`;
+
+//         // Create a new KOT document
+//         const kot = await KOT.create({
+//             ticketNumber,
+//             tableName: table.name,
+//             operatorId,
+//             companyId,
+//             items: newItems.map((menuItem) => ({
+//                 itemName: menuItem.item.itemName,
+//                 quantity: menuItem.quantity,
+//                 price: menuItem.item.price,
+//             })),
+//         });
+
+//         // Update the table's `kotGeneratedItems` to include the newly generated items
+//         newItems.forEach((menuItem) => {
+//             const existingGeneratedItem = table.kotGeneratedItems.find(
+//                 (kotItem) => kotItem.item.toString() === menuItem.item._id.toString()
+//             );
+
+//             if (existingGeneratedItem) {
+//                 // Increment the quantity for existing items
+//                 existingGeneratedItem.quantity += menuItem.quantity;
+//             } else {
+//                 // Add new items to `kotGeneratedItems`
+//                 table.kotGeneratedItems.push({
+//                     item: menuItem.item._id,
+//                     quantity: menuItem.quantity,
+//                 });
+//             }
+//         });
+
+//         // Save the updated table document
+//         await table.save();
+
+//         res.status(201).json({
+//             success: true,
+//             message: table.kotGeneratedItems.length === 0
+//                 ? "Kitchen Order Ticket generated successfully"
+//                 : "Running KOT generated successfully",
+//             data: kot,
+//         });
+//     } catch (error) {
+//         console.error("Error generating KOT:", error.message);
+//         res.status(500).json({
+//             success: false,
+//             message: "Error generating KOT",
+//             error: error.message,
+//         });
+//     }
+// };
+
 export const generateKOTController = async (req, res) => {
     try {
         const { tableId, operatorId } = req.body;
@@ -730,7 +850,7 @@ export const generateKOTController = async (req, res) => {
         // Fetch the table with menu items and generated KOTs
         const table = await Table.findOne({ _id: tableId, companyId }).populate(
             "menuItems.item",
-            "_id itemName price"
+            "_id itemName price kitchen"
         );
 
         if (!table) {
@@ -743,11 +863,8 @@ export const generateKOTController = async (req, res) => {
                 (kotItem) => kotItem.item.toString() === menuItem.item._id.toString()
             );
 
-            // Exclude items already part of previous KOTs
             if (existingGeneratedItem) {
-                // Check if the new quantity is greater than the already generated quantity
                 if (menuItem.quantity > existingGeneratedItem.quantity) {
-                    // Update the quantity for the remaining items
                     menuItem.quantity -= existingGeneratedItem.quantity;
                     return true;
                 } else {
@@ -757,7 +874,6 @@ export const generateKOTController = async (req, res) => {
             return true; // Include items not in any previous KOT
         });
 
-        // Return error if no new items to generate KOT
         if (newItems.length === 0) {
             return res.status(400).json({
                 success: false,
@@ -765,51 +881,65 @@ export const generateKOTController = async (req, res) => {
             });
         }
 
-        // Generate a ticket number based on whether it is the first or a running KOT
-        const ticketNumber = table.kotGeneratedItems.length === 0 
-            ? `KOT-${Math.floor(10000 + Math.random() * 90000)}`
-            : `RunningKOT-${Math.floor(10000 + Math.random() * 90000)}`;
-
-        // Create a new KOT document
-        const kot = await KOT.create({
-            ticketNumber,
-            tableName: table.name,
-            operatorId,
-            companyId,
-            items: newItems.map((menuItem) => ({
+        // Group items by kitchen type
+        const itemsByKitchen = newItems.reduce((acc, menuItem) => {
+            const kitchen = menuItem.item.kitchen;
+            if (!acc[kitchen]) acc[kitchen] = [];
+            acc[kitchen].push({
                 itemName: menuItem.item.itemName,
                 quantity: menuItem.quantity,
                 price: menuItem.item.price,
-            })),
-        });
+                itemId: menuItem.item._id, // Add item ID for future reference
+            });
+            return acc;
+        }, {});
 
-        // Update the table's `kotGeneratedItems` to include the newly generated items
-        newItems.forEach((menuItem) => {
-            const existingGeneratedItem = table.kotGeneratedItems.find(
-                (kotItem) => kotItem.item.toString() === menuItem.item._id.toString()
-            );
+        const generatedKOTs = [];
 
-            if (existingGeneratedItem) {
-                // Increment the quantity for existing items
-                existingGeneratedItem.quantity += menuItem.quantity;
-            } else {
-                // Add new items to `kotGeneratedItems`
-                table.kotGeneratedItems.push({
-                    item: menuItem.item._id,
-                    quantity: menuItem.quantity,
-                });
-            }
-        });
+        // Generate KOTs for each kitchen
+        for (const kitchen in itemsByKitchen) {
+            const items = itemsByKitchen[kitchen];
 
-        // Save the updated table document
+            const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
+
+            const kot = await KOT.create({
+                ticketNumber,
+                tableName: table.name,
+                operatorId,
+                companyId,
+                items: items.map((item) => ({
+                    itemName: item.itemName,
+                    quantity: item.quantity,
+                    price: item.price,
+                })),
+            });
+
+            // Update table's `kotGeneratedItems`
+            items.forEach((item) => {
+                const existingGeneratedItem = table.kotGeneratedItems.find(
+                    (kotItem) => kotItem.item.toString() === item.itemId.toString()
+                );
+
+                if (existingGeneratedItem) {
+                    existingGeneratedItem.quantity += item.quantity;
+                } else {
+                    table.kotGeneratedItems.push({
+                        item: item.itemId,
+                        quantity: item.quantity,
+                    });
+                }
+            });
+
+            generatedKOTs.push(kot);
+        }
+
+        // Save updated table
         await table.save();
 
         res.status(201).json({
             success: true,
-            message: table.kotGeneratedItems.length === 0
-                ? "Kitchen Order Ticket generated successfully"
-                : "Running KOT generated successfully",
-            data: kot,
+            message: "KOTs generated successfully",
+            data: generatedKOTs,
         });
     } catch (error) {
         console.error("Error generating KOT:", error.message);
@@ -822,7 +952,111 @@ export const generateKOTController = async (req, res) => {
 };
 
 
+
 //bill generation api controller
+// export const generateBillController = async (req, res) => {
+//     try {
+//         const { tableId, operatorId } = req.body;
+//         const companyId = req.companyId;
+
+//         if (!companyId) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "companyId is required",
+//             });
+//         }
+
+//         const table = await Table.findOne({ _id: tableId, companyId }).populate(
+//             "kotGeneratedItems.item",
+//             "itemName price"
+//         );
+
+//         if (!table) {
+//             return res.status(404).json({
+//                 success: false,
+//                 message: "Table not found",
+//             });
+//         }
+
+//         if (!table.reserved) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "Table is not reserved. No bill to generate.",
+//             });
+//         }
+
+//         const kots = await KOT.find({ tableName: table.name, companyId });
+
+//         if (!kots || kots.length === 0) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "No KOTs found for this table.",
+//             });
+//         }
+
+//         let totalAmount = 0;
+//         const billItems = [];
+
+//         kots.forEach((kot) => {
+//             kot.items.forEach((item) => {
+//                 const existingItem = billItems.find(
+//                     (billItem) => billItem.itemName === item.itemName
+//                 );
+
+//                 if (existingItem) {
+//                     const additionalAmount = item.quantity * existingItem.rate;
+//                     existingItem.quantity += item.quantity;
+//                     existingItem.amount += additionalAmount;
+
+//                     totalAmount += additionalAmount;
+//                 } else {
+//                     const rate = item.price;
+//                     const amount = item.quantity * rate;
+
+//                     billItems.push({
+//                         itemName: item.itemName,
+//                         quantity: item.quantity,
+//                         rate: rate,
+//                         amount: amount,
+//                     });
+
+//                     totalAmount += amount;
+//                 }
+//             });
+//         });
+
+//         const bill = {
+//             tableName: table.name,
+//             items: billItems,
+//             totalAmount,
+//             operatorId,
+//             companyId,
+//             generatedAt: new Date(),
+//         };
+
+//         const savedBill = await Bill.create(bill);
+
+//         // Reset table state
+//         table.menuItems = [];
+//         table.kotGeneratedItems = [];
+//         table.reserved = false;
+//         await table.save();
+
+//         res.status(201).json({
+//             success: true,
+//             message: "Bill generated successfully",
+//             data: savedBill,
+//         });
+//     } catch (error) {
+//         console.error("Error generating bill:", error.message);
+//         res.status(500).json({
+//             success: false,
+//             message: "Error generating bill",
+//             error: error.message,
+//         });
+//     }
+// };
+
 export const generateBillController = async (req, res) => {
     try {
         const { tableId, operatorId } = req.body;
@@ -835,9 +1069,10 @@ export const generateBillController = async (req, res) => {
             });
         }
 
+        // Fetch the table details and related KOTs
         const table = await Table.findOne({ _id: tableId, companyId }).populate(
             "kotGeneratedItems.item",
-            "itemName price"
+            "itemName price kitchen"
         );
 
         if (!table) {
@@ -854,6 +1089,7 @@ export const generateBillController = async (req, res) => {
             });
         }
 
+        // Fetch all KOTs for this table
         const kots = await KOT.find({ tableName: table.name, companyId });
 
         if (!kots || kots.length === 0) {
@@ -863,49 +1099,51 @@ export const generateBillController = async (req, res) => {
             });
         }
 
-        let totalAmount = 0;
-        const billItems = [];
-
-        kots.forEach((kot) => {
+        // Group KOT items by kitchen type
+        const itemsByKitchen = kots.reduce((acc, kot) => {
             kot.items.forEach((item) => {
-                const existingItem = billItems.find(
-                    (billItem) => billItem.itemName === item.itemName
-                );
-
-                if (existingItem) {
-                    const additionalAmount = item.quantity * existingItem.rate;
-                    existingItem.quantity += item.quantity;
-                    existingItem.amount += additionalAmount;
-
-                    totalAmount += additionalAmount;
-                } else {
-                    const rate = item.price;
-                    const amount = item.quantity * rate;
-
-                    billItems.push({
-                        itemName: item.itemName,
-                        quantity: item.quantity,
-                        rate: rate,
-                        amount: amount,
-                    });
-
-                    totalAmount += amount;
-                }
+                const kitchen = item.kitchen || "Unknown Kitchen";
+                if (!acc[kitchen]) acc[kitchen] = [];
+                acc[kitchen].push(item);
             });
-        });
+            return acc;
+        }, {});
 
-        const bill = {
-            tableName: table.name,
-            items: billItems,
-            totalAmount,
-            operatorId,
-            companyId,
-            generatedAt: new Date(),
-        };
+        const bills = [];
 
-        const savedBill = await Bill.create(bill);
+        // Generate a separate bill for each kitchen
+        for (const kitchen in itemsByKitchen) {
+            const items = itemsByKitchen[kitchen];
+            let totalAmount = 0;
 
-        // Reset table state
+            const billItems = items.map((item) => {
+                const amount = item.quantity * item.price;
+                totalAmount += amount;
+
+                return {
+                    itemName: item.itemName,
+                    quantity: item.quantity,
+                    rate: item.price,
+                    amount: amount,
+                };
+            });
+
+            // Create the bill
+            const bill = {
+                tableName: table.name,
+                items: billItems,
+                totalAmount,
+                operatorId,
+                companyId,
+                kitchen,
+                generatedAt: new Date(),
+            };
+
+            const savedBill = await Bill.create(bill);
+            bills.push(savedBill);
+        }
+
+        // Reset the table state
         table.menuItems = [];
         table.kotGeneratedItems = [];
         table.reserved = false;
@@ -913,18 +1151,19 @@ export const generateBillController = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: "Bill generated successfully",
-            data: savedBill,
+            message: "Bills generated successfully for each kitchen",
+            data: bills,
         });
     } catch (error) {
-        console.error("Error generating bill:", error.message);
+        console.error("Error generating bills:", error.message);
         res.status(500).json({
             success: false,
-            message: "Error generating bill",
+            message: "Error generating bills",
             error: error.message,
         });
     }
 };
+
 
 
 // generate new bill 

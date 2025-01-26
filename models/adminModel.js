@@ -73,50 +73,6 @@ const categoryItemSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-
-// const categoryItemSchema = new mongoose.Schema({
-//     id: {
-//         type: String,
-//         default: uuidv4, 
-//         unique: true,  
-//     },
-//     /* "message": "Error adding menu item", "error": "E11000 duplicate key error collection: test-admin-db.categoryitems index: id_1 dup key: { id: null }"
-//     FOR THE ABOVE ISSUE I HAVE TO USE UUID PACKAGE TO GENERATE UNIQUE IDs
-//     */ 
-//     itemName: { 
-//         type: String, 
-//         required: true 
-//     },
-//     type: { 
-//         type: String, 
-//         // enum: ['veg', 'non-veg'],
-//         required: true 
-//     },
-//     kitchen:{
-//         type: String,
-//         required: true
-//     },
-//     price: { 
-//         type: Number, 
-//         required: true 
-//     },
-//     description: { 
-//         type: mongoose.Schema.Types.Mixed, 
-//         // required: true 
-//     },
-//     image: { 
-//         type: String,
-//         required: true 
-//     },
-//     companyId: { 
-//         type: String, 
-//         required: true 
-//     },
-//     category: { 
-//         type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true 
-//     } 
-// }, { timestamps: true });
-
 // Order Schema
 const orderSchema = new mongoose.Schema({
     user: {
