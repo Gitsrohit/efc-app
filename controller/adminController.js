@@ -835,9 +835,119 @@ export const deactivateAdController = async (req, res) => {
 //     }
 // };
 
+// export const generateKOTController = async (req, res) => {
+//     try {
+//         const { tableId, operatorId } = req.body;
+//         const companyId = req.companyId;
+
+//         if (!companyId) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "companyId is required",
+//             });
+//         }
+
+//         const table = await Table.findOne({ _id: tableId, companyId }).populate(
+//             "menuItems.item",
+//             "_id itemName price kitchen"
+//         );
+
+//         if (!table) {
+//             return res.status(404).json({ success: false, message: "Table not found" });
+//         }
+
+//         const newItems = table.menuItems.filter((menuItem) => {
+//             const existingGeneratedItem = table.kotGeneratedItems.find(
+//                 (kotItem) => kotItem.item.toString() === menuItem.item._id.toString()
+//             );
+
+//             if (existingGeneratedItem) {
+//                 if (menuItem.quantity > existingGeneratedItem.quantity) {
+//                     menuItem.quantity -= existingGeneratedItem.quantity;
+//                     return true;
+//                 } else {
+//                     return false;
+//                 }
+//             }
+//             return true; 
+//         });
+
+//         if (newItems.length === 0) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "No new items to generate KOT for",
+//             });
+//         }
+
+//         const itemsByKitchen = newItems.reduce((acc, menuItem) => {
+//             const kitchen = menuItem.item.kitchen;
+//             if (!acc[kitchen]) acc[kitchen] = [];
+//             acc[kitchen].push({
+//                 itemName: menuItem.item.itemName,
+//                 quantity: menuItem.quantity,
+//                 price: menuItem.item.price,
+//                 itemId: menuItem.item._id,
+//             });
+//             return acc;
+//         }, {});
+
+//         const generatedKOTs = [];
+
+//         for (const kitchen in itemsByKitchen) {
+//             const items = itemsByKitchen[kitchen];
+
+//             const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
+
+//             const kot = await KOT.create({
+//                 ticketNumber,
+//                 tableName: table.name,
+//                 operatorId,
+//                 companyId,
+//                 items: items.map((item) => ({
+//                     itemName: item.itemName,
+//                     quantity: item.quantity,
+//                     price: item.price,
+//                 })),
+//             });
+
+//             items.forEach((item) => {
+//                 const existingGeneratedItem = table.kotGeneratedItems.find(
+//                     (kotItem) => kotItem.item.toString() === item.itemId.toString()
+//                 );
+
+//                 if (existingGeneratedItem) {
+//                     existingGeneratedItem.quantity += item.quantity;
+//                 } else {
+//                     table.kotGeneratedItems.push({
+//                         item: item.itemId,
+//                         quantity: item.quantity,
+//                     });
+//                 }
+//             });
+
+//             generatedKOTs.push(kot);
+//         }
+
+//         await table.save();
+
+//         res.status(201).json({
+//             success: true,
+//             message: "KOTs generated successfully",
+//             data: generatedKOTs,
+//         });
+//     } catch (error) {
+//         console.error("Error generating KOT:", error.message);
+//         res.status(500).json({
+//             success: false,
+//             message: "Error generating KOT",
+//             error: error.message,
+//         });
+//     }
+// };
+
 export const generateKOTController = async (req, res) => {
     try {
-        const { tableId, operatorId } = req.body;
+        const { tableId, operatorId, items } = req.body; // items will be provided as part of the request
         const companyId = req.companyId;
 
         if (!companyId) {
@@ -847,7 +957,7 @@ export const generateKOTController = async (req, res) => {
             });
         }
 
-        const table = await Table.findOne({ _id: tableId, companyId }).populate(
+        const table = await Table.findById(tableId).populate(
             "menuItems.item",
             "_id itemName price kitchen"
         );
@@ -856,6 +966,41 @@ export const generateKOTController = async (req, res) => {
             return res.status(404).json({ success: false, message: "Table not found" });
         }
 
+        if (table.companyId.toString() !== companyId.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not authorized to add items or generate KOT for this table",
+            });
+        }
+
+        // Add items to the table
+        const adminMenuItems = await CategoryItem.find({ companyId });
+
+        for (const { itemId, quantity } of items) {
+            const menuItem = adminMenuItems.find(item => item._id.toString() === itemId.toString());
+            if (!menuItem) {
+                return res.status(404).json({ success: false, message: `Menu item not found: ${itemId}` });
+            }
+
+            const existingItem = table.menuItems.find(
+                (menuItem) => menuItem.item.toString() === itemId
+            );
+
+            if (existingItem) {
+                existingItem.quantity += quantity || 1;
+            } else {
+                table.menuItems.push({
+                    item: itemId,
+                    quantity: quantity || 1,
+                    price: menuItem.price,
+                });
+            }
+        }
+
+        table.reserved = true;  // Mark the table as reserved
+        await table.save();
+
+        // Prepare the items for KOT generation
         const newItems = table.menuItems.filter((menuItem) => {
             const existingGeneratedItem = table.kotGeneratedItems.find(
                 (kotItem) => kotItem.item.toString() === menuItem.item._id.toString()
@@ -869,7 +1014,7 @@ export const generateKOTController = async (req, res) => {
                     return false;
                 }
             }
-            return true; 
+            return true;
         });
 
         if (newItems.length === 0) {
@@ -893,9 +1038,9 @@ export const generateKOTController = async (req, res) => {
 
         const generatedKOTs = [];
 
+        // Generate KOT for each kitchen
         for (const kitchen in itemsByKitchen) {
             const items = itemsByKitchen[kitchen];
-
             const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
 
             const kot = await KOT.create({
@@ -910,6 +1055,7 @@ export const generateKOTController = async (req, res) => {
                 })),
             });
 
+            // Update table with the generated KOT items
             items.forEach((item) => {
                 const existingGeneratedItem = table.kotGeneratedItems.find(
                     (kotItem) => kotItem.item.toString() === item.itemId.toString()
@@ -932,19 +1078,18 @@ export const generateKOTController = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: "KOTs generated successfully",
+            message: "KOTs generated and items added successfully",
             data: generatedKOTs,
         });
     } catch (error) {
-        console.error("Error generating KOT:", error.message);
+        console.error("Error generating KOT and adding items:", error.message);
         res.status(500).json({
             success: false,
-            message: "Error generating KOT",
+            message: "Error generating KOT and adding items to the table",
             error: error.message,
         });
     }
 };
-
 
 
 //bill generation api controller
