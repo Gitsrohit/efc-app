@@ -87,7 +87,7 @@ const orderSchema = new mongoose.Schema({
     status: { type: String, enum: ['pending', 'completed'], default: 'pending' },
 }, { timestamps: true });
 
-// Table Schema
+//Table Schema
 const tableSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -156,6 +156,7 @@ const kotSchema = new mongoose.Schema({
         },
     ],
 }, { timestamps: true });
+
 
 
 const adSchema = new mongoose.Schema(
