@@ -847,7 +847,6 @@ export const generateKOTController = async (req, res) => {
             });
         }
 
-        // Fetch the table with menu items and generated KOTs
         const table = await Table.findOne({ _id: tableId, companyId }).populate(
             "menuItems.item",
             "_id itemName price kitchen"
@@ -857,7 +856,6 @@ export const generateKOTController = async (req, res) => {
             return res.status(404).json({ success: false, message: "Table not found" });
         }
 
-        // Filter out items already included in previously generated KOTs
         const newItems = table.menuItems.filter((menuItem) => {
             const existingGeneratedItem = table.kotGeneratedItems.find(
                 (kotItem) => kotItem.item.toString() === menuItem.item._id.toString()
@@ -871,7 +869,7 @@ export const generateKOTController = async (req, res) => {
                     return false;
                 }
             }
-            return true; // Include items not in any previous KOT
+            return true; 
         });
 
         if (newItems.length === 0) {
@@ -881,7 +879,6 @@ export const generateKOTController = async (req, res) => {
             });
         }
 
-        // Group items by kitchen type
         const itemsByKitchen = newItems.reduce((acc, menuItem) => {
             const kitchen = menuItem.item.kitchen;
             if (!acc[kitchen]) acc[kitchen] = [];
@@ -889,14 +886,13 @@ export const generateKOTController = async (req, res) => {
                 itemName: menuItem.item.itemName,
                 quantity: menuItem.quantity,
                 price: menuItem.item.price,
-                itemId: menuItem.item._id, // Add item ID for future reference
+                itemId: menuItem.item._id,
             });
             return acc;
         }, {});
 
         const generatedKOTs = [];
 
-        // Generate KOTs for each kitchen
         for (const kitchen in itemsByKitchen) {
             const items = itemsByKitchen[kitchen];
 
@@ -914,7 +910,6 @@ export const generateKOTController = async (req, res) => {
                 })),
             });
 
-            // Update table's `kotGeneratedItems`
             items.forEach((item) => {
                 const existingGeneratedItem = table.kotGeneratedItems.find(
                     (kotItem) => kotItem.item.toString() === item.itemId.toString()
@@ -933,7 +928,6 @@ export const generateKOTController = async (req, res) => {
             generatedKOTs.push(kot);
         }
 
-        // Save updated table
         await table.save();
 
         res.status(201).json({
