@@ -88,76 +88,135 @@ const orderSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 //Table Schema
-const tableSchema = new mongoose.Schema({
-    name: {
+// const tableSchema = new mongoose.Schema({
+//     name: {
+//         type: String,
+//         required: true,
+//         unique: true,
+//     },
+//     menuItems: [
+//         {
+//             item: { 
+//                 type: mongoose.Schema.Types.ObjectId, ref: 'CategoryItem' 
+//             },
+//             quantity: { 
+//                 type: Number, 
+//                 default: 1 
+//             },
+//             price: { 
+//                 type: Number, 
+//                 required: true, 
+//             },
+//         },
+//     ],
+//     reserved: {
+//         type: Boolean,
+//         default: false, 
+//     },
+//     companyId: { 
+//         type: String, 
+//         required: true 
+//     },
+//     kotGeneratedItems: [
+//         {
+//             item: { type: mongoose.Schema.Types.ObjectId, ref: 'CategoryItem' },
+//             quantity: { type: Number, default: 1 },
+//         },
+//     ],
+// }, { timestamps: true });
+
+const tableSchema = new mongoose.Schema(
+    {
+      name: {
         type: String,
         required: true,
         unique: true,
-    },
-    menuItems: [
-        {
-            item: { 
-                type: mongoose.Schema.Types.ObjectId, ref: 'CategoryItem' 
-            },
-            quantity: { 
-                type: Number, 
-                default: 1 
-            },
-            price: { 
-                type: Number, 
-                required: true, 
-            },
-        },
-    ],
-    reserved: {
+      },
+      reserved: {
         type: Boolean,
-        default: false, 
-    },
-    companyId: { 
-        type: String, 
-        required: true 
-    },
-    kotGeneratedItems: [
+        default: false,
+      },
+      companyId: {
+        type: String,
+        required: true,
+      },
+      menuItems: [
         {
-            item: { type: mongoose.Schema.Types.ObjectId, ref: 'CategoryItem' },
-            quantity: { type: Number, default: 1 },
+          item: { type: mongoose.Schema.Types.ObjectId, ref: 'CategoryItem' },
+          quantity: { type: Number, default: 1 },
+          price: { type: Number, required: true },
         },
-    ],
-}, { timestamps: true });
+      ],
+    },
+    { timestamps: true }
+  );
+  
+  
+// const kotSchema = new mongoose.Schema({
+//     ticketNumber: {
+//         type: String,
+//         required: true,
+//         unique: true,
+//     },
+//     tableName: {
+//         type: String,
+//         required: true,
+//     },
+//     billDate: {
+//         type: Date,
+//         default: Date.now,
+//     },
+//     companyId: { 
+//         type: String, 
+//         required: true 
+//     },
+//     operatorId: {
+//         type: String, 
+//         required: true,
+//     },
+//     items: [
+//         {
+//             itemName: { type: String, required: true },
+//             quantity: { type: Number, required: true },
+//             price: { type: Number, required: true }, 
+//         },
+//     ],
+// }, { timestamps: true });
 
-
-const kotSchema = new mongoose.Schema({
-    ticketNumber: {
+const kotSchema = new mongoose.Schema(
+    {
+      ticketNumber: {
         type: String,
         required: true,
         unique: true,
-    },
-    tableName: {
+      },
+      tableName: {
         type: String,
         required: true,
-    },
-    billDate: {
+      },
+      billDate: {
         type: Date,
         default: Date.now,
-    },
-    companyId: { 
-        type: String, 
-        required: true 
-    },
-    operatorId: {
-        type: String, 
+      },
+      companyId: {
+        type: String,
         required: true,
-    },
-    items: [
+      },
+      operatorId: {
+        type: String,
+        required: true,
+      },
+      items: [
         {
-            itemName: { type: String, required: true },
-            quantity: { type: Number, required: true },
-            price: { type: Number, required: true }, 
+          itemName: { type: String, required: true },
+          quantity: { type: Number, required: true },
+          price: { type: Number, required: true },
         },
-    ],
-}, { timestamps: true });
-
-
+      ],
+    },
+    { timestamps: true }
+  );
+  
 
 const adSchema = new mongoose.Schema(
     {
@@ -203,36 +262,75 @@ const AdminProfileSchema = new mongoose.Schema({
   }, { timestamps: true });
   
 
+// const billSchema = new mongoose.Schema({
+//     tableName: {
+//         type: String,
+//         required: true,
+//     },
+//     items: [
+//         {
+//             itemName: { type: String, required: true },
+//             quantity: { type: Number, required: true },
+//             rate: { type: Number, required: true },
+//             amount: { type: Number, required: true },
+//         },
+//     ],
+//     totalAmount: {
+//         type: Number,
+//         required: true,
+//     },
+//     operatorId: {
+//         type: String,
+//         required: true,
+//     },
+//     companyId: {
+//         type: String,
+//         required: true,
+//     },
+//     generatedAt: {
+//         type: Date,
+//         default: Date.now,
+//     },
+// }, { timestamps: true });
+
 const billSchema = new mongoose.Schema({
+    billNumber: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    orderNumber: {
+      type: String,
+      required: true,
+    },
+    billDate: {
+      type: Date,
+      default: Date.now,
+    },
     tableName: {
-        type: String,
-        required: true,
-    },
-    items: [
-        {
-            itemName: { type: String, required: true },
-            quantity: { type: Number, required: true },
-            rate: { type: Number, required: true },
-            amount: { type: Number, required: true },
-        },
-    ],
-    totalAmount: {
-        type: Number,
-        required: true,
-    },
-    operatorId: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     companyId: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
-    generatedAt: {
-        type: Date,
-        default: Date.now,
+    operatorId: {
+      type: String,
+      required: true,
     },
-}, { timestamps: true });
+    kotNumbers: [String],
+    items: [
+      {
+        itemName: String,
+        quantity: Number,
+        price: Number,
+      },
+    ],
+    totalAmount: Number,
+    paymentMode: String,
+  });
+  
 
 const BillSchema = new mongoose.Schema({
     tableName: {
