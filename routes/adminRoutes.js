@@ -5,7 +5,7 @@ import upload from '../middlewares/fileUploadMiddlewares.js';
 import multer from 'multer';
 import path from 'path';
 import resetStocksMiddleware from "../middlewares/resetStocksMiddleware.js";
-import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController} from "../controller/adminController.js";
+import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController} from "../controller/adminController.js";
 
 import { companyMiddleware } from "../middlewares/companyAuthMiddleware.js";
 
@@ -64,8 +64,10 @@ router.post("/reserve-table/:tableId",companyMiddleware, addMenuItemsToTable);
 
 //kot and billing rutes
 router.post("/generate-table-kot",companyMiddleware,generateKOTController)
+router.post("/generate-online-kot",companyMiddleware,generateOnlineKOTController)
 router.post("/generate-table-bill",companyMiddleware,generateBillController)
 router.post("/generate-table-bill-new",companyMiddleware,generateNewBillController)
+// router.post("/generate-online-bill",companyMiddleware,generateOnlineBillController)
 
 //advertisment routes
 router.post('/add-Ad',companyMiddleware, upload.single('image'), addAdController);

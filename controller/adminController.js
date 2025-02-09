@@ -13,6 +13,7 @@ import {Ad} from '../models/adminModel.js';
 import {AdminProfile} from '../models/adminModel.js';
 import {Bill} from '../models/adminModel.js';
 import {NewBill} from '../models/adminModel.js';
+import {OnlineBill} from '../models/adminModel.js';
 // const onlineOrder = require("../middlewares/kafkaConsumer.js");
 
 
@@ -1027,6 +1028,83 @@ export const generateKOTController = async (req, res) => {
     }
 };
 
+// generate online kot
+export const generateOnlineKOTController = async (req, res) => {
+  try {
+    const { orderId, operatorId, items } = req.body;
+    const companyId = req.companyId;
+
+    if (!orderId || !operatorId || !items || !items.length) {
+      return res.status(400).json({
+        success: false,
+        message: "orderId, operatorId, and items are required",
+      });
+    }
+
+    if (!companyId) {
+      return res.status(400).json({ success: false, message: "companyId is required" });
+    }
+
+    // Fetch menu items and validate
+    const adminMenuItems = await CategoryItem.find({ companyId });
+    const itemsByKitchen = {};
+
+    for (const { itemId, quantity } of items) {
+      const menuItem = adminMenuItems.find((menu) => menu.id === itemId);
+
+      if (!menuItem) {
+        return res.status(404).json({
+          success: false,
+          message: `Menu item not found: ${itemId}`,
+        });
+      }
+
+      const itemData = {
+        itemName: menuItem.itemName,
+        quantity: quantity || 1,
+        price: menuItem.price,
+      };
+
+      if (!itemsByKitchen[menuItem.kitchen]) {
+        itemsByKitchen[menuItem.kitchen] = [];
+      }
+
+      itemsByKitchen[menuItem.kitchen].push(itemData);
+    }
+
+    // Generate KOTs for each kitchen
+    const generatedKOTs = [];
+
+    for (const kitchen in itemsByKitchen) {
+      const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
+
+      const kot = await KOT.create({
+        ticketNumber,
+        orderId,
+        operatorId,
+        companyId,
+        items: itemsByKitchen[kitchen],
+      });
+
+      generatedKOTs.push(kot);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "KOTs generated successfully for online order",
+      data: generatedKOTs,
+    });
+  } catch (error) {
+    console.error("Error generating KOT for online order:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error generating KOT for online order",
+      error: error.message,
+    });
+  }
+};
+
+
 export const generateBillController = async (req, res) => {
     try {
       const { tableId, paymentMode } = req.body;
@@ -1294,6 +1372,159 @@ export const generateBillController = async (req, res) => {
 //         });
 //     }
 // };this one is real
+
+//create bill for onlin order
+// export const generateOnlineBillController = async (req, res) => {
+//     try {
+//       const { name, id: orderId, operator, items, paymentMode } = req.body;
+//       const companyId = req.companyId;
+  
+//       // Validate request payload
+//       if (!orderId || !operator || !items || !items.length) {
+//         return res.status(400).json({
+//           success: false,
+//           message: "Order ID, operator, and items are required.",
+//         });
+//       }
+  
+//       if (!companyId) {
+//         return res.status(400).json({ success: false, message: "Company ID is required." });
+//       }
+  
+//       // Calculate total amount
+//       let totalAmount = 0;
+//       items.forEach(item => {
+//         totalAmount += item.price * item.quantity;
+//       });
+  
+//       // Generate unique bill number
+//       const billNumber = `BILL-${Math.floor(10000 + Math.random() * 90000)}`;
+  
+//       // Create and save the bill
+//       const bill = await OnlineBill.create({
+//         billNumber,
+//         orderId,
+//         billDate: new Date(),
+//         customerName: name,
+//         companyId,
+//         operatorId: operator,
+//         items,
+//         totalAmount,
+//         paymentMode: paymentMode || "Online Payment",
+//       });
+  
+//       res.status(201).json({
+//         success: true,
+//         message: "Bill generated successfully for online order.",
+//         data: bill,
+//       });
+//     } catch (error) {
+//       console.error("Error generating online bill:", error.message);
+//       res.status(500).json({
+//         success: false,
+//         message: "Error generating online bill.",
+//         error: error.message,
+//       });
+//     }
+//   };
+
+// export const generateOnlineBillController = async (req, res) => {
+//     try {
+//         const { name, id: orderId, operator, items, paymentMode } = req.body;
+//         const companyId = req.companyId;
+
+//         // Validate request payload
+//         if (!orderId || !operator || !items || !items.length) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "Order ID, operator, and items are required.",
+//             });
+//         }
+
+//         if (!companyId) {
+//             return res.status(400).json({ success: false, message: "Company ID is required." });
+//         }
+
+//         // Fetch menu items from the database based on IDs
+//         const itemIds = items.map(item => item.menuItemId);
+//         const menuItems = await CategoryItem.find({ _id: { $in: itemIds }, companyId });
+
+//         if (menuItems.length !== itemIds.length) {
+//             return res.status(404).json({
+//                 success: false,
+//                 message: "One or more menu items were not found in the company’s menu.",
+//             });
+//         }
+
+//         let totalAmount = 0;
+//         const billItems = [];
+
+//         // Calculate total and format items for the bill
+//         items.forEach(orderItem => {
+//             const menuItem = menuItems.find(item => item._id.toString() === orderItem.menuItemId);
+//             if (!menuItem) {
+//                 return res.status(404).json({
+//                     success: false,
+//                     message: `Menu item not found: ${orderItem.menuItemId}`,
+//                 });
+//             }
+
+//             const quantity = orderItem.quantity || 1;
+//             const price = menuItem.price;
+//             const itemTotal = price * quantity;
+//             totalAmount += itemTotal;
+
+//             billItems.push({
+//                 itemName: menuItem.itemName,  // Fetching item name from DB
+//                 price, // Fetching price from DB
+//                 quantity,
+//                 total: itemTotal
+//             });
+//         });
+
+//         // Generate unique bill number
+//         const billNumber = `BILL-${Math.floor(10000 + Math.random() * 90000)}`;
+
+//         // Create and save the bill
+//         const bill = await OnlineBill.create({
+//             billNumber,
+//             orderId,
+//             billDate: new Date(),
+//             customerName: name,
+//             companyId,
+//             operatorId: operator,
+//             items: billItems,
+//             totalAmount,
+//             paymentMode: paymentMode || "Online Payment",
+//         });
+
+//         // Construct response without `_id`
+//         const responseData = {
+//             billNumber: bill.billNumber,
+//             orderId: bill.orderId,
+//             billDate: bill.billDate,
+//             customerName: bill.customerName,
+//             companyId: bill.companyId,
+//             operatorId: bill.operatorId,
+//             items: bill.items,
+//             totalAmount: bill.totalAmount,
+//             paymentMode: bill.paymentMode
+//         };
+
+//         res.status(201).json({
+//             success: true,
+//             message: "Bill generated successfully for online order.",
+//             data: responseData,
+//         });
+//     } catch (error) {
+//         console.error("Error generating online bill:", error.message);
+//         res.status(500).json({
+//             success: false,
+//             message: "Error generating online bill.",
+//             error: error.message,
+//         });
+//     }
+// }; onlinr bill generate karne ka controller hai
 
 
 

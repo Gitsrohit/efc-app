@@ -183,40 +183,81 @@ const tableSchema = new mongoose.Schema(
 //     ],
 // }, { timestamps: true });
 
+// const kotSchema = new mongoose.Schema(
+//     {
+//       ticketNumber: {
+//         type: String,
+//         required: true,
+//         unique: true,
+//       },
+//       tableName: {
+//         type: String,
+//         required: true,
+//       },
+//       billDate: {
+//         type: Date,
+//         default: Date.now,
+//       },
+//       companyId: {
+//         type: String,
+//         required: true,
+//       },
+//       operatorId: {
+//         type: String,
+//         required: true,
+//       },
+//       items: [
+//         {
+//           itemName: { type: String, required: true },
+//           quantity: { type: Number, required: true },
+//           price: { type: Number, required: true },
+//         },
+//       ],
+//     },
+//     { timestamps: true }
+//   );//to be used in case
+
 const kotSchema = new mongoose.Schema(
-    {
-      ticketNumber: {
-        type: String,
-        required: true,
-        unique: true,
-      },
-      tableName: {
-        type: String,
-        required: true,
-      },
-      billDate: {
-        type: Date,
-        default: Date.now,
-      },
-      companyId: {
-        type: String,
-        required: true,
-      },
-      operatorId: {
-        type: String,
-        required: true,
-      },
-      items: [
-        {
-          itemName: { type: String, required: true },
-          quantity: { type: Number, required: true },
-          price: { type: Number, required: true },
-        },
-      ],
+  {
+    ticketNumber: {
+      type: String,
+      required: true,
+      unique: true,
     },
-    { timestamps: true }
-  );
-  
+    tableName: {
+      type: String,
+      default: null, // Optional for online orders
+    },
+    orderId: {
+      type: String,
+      required: function () {
+        return this.tableName === null; // Required only for online orders
+      },
+      unique: true,
+      sparse: true, // Allows this field to be optional while maintaining uniqueness
+    },
+    billDate: {
+      type: Date,
+      default: Date.now,
+    },
+    companyId: {
+      type: String,
+      required: true,
+    },
+    operatorId: {
+      type: String,
+      required: true,
+    },
+    items: [
+      {
+        itemName: { type: String, required: true },
+        quantity: { type: Number, required: true },
+        price: { type: Number, required: true },
+      },
+    ],
+  },
+  { timestamps: true }
+); 
 
 const adSchema = new mongoose.Schema(
     {
@@ -330,8 +371,49 @@ const billSchema = new mongoose.Schema({
     totalAmount: Number,
     paymentMode: String,
   });
-  
 
+
+const onlineBillSchema = new mongoose.Schema(
+  {
+    billNumber: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    orderId: {
+      type: String,
+      required: true,
+    },
+    billDate: {
+      type: Date,
+      default: Date.now,
+    },
+    customerName: {
+      type: String,
+      required: true,
+    },
+    companyId: {
+      type: String,
+      required: true,
+    },
+    operatorId: {
+      type: String,
+      required: true,
+    },
+    items: [
+      {
+        itemName: String,
+        quantity: Number,
+        price: Number,
+      },
+    ],
+    totalAmount: Number,
+    paymentMode: String,
+  },
+  { timestamps: true }
+);
+
+  
 const BillSchema = new mongoose.Schema({
     tableName: {
         type: String,
@@ -374,3 +456,4 @@ export const Ad = mongoose.model('Ad', adSchema);
 export const AdminProfile = mongoose.model('AdminProfile', AdminProfileSchema);
 export const Bill = mongoose.model('Bill', billSchema);
 export const NewBill = mongoose.model("NewBill", BillSchema);
+export const OnlineBill = mongoose.model("OnlineBill", onlineBillSchema);
