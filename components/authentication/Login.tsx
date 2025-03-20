@@ -74,10 +74,10 @@ const Login = () => {
   return (
     <View style={styles.container}>
       <View style={styles.logoContainer}>
-        <Image
-          source={require('/Users/iceberg/efcApk/assets/images/images.jpeg')}
-          style={styles.logo}
-        />
+      <Image
+  source={require('../../assets/images/images.jpeg')}
+  style={styles.logo}
+/>
       </View>
       <View style={styles.formContainer}>
         <Text style={styles.heading}>Login</Text>

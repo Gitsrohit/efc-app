@@ -9,8 +9,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   Dimensions,
+  ImageBackground,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -23,19 +25,19 @@ const HomeScreen = ({ navigation }) => {
     {
       id: 1,
       image: require('../../assets/images/image.png'),
-      title: "20% OFF on Pizza",
-      description: "Get 20% off on orders above ₹700. Order your favorite pizza now!",
+      title: '20% OFF on Pizza',
+      description: 'Get 20% off on orders above ₹700. Order your favorite pizza now!',
     },
     {
       id: 2,
       image: require('../../assets/images/image.png'),
-      title: "Buy 1 Get 1 Free",
-      description: "Enjoy a free burger with every burger you order today!",
+      title: 'Buy 1 Get 1 Free',
+      description: 'Enjoy a free burger with every burger you order today!',
     },
     {
       id: 3,
       image: require('../../assets/images/image.png'),
-      title: "Flat ₹100 Off",
+      title: 'Flat ₹100 Off',
       description: "Flat ₹100 off on all dine-in orders this weekend. Don't miss out!",
     },
   ];
@@ -43,14 +45,22 @@ const HomeScreen = ({ navigation }) => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('https://efc-app-sprp.onrender.com/api/v1/admin/get-category');
+        const token = await AsyncStorage.getItem('authToken');
+        const response = await fetch(
+          'https://efc-app-sprp.onrender.com/api/v1/admin/get-category',
+          {
+            headers: {
+              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbklkIjoiNjc4MTA2NTRjZjllNGRhOTA2YjNmZWMwIiwiY29tcGFueUlkIjoiRUZDIiwiaWF0IjoxNzM2NTA5MDEzLCJleHAiOjE4MjI5MDkwMTN9.e2p1wGd8c8H2ilyy6VAc8iFd4ioDiKgAlYRvPsjRtOo`,
+            },
+          }
+        );
         const result = await response.json();
 
         if (result && result.success && Array.isArray(result.data)) {
           const formattedCategories = result.data.map((category) => ({
             id: category._id,
             name: category.name,
-            image: require('../../assets/images/image.png'),
+            image: { uri: category.image },
           }));
           setCategories(formattedCategories);
         } else {
@@ -119,67 +129,82 @@ const HomeScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={[{ key: 'header' }]}
-        renderItem={() => (
-          <View>
-            <View style={styles.header}>
-              <Image source={require('../../assets/images/profile.png')} style={styles.profileIcon} />
-              <TextInput placeholder="Search by dishes..." style={styles.searchBar} />
-              <TouchableOpacity onPress={() => navigation.navigate('ViewCart')} style={styles.cartIconContainer}>
-                <Icon name="cart" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.greeting}>ROHIT, WHAT’S ON YOUR MIND?</Text>
+    <ImageBackground
+      source={require('../../assets/efcBg.png')} 
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <View style={styles.container}>
+        <FlatList
+          data={[{ key: 'header' }]}
+          renderItem={() => (
+            <View>
+              <View style={styles.header}>
+                <Image source={require('../../assets/images/profile.png')} style={styles.profileIcon} />
+                <TextInput placeholder="Search by dishes..." style={styles.searchBar} />
+                <TouchableOpacity onPress={() => navigation.navigate('ViewCart')} style={styles.cartIconContainer}>
+                  <Icon name="cart" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.greeting}>ROHIT, WHAT’S ON YOUR MIND?</Text>
 
-            {loading ? (
-              <ActivityIndicator size="large" color="#fff" />
-            ) : (
+              {loading ? (
+                <ActivityIndicator size="large" color="#fff" />
+              ) : (
+                <FlatList
+                  data={categories}
+                  renderItem={renderCategory}
+                  keyExtractor={(item, index) => `${item.name}-${index}`}
+                  horizontal
+                  contentContainerStyle={styles.categoryList}
+                  showsHorizontalScrollIndicator={false}
+                />
+              )}
+
               <FlatList
-                data={categories}
-                renderItem={renderCategory}
-                keyExtractor={(item, index) => `${item.name}-${index}`}
+                data={banners}
+                renderItem={renderBanner}
+                keyExtractor={(item) => item.id.toString()}
                 horizontal
-                contentContainerStyle={styles.categoryList}
                 showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.bannerList}
+                pagingEnabled
+                snapToInterval={width * 0.9}
+                decelerationRate="fast"
+                onMomentumScrollEnd={handleBannerScroll}
               />
-            )}
 
-            <FlatList
-              data={banners}
-              renderItem={renderBanner}
-              keyExtractor={(item) => item.id.toString()}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.bannerList}
-              pagingEnabled
-              snapToInterval={width * 0.9}
-              decelerationRate="fast"
-              onMomentumScrollEnd={handleBannerScroll}
-            />
+              <Text style={styles.sectionHeading}>Top Deals🔥</Text>
 
-            <Text style={styles.sectionHeading}>Top Deals🔥</Text>
-
-            <FlatList
-              data={foodItems}
-              renderItem={renderFoodItem}
-              keyExtractor={(item) => item.id.toString()}
-              contentContainerStyle={styles.foodList}
-              showsVerticalScrollIndicator={false}
-            />
-          </View>
-        )}
-        keyExtractor={(item) => item.key}
-      />
-    </View>
+              <FlatList
+                data={foodItems}
+                renderItem={renderFoodItem}
+                keyExtractor={(item) => item.id.toString()}
+                contentContainerStyle={styles.foodList}
+                showsVerticalScrollIndicator={false}
+              />
+            </View>
+          )}
+          keyExtractor={(item) => item.key}
+        />
+      </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#a00000', paddingTop: 30 },
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  container: {
+    flex: 1,
+    // backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingTop: 30,
+  },
   header: {
-    backgroundColor: '#a00000',
+    backgroundColor: 'transparent',
     padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -187,7 +212,13 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   profileIcon: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
-  searchBar: { flex: 1, backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 10, height: 40, opacity: 0.6 },
+  searchBar: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Semi-transparent white background
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    height: 40,
+  },
   cartIconContainer: { marginLeft: 12, justifyContent: 'center' },
   greeting: {
     color: '#fff',
@@ -241,33 +272,6 @@ const styles = StyleSheet.create({
   foodPrice: { fontSize: 14, color: '#888' },
   addButton: { backgroundColor: '#a00000', padding: 10, borderRadius: 8 },
   addButtonText: { color: '#fff', fontWeight: 'bold' },
-  quantityWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: 80,
-    backgroundColor: '#fff',
-    borderRadius: 5,
-    padding: 5,
-  },
-  decrementButton: {
-    backgroundColor: '#a00000',
-    padding: 5,
-    borderRadius: 3,
-  },
-  incrementButton: {
-    backgroundColor: '#a00000',
-    padding: 5,
-    borderRadius: 3,
-  },
-  quantityText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-  },
 });
 
 export default HomeScreen;

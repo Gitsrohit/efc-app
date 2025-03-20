@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,10 @@ import {
   FlatList,
   TextInput,
   ActivityIndicator,
+  Animated,
+  Easing,
+  Modal,
+  ImageBackground, // Import ImageBackground
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -19,6 +23,8 @@ const FoodByCategory = ({ route }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [itemQuantities, setItemQuantities] = useState({});
+  const [showNotification, setShowNotification] = useState(false); // State to control notification visibility
+  const slideAnim = useRef(new Animated.Value(-100)).current; // For slide-in animation from the top
   const navigation = useNavigation();
 
   const fetchFoodItems = async () => {
@@ -27,18 +33,25 @@ const FoodByCategory = ({ route }) => {
       navigation.goBack();
       return;
     }
-  
+
     setIsLoading(true);
     try {
-      const response = await fetch(`https://efc-app-sprp.onrender.com/api/v1/admin/get-item/${categoryId}`);
+      const response = await fetch(
+        `https://efc-app-sprp.onrender.com/api/v1/admin/get-item/${categoryId}`,
+        {
+          headers: {
+            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbklkIjoiNjc4MTA2NTRjZjllNGRhOTA2YjNmZWMwIiwiY29tcGFueUlkIjoiRUZDIiwiaWF0IjoxNzM2NTA5MDEzLCJleHAiOjE4MjI5MDkwMTN9.e2p1wGd8c8H2ilyy6VAc8iFd4ioDiKgAlYRvPsjRtOo`,
+          },
+        }
+      );
       const result = await response.json();
-  
+
       if (response.ok && result.success) {
         if (Array.isArray(result.data) && result.data.length > 0) {
           setFoodItems(result.data);
         } else {
           alert('No items found for this category.');
-          setFoodItems([]); 
+          setFoodItems([]);
         }
       } else {
         console.error('Error message:', result.message);
@@ -51,7 +64,6 @@ const FoodByCategory = ({ route }) => {
       setIsLoading(false);
     }
   };
-  
 
   useEffect(() => {
     fetchFoodItems();
@@ -60,11 +72,11 @@ const FoodByCategory = ({ route }) => {
   const handleAdd = (item) => {
     setItemQuantities((prev) => ({ ...prev, [item._id]: 1 }));
   };
-  
+
   const handleIncrement = (item) => {
     setItemQuantities((prev) => ({ ...prev, [item._id]: (prev[item._id] || 0) + 1 }));
   };
-  
+
   const handleDecrement = (item) => {
     setItemQuantities((prev) => {
       const updatedQuantities = { ...prev };
@@ -76,28 +88,28 @@ const FoodByCategory = ({ route }) => {
       return updatedQuantities;
     });
   };
-  
+
   const handleAddToCart = async () => {
     const itemsToAdd = Object.entries(itemQuantities).map(([itemId, quantity]) => {
-      const item = foodItems.find((food) => food._id === itemId); // Match using `_id`
+      const item = foodItems.find((food) => food._id === itemId);
       return {
-        itemId: item._id, // Use `_id` as the identifier
+        itemId: item._id,
         itemName: item.itemName,
         quantity,
         price: item.price,
       };
     });
-  
+
     console.log('Items to add to cart:', itemsToAdd);
-  
+
     try {
       const token = await AsyncStorage.getItem('authToken');
-  
+
       if (!token) {
         alert('User is not authenticated. Please log in.');
         return;
       }
-  
+
       for (const item of itemsToAdd) {
         const response = await fetch('https://efc-app-1.onrender.com/api/v1/cart/add', {
           method: 'POST',
@@ -105,9 +117,9 @@ const FoodByCategory = ({ route }) => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(item), // Send each item in the correct format
+          body: JSON.stringify(item),
         });
-  
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error(`Error adding item (${item.itemName}):`, errorText);
@@ -116,15 +128,32 @@ const FoodByCategory = ({ route }) => {
           console.log(`Item (${item.itemName}) added successfully.`);
         }
       }
-  
-      alert('All items added to cart successfully!');
+
+      // Show notification
+      setShowNotification(true);
+      Animated.timing(slideAnim, {
+        toValue: 0, // Slide in from the top
+        duration: 500,
+        easing: Easing.ease,
+        useNativeDriver: true,
+      }).start();
+
+      // Hide notification after 2 seconds
+      setTimeout(() => {
+        Animated.timing(slideAnim, {
+          toValue: -100, // Slide out to the top
+          duration: 500,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }).start(() => setShowNotification(false));
+      }, 2000);
+
       setItemQuantities({});
     } catch (error) {
       console.error('Error adding items to cart:', error);
       alert('Failed to add items to cart.');
     }
   };
-  
 
   const filteredFoodItems = foodItems.filter((item) =>
     item.itemName.toLowerCase().includes(searchText.toLowerCase())
@@ -134,17 +163,9 @@ const FoodByCategory = ({ route }) => {
 
   const renderFoodItem = ({ item }) => (
     <View style={styles.cardContainer}>
-      <Image
-        source={
-          item.image
-            ? { uri: `https://efc-app-sprp.onrender.com/${item.image}` }
-            : require('/Users/iceberg/efcApk/assets/images/image.png')
-        }
-        style={styles.foodImage}
-      />
+      <Image source={{ uri: item.image }} style={styles.foodImage} />
       <View style={styles.infoContainer}>
         <Text style={styles.foodName}>{item.itemName}</Text>
-        <Text style={styles.description}>{item.description || 'No description available'}</Text>
         <Text style={styles.price}>{`₹${item.price}`}</Text>
         {itemQuantities[item._id] ? (
           <View style={styles.quantityWrapper}>
@@ -166,64 +187,95 @@ const FoodByCategory = ({ route }) => {
       </View>
     </View>
   );
-  
-  
-  
 
   return (
-    <View style={styles.container}>
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by dishes..."
-          value={searchText}
-          onChangeText={setSearchText}
-        />
-        <TouchableOpacity onPress={() => navigation.navigate('ViewCart')} style={styles.cartIconContainer}>
-          <Icon name="cart" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
-
-      {isLoading ? (
-        <ActivityIndicator size="large" color="#FFFFFF" />
-      ) : (
-        <>
-          <FlatList
-            data={filteredFoodItems}
-            renderItem={renderFoodItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContainer}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>No items found for this category.</Text>
-            }
+    <ImageBackground
+      source={require('../../assets/efcBg.png')} // Set your background image here
+      style={styles.backgroundImage}
+      resizeMode="cover" // Ensure the image covers the entire screen
+    >
+      <View style={styles.container}>
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by dishes..."
+            placeholderTextColor="#999"
+            value={searchText}
+            onChangeText={setSearchText}
           />
-          {Object.keys(itemQuantities).length > 0 && (
-            <TouchableOpacity style={styles.cartButton} onPress={handleAddToCart}>
-              <Text style={styles.cartButtonText}>
-                Add to Cart
-                {totalItemsInCart > 0 && (
-                  <Text style={styles.cartItemCount}>{` (${totalItemsInCart})`}</Text>
-                )}
-                <Icon name="cart" size={20} color="#FFFFFF" style={styles.cartIcon} />
-              </Text>
-            </TouchableOpacity>
-          )}
-        </>
-      )}
-    </View>
+          <TouchableOpacity onPress={() => navigation.navigate('ViewCart')} style={styles.cartIconContainer}>
+            <Icon name="cart" size={24} color="#FFFFFF" />
+            {totalItemsInCart > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>{totalItemsInCart}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+            <Text style={styles.loadingText}>Loading delicious items...</Text>
+          </View>
+        ) : (
+          <>
+            <FlatList
+              data={filteredFoodItems}
+              renderItem={renderFoodItem}
+              keyExtractor={(item) => item._id}
+              contentContainerStyle={styles.listContainer}
+              ListEmptyComponent={
+                <Text style={styles.emptyText}>No items found for this category.</Text>
+              }
+            />
+            {Object.keys(itemQuantities).length > 0 && (
+              <TouchableOpacity style={styles.cartButton} onPress={handleAddToCart}>
+                <Text style={styles.cartButtonText}>
+                  Add to Cart
+                  {totalItemsInCart > 0 && (
+                    <Text style={styles.cartItemCount}>{` (${totalItemsInCart})`}</Text>
+                  )}
+                  <Icon name="cart" size={20} color="#FFFFFF" style={styles.cartIcon} />
+                </Text>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+
+        {/* Notification Popup */}
+        <Modal
+          transparent={true}
+          visible={showNotification}
+          animationType="none"
+          onRequestClose={() => setShowNotification(false)}
+        >
+          <View style={styles.notificationContainer}>
+            <Animated.View
+              style={[
+                styles.notification,
+                { transform: [{ translateY: slideAnim }] },
+              ]}
+            >
+              <Text style={styles.notificationText}>Your item is successfully added to the cart!</Text>
+            </Animated.View>
+          </View>
+        </Modal>
+      </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#B71C1C',
     paddingHorizontal: 16,
     paddingTop: 50,
-  },
-  cartIconContainer: {
-    marginLeft: 12,
-    justifyContent: 'center',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -232,101 +284,114 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    backgroundColor: '#F8F8F8',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Semi-transparent white background
+    borderRadius: 25,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     fontSize: 16,
+    color: '#333',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cartIconContainer: {
+    marginLeft: 12,
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#FF5722',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   listContainer: {
     paddingBottom: 16,
   },
   cardContainer: {
     flexDirection: 'row',
-    backgroundColor: '#ffe500',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: '#FFFF58',
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 16,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   foodImage: {
     width: 80,
     height: 80,
     borderRadius: 8,
-    marginRight: 12,
+    marginRight: 16,
   },
   infoContainer: {
     flex: 1,
   },
   foodName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
-    color: '#000',
-  },
-  description: {
-    fontSize: 14,
-    color: '#757575',
-    marginBottom: 4,
+    color: '#333',
   },
   price: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
-    color: '#000',
-  },
-  cartButton: {
-    backgroundColor: '#4CAF50',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginVertical: 16,
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  cartButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  cartItemCount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  cartIcon: {
-    marginLeft: 10,
+    color: '#B71C1C',
   },
   addButton: {
     backgroundColor: '#4CAF50',
     borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignSelf: 'flex-end',
   },
   addButtonText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
-    textAlign: 'center',
+    fontSize: 14,
   },
-  quantityContainer: {
+  quantityWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  quantityButton: {
+    borderRadius: 8,
+    overflow: 'hidden',
     backgroundColor: '#4CAF50',
-    borderRadius: 4,
-    padding: 6,
-    marginHorizontal: 8,
+    alignSelf: 'flex-end',
   },
-  quantityButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    fontSize: 16,
+  decrementButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#388E3C',
+  },
+  incrementButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#388E3C',
+  },
+  quantityDisplay: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#4CAF50',
   },
   quantityText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   emptyText: {
@@ -335,43 +400,75 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 20,
   },
-  quantityWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    // borderRadius: 8,
-    overflow: 'hidden',
-  },
-  decrementButton: {
-    height:35,
-    borderBottomLeftRadius:10,
-    borderTopLeftRadius:10,
-    backgroundColor: '#00C853', 
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  incrementButton: {
-    height:35,
-    backgroundColor: '#00C853',
-    borderTopRightRadius:10,
-    borderBottomRightRadius:10,
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quantityDisplay: {
-    height:35,
-    backgroundColor: '#B71C1C', 
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   buttonText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 18,
   },
- 
+  cartButton: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: '#4CAF50',
+    borderRadius: 25,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  cartButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 18,
+    marginRight: 8,
+  },
+  cartItemCount: {
+    fontSize: 16,
+    fontWeight: 'normal',
+    color: '#FFFFFF',
+  },
+  cartIcon: {
+    marginLeft: 10,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginTop: 10,
+  },
+  notificationContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingTop: 50, // Adjust this value to position the notification
+  },
+  notification: {
+    backgroundColor: '#4CAF50',
+    padding: 16,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  notificationText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });
 
 export default FoodByCategory;
