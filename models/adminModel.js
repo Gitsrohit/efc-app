@@ -125,31 +125,63 @@ const orderSchema = new mongoose.Schema({
 //     ],
 // }, { timestamps: true });
 
+// const tableSchema = new mongoose.Schema(
+//     {
+//       name: {
+//         type: String,
+//         required: true,
+//         unique: true,
+//       },
+//       reserved: {
+//         type: Boolean,
+//         default: false,
+//       },
+//       companyId: {
+//         type: String,
+//         required: true,
+//       },
+//       menuItems: [
+//         {
+//           item: { type: mongoose.Schema.Types.ObjectId, ref: 'CategoryItem' },
+//           quantity: { type: Number, default: 1 },
+//           price: { type: Number, required: true },
+//         },
+//       ],
+//     },
+//     { timestamps: true }
+//   ); //original table schema
+
 const tableSchema = new mongoose.Schema(
-    {
+  {
       name: {
-        type: String,
-        required: true,
-        unique: true,
+          type: String,
+          required: true,
+          unique: true,
       },
       reserved: {
-        type: Boolean,
-        default: false,
+          type: Boolean,
+          default: false,
       },
       companyId: {
-        type: String,
-        required: true,
+          type: String,
+          required: true,
       },
       menuItems: [
-        {
-          item: { type: mongoose.Schema.Types.ObjectId, ref: 'CategoryItem' },
-          quantity: { type: Number, default: 1 },
-          price: { type: Number, required: true },
-        },
+          {
+              item: { type: mongoose.Schema.Types.ObjectId, ref: "CategoryItem" },
+              quantity: { type: Number, default: 1 },
+              price: { type: Number, required: true },
+          },
       ],
-    },
-    { timestamps: true }
-  );
+      kotGeneratedItems: [
+          {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "KOT", // ✅ Reference to KOT schema
+          },
+      ],
+  },
+  { timestamps: true }
+);
   
   
 // const kotSchema = new mongoose.Schema({
@@ -446,6 +478,21 @@ const BillSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 
+const newFacilitySchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    type: { type: String, required: true },
+    capacity: { type: String, required: true },
+    isBooked: { type: Boolean, default: false },
+    description: { type: String },
+    pictureUrls: { type: [String], default: [] }, 
+    companyId: {
+      type: String,
+      required: true,
+    },
+}, { timestamps: true });
+
+
+
 
 export const Category = mongoose.model('Category', categorySchema);
 export const CategoryItem = mongoose.model('CategoryItem',categoryItemSchema);
@@ -457,3 +504,4 @@ export const AdminProfile = mongoose.model('AdminProfile', AdminProfileSchema);
 export const Bill = mongoose.model('Bill', billSchema);
 export const NewBill = mongoose.model("NewBill", BillSchema);
 export const OnlineBill = mongoose.model("OnlineBill", onlineBillSchema);
+export const NewFacility = mongoose.model("NewFacility", newFacilitySchema);

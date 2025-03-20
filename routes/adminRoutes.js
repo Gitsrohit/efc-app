@@ -5,7 +5,7 @@ import upload from '../middlewares/fileUploadMiddlewares.js';
 import multer from 'multer';
 import path from 'path';
 import resetStocksMiddleware from "../middlewares/resetStocksMiddleware.js";
-import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController} from "../controller/adminController.js";
+import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility} from "../controller/adminController.js";
 
 import { companyMiddleware } from "../middlewares/companyAuthMiddleware.js";
 
@@ -67,7 +67,7 @@ router.post("/generate-table-kot",companyMiddleware,generateKOTController)
 router.post("/generate-online-kot",companyMiddleware,generateOnlineKOTController)
 router.post("/generate-table-bill",companyMiddleware,generateBillController)
 router.post("/generate-table-bill-new",companyMiddleware,generateNewBillController)
-// router.post("/generate-online-bill",companyMiddleware,generateOnlineBillController)
+router.post("/generate-online-bill",companyMiddleware,generateOnlineBillController)
 
 //advertisment routes
 router.post('/add-Ad',companyMiddleware, upload.single('image'), addAdController);
@@ -78,6 +78,16 @@ router.patch('/deactivate-ads/:adId',companyMiddleware, deactivateAdController)
 router.post('/adminProfile',upsertAdminProfile);
 router.get('/adminProfile/:companyId',getAdminProfile);
 router.post('/register-admin',registerAdminController)
+
+//facilities routes
+router.post("/add-facility", companyMiddleware, uploader.array("images", 5), addNewFacility);
+router.get("/get-facilities", companyMiddleware, getAllFacilities);
+router.get("/get-facility/:id", companyMiddleware, getFacilityById);
+router.put("/edit-facility/:id", companyMiddleware, uploader.array("images", 5), updateFacility);
+router.delete("/delete-facility/:id", companyMiddleware, deleteFacility);
+router.put('/book-facility/:facilityId', companyMiddleware, bookFacility);
+router.put('/unbook-facility/:id', companyMiddleware, unbookFacility);
+
 
 export default router
 
