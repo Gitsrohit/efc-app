@@ -176,13 +176,67 @@ const tableSchema = new mongoose.Schema(
       kotGeneratedItems: [
           {
               type: mongoose.Schema.Types.ObjectId,
-              ref: "KOT", // ✅ Reference to KOT schema
+              ref: "KOT", 
           },
       ],
   },
   { timestamps: true }
 );
-  
+
+// bill model
+
+const billSchema = new mongoose.Schema(
+  {
+    billNumber: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    orderNumber: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    billDate: {
+      type: Date,
+      default: Date.now,
+    },
+    tableName: {
+      type: String,
+      required: true,
+    },
+    companyId: {
+      type: String,
+      required: true,
+    },
+    operatorId: {
+      type: String,
+      required: true,
+    },
+    kotNumbers: [
+      {
+        type: String,
+      },
+    ],
+    items: [
+      {
+        itemName: { type: String, required: true },
+        quantity: { type: Number, required: true },
+        price: { type: Number, required: true },
+      },
+    ],
+    totalAmount: {
+      type: Number,
+      required: true,
+    },
+    paymentMode: {
+      type: String,
+      enum: ["Cash", "Card", "UPI", "Other"],
+      required: true,
+    },
+  },
+  { timestamps: true }
+); 
   
 // const kotSchema = new mongoose.Schema({
 //     ticketNumber: {
@@ -366,43 +420,43 @@ const AdminProfileSchema = new mongoose.Schema({
 //     },
 // }, { timestamps: true });
 
-const billSchema = new mongoose.Schema({
-    billNumber: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    orderNumber: {
-      type: String,
-      required: true,
-    },
-    billDate: {
-      type: Date,
-      default: Date.now,
-    },
-    tableName: {
-      type: String,
-      required: true,
-    },
-    companyId: {
-      type: String,
-      required: true,
-    },
-    operatorId: {
-      type: String,
-      required: true,
-    },
-    kotNumbers: [String],
-    items: [
-      {
-        itemName: String,
-        quantity: Number,
-        price: Number,
-      },
-    ],
-    totalAmount: Number,
-    paymentMode: String,
-  });
+// const billSchema = new mongoose.Schema({
+//     billNumber: {
+//       type: String,
+//       required: true,
+//       unique: true,
+//     },
+//     orderNumber: {
+//       type: String,
+//       required: true,
+//     },
+//     billDate: {
+//       type: Date,
+//       default: Date.now,
+//     },
+//     tableName: {
+//       type: String,
+//       required: true,
+//     },
+//     companyId: {
+//       type: String,
+//       required: true,
+//     },
+//     operatorId: {
+//       type: String,
+//       required: true,
+//     },
+//     kotNumbers: [String],
+//     items: [
+//       {
+//         itemName: String,
+//         quantity: Number,
+//         price: Number,
+//       },
+//     ],
+//     totalAmount: Number,
+//     paymentMode: String,
+//   }); // purana bill schema agar kuch problem hua toh isko chala do
 
 
 const onlineBillSchema = new mongoose.Schema(

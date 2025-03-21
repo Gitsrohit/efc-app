@@ -1030,6 +1030,74 @@ export const generateKOTController = async (req, res) => {
     }
 }; //modified wala 
 
+//show bill controller
+
+export const showBillController = async (req, res) => {
+    try {
+        const { tableId } = req.params;
+        const companyId = req.companyId;
+
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: "Company ID is required" });
+        }
+
+        const table = await Table.findById(tableId).populate({
+            path: "kotGeneratedItems",
+            select: "ticketNumber items createdAt",
+        });
+
+        if (!table) {
+            return res.status(404).json({ success: false, message: "Table not found" });
+        }
+
+        if (table.companyId?.toString() !== companyId.toString()) {
+            return res.status(403).json({ success: false, message: "Unauthorized" });
+        }
+
+        const itemMap = new Map(); // { itemName -> { quantity, price } }
+
+        table.kotGeneratedItems.forEach((kot) => {
+            kot.items.forEach((item) => {
+                if (itemMap.has(item.itemName)) {
+                    itemMap.get(item.itemName).quantity += item.quantity;
+                } else {
+                    itemMap.set(item.itemName, {
+                        quantity: item.quantity,
+                        price: item.price,
+                    });
+                }
+            });
+        });
+
+        const orderedItems = Array.from(itemMap, ([itemName, data]) => ({
+            itemName,
+            quantity: data.quantity,
+            price: data.price,
+            totalPrice: data.quantity * data.price,
+        }));
+
+        const totalBill = orderedItems.reduce((sum, item) => sum + item.totalPrice, 0);
+
+        res.status(200).json({
+            success: true,
+            message: "Bill details fetched successfully",
+            data: {
+                tableName: table.name,
+                orderedItems,
+                totalBill,
+            },
+        });
+    } catch (error) {
+        console.error("Error fetching bill:", error.message);
+        res.status(500).json({
+            success: false,
+            message: "Error fetching bill",
+            error: error.message,
+        });
+    }
+};
+
+
 
 // generate online kot
 export const generateOnlineKOTController = async (req, res) => {
@@ -1108,87 +1176,6 @@ export const generateOnlineKOTController = async (req, res) => {
 };
 
 
-export const generateBillController = async (req, res) => {
-    try {
-      const { tableId, paymentMode } = req.body;
-      const companyId = req.companyId;
-  
-      if (!companyId) {
-        return res.status(400).json({ success: false, message: "companyId is required" });
-      }
-  
-      const table = await Table.findById(tableId);
-      if (!table) {
-        return res.status(404).json({ success: false, message: "Table not found" });
-      }
-  
-      if (!table.reserved) {
-        return res.status(400).json({ success: false, message: "Table is not reserved" });
-      }
-  
-      // Fetch all KOTs for the table (don't include previous bill KOTs)
-      const kots = await KOT.find({ tableName: table.name, companyId });
-  
-      if (!kots.length) {
-        return res.status(400).json({ success: false, message: "No KOTs found for this table" });
-      }
-  
-      // Generate unique bill number
-      const billNumber = `BILL-${Math.floor(10000 + Math.random() * 90000)}`;
-      const orderNumber = `ORD-${Math.floor(10000 + Math.random() * 90000)}`;
-  
-      let totalAmount = 0;
-      const consolidatedItems = [];
-  
-      // Consolidate all items from KOTs
-      kots.forEach(kot => {
-        kot.items.forEach(item => {
-          const existingItem = consolidatedItems.find(i => i.itemName === item.itemName);
-          if (existingItem) {
-            existingItem.quantity += item.quantity;
-          } else {
-            consolidatedItems.push({ ...item });
-          }
-          totalAmount += item.price * item.quantity;
-        });
-      });
-  
-      // Create and save the bill
-      const bill = await Bill.create({
-        billNumber,
-        orderNumber,
-        billDate: new Date(),
-        tableName: table.name,
-        companyId,
-        operatorId: kots[0].operatorId,
-        kotNumbers: kots.map(kot => kot.ticketNumber),
-        items: consolidatedItems,
-        totalAmount,
-        paymentMode,
-      });
-  
-      // Unreserve the table and clear KOTs for that table
-      table.reserved = false;
-      table.kotGeneratedItems = []; // Clear KOTs after bill is generated
-      await table.save();
-  
-      // Respond with the bill details
-      res.status(201).json({
-        success: true,
-        message: "Bill generated successfully",
-        data: bill,
-      });
-    } catch (error) {
-      console.error("Error generating bill:", error);
-      res.status(500).json({
-        success: false,
-        message: "Error generating bill",
-        error: error.message,
-      });
-    }
-  };
-  
-
 // export const generateBillController = async (req, res) => {
 //     try {
 //       const { tableId, paymentMode } = req.body;
@@ -1207,7 +1194,7 @@ export const generateBillController = async (req, res) => {
 //         return res.status(400).json({ success: false, message: "Table is not reserved" });
 //       }
   
-//       // Fetch all KOTs for the table
+//       // Fetch all KOTs for the table (don't include previous bill KOTs)
 //       const kots = await KOT.find({ tableName: table.name, companyId });
   
 //       if (!kots.length) {
@@ -1248,8 +1235,9 @@ export const generateBillController = async (req, res) => {
 //         paymentMode,
 //       });
   
-//       // Unreserve the table
+//       // Unreserve the table and clear KOTs for that table
 //       table.reserved = false;
+//       table.kotGeneratedItems = []; // Clear KOTs after bill is generated
 //       await table.save();
   
 //       // Respond with the bill details
@@ -1266,115 +1254,111 @@ export const generateBillController = async (req, res) => {
 //         error: error.message,
 //       });
 //     }
-//   };
-  
+//   };  bill generate ka previous right controller agar kuch galat hua isko on kar dena
 
-// export const generateBillController = async (req, res) => {
-//     try {
-//         const { tableId, operatorId } = req.body;
-//         const companyId = req.companyId;
+export const generateBillController = async (req, res) => {
+    try {
+        const { tableId, paymentMode } = req.body;
+        const companyId = req.companyId;
 
-//         if (!companyId) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "companyId is required",
-//             });
-//         }
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: "companyId is required" });
+        }
 
-//         // Fetch the table details and related KOTs
-//         const table = await Table.findOne({ _id: tableId, companyId }).populate(
-//             "kotGeneratedItems.item",
-//             "itemName price kitchen"
-//         );
+        // Fetch table and populate KOT details
+        const table = await Table.findById(tableId).populate("kotGeneratedItems");
+        if (!table) {
+            return res.status(404).json({ success: false, message: "Table not found" });
+        }
 
-//         if (!table) {
-//             return res.status(404).json({
-//                 success: false,
-//                 message: "Table not found",
-//             });
-//         }
+        if (!table.reserved) {
+            return res.status(400).json({ success: false, message: "Table is not reserved" });
+        }
 
-//         if (!table.reserved) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "Table is not reserved. No bill to generate.",
-//             });
-//         }
+        // Ensure KOTs exist and are properly populated
+        if (!table.kotGeneratedItems || table.kotGeneratedItems.length === 0) {
+            return res.status(400).json({ success: false, message: "No KOTs found for this table" });
+        }
 
-//         // Fetch all KOTs for this table
-//         const kots = await KOT.find({ tableName: table.name, companyId });
+        let totalAmount = 0;
+        const itemMap = new Map(); // { itemName -> { quantity, price } }
 
-//         if (!kots || kots.length === 0) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "No KOTs found for this table.",
-//             });
-//         }
+        // Consolidate all items from KOTs
+        table.kotGeneratedItems.forEach(kot => {
+            if (!kot.items || kot.items.length === 0) return; // Skip empty KOTs
 
-//         // Group KOT items by kitchen type
-//         const itemsByKitchen = kots.reduce((acc, kot) => {
-//             kot.items.forEach((item) => {
-//                 const kitchen = item.kitchen || "Unknown Kitchen";
-//                 if (!acc[kitchen]) acc[kitchen] = [];
-//                 acc[kitchen].push(item);
-//             });
-//             return acc;
-//         }, {});
+            kot.items.forEach(item => {
+                if (itemMap.has(item.itemName)) {
+                    // Increase quantity if item already exists
+                    itemMap.get(item.itemName).quantity += item.quantity;
+                } else {
+                    // Store new item
+                    itemMap.set(item.itemName, {
+                        quantity: item.quantity,
+                        price: item.price,
+                    });
+                }
+            });
+        });
 
-//         const bills = [];
+        // Convert map to array for response
+        const consolidatedItems = Array.from(itemMap, ([itemName, data]) => ({
+            itemName,
+            quantity: data.quantity,
+            price: data.price,
+            totalPrice: data.quantity * data.price,
+        }));
 
-//         // Generate a separate bill for each kitchen
-//         for (const kitchen in itemsByKitchen) {
-//             const items = itemsByKitchen[kitchen];
-//             let totalAmount = 0;
+        // Ensure there are items to bill
+        if (consolidatedItems.length === 0) {
+            return res.status(400).json({ success: false, message: "No valid items found for billing" });
+        }
 
-//             const billItems = items.map((item) => {
-//                 const amount = item.quantity * item.price;
-//                 totalAmount += amount;
+        // Calculate total bill amount
+        totalAmount = consolidatedItems.reduce((sum, item) => sum + item.totalPrice, 0);
 
-//                 return {
-//                     itemName: item.itemName,
-//                     quantity: item.quantity,
-//                     rate: item.price,
-//                     amount: amount,
-//                 };
-//             });
+        // Generate unique bill and order numbers
+        const billNumber = `BILL-${Math.floor(10000 + Math.random() * 90000)}`;
+        const orderNumber = `ORD-${Math.floor(10000 + Math.random() * 90000)}`;
 
-//             // Create the bill
-//             const bill = {
-//                 tableName: table.name,
-//                 items: billItems,
-//                 totalAmount,
-//                 operatorId,
-//                 companyId,
-//                 kitchen,
-//                 generatedAt: new Date(),
-//             };
+        // Create and save the bill
+        const bill = await Bill.create({
+            billNumber,
+            orderNumber,
+            billDate: new Date(),
+            tableName: table.name,
+            companyId,
+            operatorId: table.kotGeneratedItems[0]?.operatorId || "Unknown",
+            kotNumbers: table.kotGeneratedItems.map(kot => kot.ticketNumber),
+            items: consolidatedItems,
+            totalAmount,
+            paymentMode,
+        });
 
-//             const savedBill = await Bill.create(bill);
-//             bills.push(savedBill);
-//         }
+        // Unreserve the table and clear its data
+        table.reserved = false;
+        table.kotGeneratedItems = []; // Clear stored KOTs after billing
+        table.menuItems = []; // Clear menu items after billing
+        await table.save();
 
-//         // Reset the table state
-//         table.menuItems = [];
-//         table.kotGeneratedItems = [];
-//         table.reserved = false;
-//         await table.save();
+        // Respond with the bill details
+        res.status(201).json({
+            success: true,
+            message: "Bill generated successfully",
+            data: bill,
+        });
 
-//         res.status(201).json({
-//             success: true,
-//             message: "Bills generated successfully for each kitchen",
-//             data: bills,
-//         });
-//     } catch (error) {
-//         console.error("Error generating bills:", error.message);
-//         res.status(500).json({
-//             success: false,
-//             message: "Error generating bills",
-//             error: error.message,
-//         });
-//     }
-// };this one is real
+    } catch (error) {
+        console.error("Error generating bill:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error generating bill",
+            error: error.message,
+        });
+    }
+};
+
+
 
 //create bill for onlin order
 // export const generateOnlineBillController = async (req, res) => {
