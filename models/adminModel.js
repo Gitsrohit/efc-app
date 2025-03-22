@@ -525,6 +525,11 @@ const BillSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    paymentMode: {
+      type: String,
+      enum: ["cash", "card", "upi"],
+      required: true,
+    },
     generatedAt: {
         type: Date,
         default: Date.now,

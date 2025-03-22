@@ -810,6 +810,9 @@
                 },
                 "operatorId": {
                   "example": "any"
+                },
+                "paymentMode": {
+                  "example": "any"
                 }
               }
             }
@@ -2139,6 +2142,9 @@
                   "example": "any"
                 },
                 "operatorId": {
+                  "example": "any"
+                },
+                "paymentMode": {
                   "example": "any"
                 }
               }
