@@ -1337,6 +1337,114 @@ export const generateBillController = async (req, res) => {
     }
 };
 
+//generate revenue by date controller
+export const getRevenueByDateRange = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.body;
+        const companyId = req.companyId; // Ensure company-specific filtering
+
+        if (!startDate || !endDate) {
+            return res.status(400).json({ success: false, message: "Start date and end date are required" });
+        }
+
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: "companyId is required" });
+        }
+
+        // Convert dates to UTC for accurate filtering
+        const start = new Date(`${startDate}T00:00:00.000Z`);
+        const end = new Date(`${endDate}T23:59:59.999Z`);
+
+        console.log("Start Date in UTC:", start);
+        console.log("End Date in UTC:", end);
+
+        // Fetch bills within the date range for the specific company
+        const revenueData = await Bill.find({
+            companyId,
+            billDate: { $gte: start, $lte: end }
+        });
+
+        console.log("Fetched Revenue Data:", revenueData);
+
+        if (revenueData.length === 0) {
+            return res.status(200).json({ success: true, message: "No revenue data found", data: [] });
+        }
+
+        // Calculate total revenue
+        const totalRevenue = revenueData.reduce((sum, bill) => sum + bill.totalAmount, 0);
+
+        res.status(200).json({
+            success: true,
+            message: "Revenue data fetched successfully",
+            totalRevenue,
+            data: revenueData,
+        });
+
+    } catch (error) {
+        console.error("Error fetching revenue data:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error fetching revenue data",
+            error: error.message,
+        });
+    }
+};
+
+export const getReducedRevenueByDateRange = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.body;
+        const companyId = req.companyId; // Ensure company-specific filtering
+
+        if (!startDate || !endDate) {
+            return res.status(400).json({ success: false, message: "Start date and end date are required" });
+        }
+
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: "companyId is required" });
+        }
+
+        // Convert dates to UTC for accurate filtering
+        const start = new Date(`${startDate}T00:00:00.000Z`);
+        const end = new Date(`${endDate}T23:59:59.999Z`);
+
+        console.log("Start Date in UTC:", start);
+        console.log("End Date in UTC:", end);
+
+        // Fetch bills within the date range for the specific company
+        const revenueData = await Bill.find({
+            companyId,
+            billDate: { $gte: start, $lte: end }
+        });
+
+        console.log("Fetched Revenue Data:", revenueData);
+
+        if (revenueData.length === 0) {
+            return res.status(200).json({ success: true, message: "No revenue data found", data: [] });
+        }
+
+        // Calculate total revenue by taking only 10% of each bill's totalAmount
+        const discountedRevenue = revenueData.reduce((sum, bill) => sum + (bill.totalAmount * 0.1), 0);
+
+        res.status(200).json({
+            success: true,
+            message: "Discounted revenue data fetched successfully",
+            totalDiscountedRevenue: discountedRevenue.toFixed(2), // Keep only 2 decimal places
+            data: revenueData,
+        });
+
+    } catch (error) {
+        console.error("Error fetching revenue data:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error fetching revenue data",
+            error: error.message,
+        });
+    }
+};
+
+
+
+
 
 
 //create bill for onlin order

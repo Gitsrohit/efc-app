@@ -5,7 +5,7 @@ import upload from '../middlewares/fileUploadMiddlewares.js';
 import multer from 'multer';
 import path from 'path';
 import resetStocksMiddleware from "../middlewares/resetStocksMiddleware.js";
-import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController} from "../controller/adminController.js";
+import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange} from "../controller/adminController.js";
 
 import { companyMiddleware } from "../middlewares/companyAuthMiddleware.js";
 
@@ -69,6 +69,8 @@ router.post("/generate-online-kot",companyMiddleware,generateOnlineKOTController
 router.post("/generate-table-bill",companyMiddleware,generateBillController)
 router.post("/generate-table-bill-new",companyMiddleware,generateNewBillController)
 router.post("/generate-online-bill",companyMiddleware,generateOnlineBillController)
+router.post("/generate-revenue",companyMiddleware,getRevenueByDateRange)
+router.post("/generate-reduced-revenue",companyMiddleware,getReducedRevenueByDateRange)
 
 //advertisment routes
 router.post('/add-Ad',companyMiddleware, upload.single('image'), addAdController);
