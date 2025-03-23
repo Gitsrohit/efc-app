@@ -84,11 +84,11 @@ router.post('/register-admin',registerAdminController)
 
 //facilities routes
 router.post("/add-facility", companyMiddleware, uploader.array("images", 5), addNewFacility);
-router.get("/get-facilities", getAllFacilities);
-router.get("/get-facility/:id", getFacilityById);
+router.get("/get-facilities",companyMiddleware, getAllFacilities);
+router.get("/get-facility/:id",companyMiddleware, getFacilityById);
 router.put("/edit-facility/:id", companyMiddleware, uploader.array("images", 5), updateFacility);
 router.delete("/delete-facility/:id", companyMiddleware, deleteFacility);
-router.put('/book-facility/:facilityId', companyMiddleware, bookFacility);
+router.put('/book-facility/:id', companyMiddleware, bookFacility);
 router.put('/unbook-facility/:id', companyMiddleware, unbookFacility);
 
 

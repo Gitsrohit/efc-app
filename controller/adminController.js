@@ -15,6 +15,7 @@ import {Bill} from '../models/adminModel.js';
 import {NewBill} from '../models/adminModel.js';
 import {OnlineBill} from '../models/adminModel.js';
 import {NewFacility} from '../models/adminModel.js';
+import {Facility} from '../models/adminModel.js';
 // const onlineOrder = require("../middlewares/kafkaConsumer.js");
 
 
@@ -1908,18 +1909,65 @@ export const getAdminProfile = async (req, res) => {
 
 // Facilities section all controllers below
 
+// export const addNewFacility = async (req, res) => {
+//     try {
+//         const { name, type, capacity, description } = req.body;
+
+//         if (!name || !type || !capacity) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "Name, type, and capacity are required.",
+//             });
+//         }
+
+//         const companyId = req.companyId; 
+//         if (!companyId) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "companyId is required",
+//             });
+//         }
+
+//         let pictureUrls = [];
+
+//         // Check if files are uploaded
+//         if (req.files && req.files.length > 0) {
+//             for (const file of req.files) {
+//                 const imageUrl = await uploadFile(file.buffer, "facilities");
+//                 pictureUrls.push(imageUrl);
+//             }
+//         } else {
+//             return res.status(400).json({ message: "At least one image file is required" });
+//         }
+
+//         // Create a new facility with images
+//         const newFacility = await NewFacility.create({
+//             name,
+//             type,
+//             capacity,
+//             description,
+//             pictureUrls, 
+//             companyId,
+//         });
+
+//         res.status(201).json({
+//             success: true,
+//             message: "New facility added successfully.",
+//             data: newFacility,
+//         });
+//     } catch (error) {
+//         console.error("Error adding new facility:", error.message);
+//         res.status(500).json({
+//             success: false,
+//             message: "Error adding new facility.",
+//             error: error.message,
+//         });
+//     }
+// };
+
 export const addNewFacility = async (req, res) => {
     try {
-        const { name, type, capacity, description } = req.body;
-
-        if (!name || !type || !capacity) {
-            return res.status(400).json({
-                success: false,
-                message: "Name, type, and capacity are required.",
-            });
-        }
-
-        const companyId = req.companyId; 
+        const companyId = req.companyId;
         if (!companyId) {
             return res.status(400).json({
                 success: false,
@@ -1927,9 +1975,13 @@ export const addNewFacility = async (req, res) => {
             });
         }
 
-        let pictureUrls = [];
+        const { name, type, capacity, description ,isBooked = false } = req.body;
 
-        // Check if files are uploaded
+        if (!name || !type || !capacity) {
+            return res.status(400).json({ success: false, message: "Name, type, and capacity are required." });
+        }
+
+        let pictureUrls = [];
         if (req.files && req.files.length > 0) {
             for (const file of req.files) {
                 const imageUrl = await uploadFile(file.buffer, "facilities");
@@ -1939,84 +1991,75 @@ export const addNewFacility = async (req, res) => {
             return res.status(400).json({ message: "At least one image file is required" });
         }
 
-        // Create a new facility with images
-        const newFacility = await NewFacility.create({
+        const newFacility = await Facility.create({
             name,
             type,
             capacity,
             description,
-            pictureUrls, 
-            companyId,
+            pictureUrls,
+            companyId,  
+            isBooked
         });
 
-        res.status(201).json({
-            success: true,
-            message: "New facility added successfully.",
-            data: newFacility,
-        });
+        res.status(201).json({ success: true, message: "Facility added successfully.", data: newFacility });
     } catch (error) {
-        console.error("Error adding new facility:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error adding new facility.",
-            error: error.message,
-        });
+        console.error("Error adding facility:", error.message);
+        res.status(500).json({ success: false, message: "Error adding facility.", error: error.message });
     }
 };
 
 export const getAllFacilities = async (req, res) => {
     try {
-        const facilities = await NewFacility.find();
-        res.status(200).json({
-            success: true,
-            message: "Facilities retrieved successfully.",
-            data: facilities,
-        });
+        const companyId = req.companyId;
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: "companyId is required" });
+        }
+
+        const facilities = await Facility.find({ companyId }).select("-__v"); // Fetch all fields except version
+
+        res.status(200).json({ success: true, message: "Facilities retrieved successfully.", data: facilities });
     } catch (error) {
         console.error("Error fetching facilities:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error fetching facilities.",
-            error: error.message,
-        });
+        res.status(500).json({ success: false, message: "Error fetching facilities.", error: error.message });
     }
 };
 
+
 export const getFacilityById = async (req, res) => {
     try {
-        const {id} = req.params;
-        const facility = await NewFacility.findById(id);
-
-        if (!facility) {
-            return res.status(404).json({
+        const { id } = req.params;
+        const companyId = req.companyId;
+        if (!companyId) {
+            return res.status(400).json({
                 success: false,
-                message: "Facility not found.",
+                message: "companyId is required",
             });
         }
 
-        res.status(200).json({
-            success: true,
-            message: "Facility retrieved successfully.",
-            data: facility,
-        });
+        const facility = await Facility.findOne({ _id: id, companyId });
+
+        if (!facility) {
+            return res.status(404).json({ success: false, message: "Facility not found." });
+        }
+
+        res.status(200).json({ success: true, message: "Facility retrieved successfully.", data: facility });
     } catch (error) {
         console.error("Error fetching facility:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error fetching facility.",
-            error: error.message,
-        });
+        res.status(500).json({ success: false, message: "Error fetching facility.", error: error.message });
     }
 };
 
 export const updateFacility = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, type, capacity, description } = req.body;
+        const companyId = req.companyId;
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: "companyId is required" });
+        }
+
+        const { name, type, capacity, description, isBooked } = req.body;
 
         let pictureUrls = [];
-
-        // Handle multiple images if provided
         if (req.files && req.files.length > 0) {
             for (const file of req.files) {
                 const imageUrl = await uploadFile(file.buffer, "facilities");
@@ -2024,157 +2067,108 @@ export const updateFacility = async (req, res) => {
             }
         }
 
-        // Prepare update object with only the provided fields
         const updateData = {};
         if (name) updateData.name = name;
         if (type) updateData.type = type;
         if (capacity) updateData.capacity = capacity;
         if (description) updateData.description = description;
         if (pictureUrls.length > 0) updateData.pictureUrls = pictureUrls;
+        if (isBooked !== undefined) updateData.isBooked = isBooked;  // Update isBooked
 
-        // Find and update facility
-        const updatedFacility = await NewFacility.findByIdAndUpdate(id, updateData, { new: true });
+        const updatedFacility = await Facility.findOneAndUpdate({ _id: id, companyId }, updateData, { new: true });
 
         if (!updatedFacility) {
             return res.status(404).json({ success: false, message: "Facility not found." });
         }
 
-        res.status(200).json({
-            success: true,
-            message: "Facility updated successfully.",
-            data: updatedFacility,
-        });
+        res.status(200).json({ success: true, message: "Facility updated successfully.", data: updatedFacility });
     } catch (error) {
         console.error("Error updating facility:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error updating facility.",
-            error: error.message,
-        });
+        res.status(500).json({ success: false, message: "Error updating facility.", error: error.message });
     }
 };
-
 
 export const deleteFacility = async (req, res) => {
     try {
         const { id } = req.params;
-        const deletedFacility = await NewFacility.findByIdAndDelete(id);
-
-        if (!deletedFacility) {
-            return res.status(404).json({
-                success: false,
-                message: "Facility not found.",
-            });
+        const companyId = req.companyId;
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: "companyId is required" });
         }
 
-        res.status(200).json({
-            success: true,
-            message: "Facility deleted successfully.",
-        });
+        const deletedFacility = await Facility.findOneAndDelete({ _id: id, companyId });
+
+        if (!deletedFacility) {
+            return res.status(404).json({ success: false, message: "Facility not found." });
+        }
+
+        res.status(200).json({ success: true, message: "Facility deleted successfully." });
     } catch (error) {
         console.error("Error deleting facility:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error deleting facility.",
-            error: error.message,
-        });
+        res.status(500).json({ success: false, message: "Error deleting facility.", error: error.message });
     }
 };
 
 export const bookFacility = async (req, res) => {
     try {
-        const { facilityId } = req.params;
+        const { id } = req.params;
         const companyId = req.companyId;
 
         if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required to book a facility",
-            });
+            return res.status(400).json({ success: false, message: "Company ID is required." });
         }
 
-        const facility = await NewFacility.findById(facilityId);
+        // Find the facility by ID and companyId
+        const facility = await Facility.findOne({ _id: id, companyId });
+
         if (!facility) {
-            return res.status(404).json({ success: false, message: "Facility not found" });
+            return res.status(404).json({ success: false, message: "Facility not found." });
         }
 
-        if (facility.companyId.toString() !== companyId.toString()) {
-            return res.status(403).json({
-                success: false,
-                message: "You are not authorized to book this facility",
-            });
-        }
-
+        // If already booked, return an error
         if (facility.isBooked) {
-            return res.status(400).json({ success: false, message: "Facility is already booked" });
+            return res.status(400).json({ success: false, message: "Facility is already booked." });
         }
 
-        facility.isBooked = true;
+        // Book the facility
+        Facility.isBooked = true;
         await facility.save();
 
         res.status(200).json({
             success: true,
-            message: "Facility booked successfully",
-            facility,
+            message: "Facility booked successfully.",
+            data: facility,
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error booking facility",
-            error: error.message,
-        });
+        console.error("Error booking facility:", error.message);
+        res.status(500).json({ success: false, message: "Error booking facility.", error: error.message });
     }
 };
 
+
 export const unbookFacility = async (req, res) => {
     try {
-        const { id } = req.params; // Facility ID from URL
-        const companyId = req.companyId; // Company ID from middleware
+        const { id } = req.params;
+        const companyId = req.companyId;
 
         if (!companyId) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Company ID is required." 
-            });
+            return res.status(400).json({ success: false, message: "Company ID is required." });
         }
 
-        // Find the facility
-        const facility = await NewFacility.findById(id);
+        // Find the facility by ID and companyId
+        const facility = await Facility.findOne({ _id: id, companyId });
 
         if (!facility) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Facility not found." 
-            });
+            return res.status(404).json({ success: false, message: "Facility not found." });
         }
 
-        // Check if facility has companyId (if it's missing in the schema)
-        if (!facility.companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "Facility does not have an associated company.",
-            });
-        }
-
-        // Ensure the facility belongs to the same company
-        if (facility.companyId.toString() !== companyId.toString()) {
-            return res.status(403).json({
-                success: false,
-                message: "You are not authorized to unbook this facility.",
-            });
-        }
-
-        // Check if already unbooked
+        // If already unbooked, return an error
         if (!facility.isBooked) {
-            return res.status(400).json({
-                success: false,
-                message: "This facility is already available.",
-            });
+            return res.status(400).json({ success: false, message: "Facility is already unbooked." });
         }
 
         // Unbook the facility
-        facility.isBooked = false;
-        facility.bookedAt = null;
+        Facility.isBooked = false;
         await facility.save();
 
         res.status(200).json({
@@ -2184,13 +2178,10 @@ export const unbookFacility = async (req, res) => {
         });
     } catch (error) {
         console.error("Error unbooking facility:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error unbooking facility",
-            error: error.message,
-        });
+        res.status(500).json({ success: false, message: "Error unbooking facility.", error: error.message });
     }
 };
+
 
 
 

@@ -1259,6 +1259,9 @@
                 },
                 "description": {
                   "example": "any"
+                },
+                "isBooked": {
+                  "example": "any"
                 }
               }
             }
@@ -1283,9 +1286,22 @@
     "/api/v1/admin/get-facilities": {
       "get": {
         "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "500": {
             "description": "Internal Server Error"
@@ -1302,11 +1318,22 @@
             "in": "path",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
           }
         ],
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "404": {
             "description": "Not Found"
@@ -1349,6 +1376,9 @@
                 },
                 "description": {
                   "example": "any"
+                },
+                "isBooked": {
+                  "example": "any"
                 }
               }
             }
@@ -1357,6 +1387,9 @@
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
           },
           "401": {
             "description": "Unauthorized"
@@ -1390,6 +1423,9 @@
           "200": {
             "description": "OK"
           },
+          "400": {
+            "description": "Bad Request"
+          },
           "401": {
             "description": "Unauthorized"
           },
@@ -1402,12 +1438,12 @@
         }
       }
     },
-    "/api/v1/admin/book-facility/{facilityId}": {
+    "/api/v1/admin/book-facility/{id}": {
       "put": {
         "description": "",
         "parameters": [
           {
-            "name": "facilityId",
+            "name": "id",
             "in": "path",
             "required": true,
             "type": "string"
@@ -1427,9 +1463,6 @@
           },
           "401": {
             "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           },
           "404": {
             "description": "Not Found"
@@ -1465,9 +1498,6 @@
           },
           "401": {
             "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           },
           "404": {
             "description": "Not Found"
@@ -2656,6 +2686,9 @@
                 },
                 "description": {
                   "example": "any"
+                },
+                "isBooked": {
+                  "example": "any"
                 }
               }
             }
@@ -2680,9 +2713,22 @@
     "/get-facilities": {
       "get": {
         "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "500": {
             "description": "Internal Server Error"
@@ -2699,11 +2745,22 @@
             "in": "path",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
           }
         ],
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "404": {
             "description": "Not Found"
@@ -2746,6 +2803,9 @@
                 },
                 "description": {
                   "example": "any"
+                },
+                "isBooked": {
+                  "example": "any"
                 }
               }
             }
@@ -2754,6 +2814,9 @@
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
           },
           "401": {
             "description": "Unauthorized"
@@ -2787,6 +2850,9 @@
           "200": {
             "description": "OK"
           },
+          "400": {
+            "description": "Bad Request"
+          },
           "401": {
             "description": "Unauthorized"
           },
@@ -2799,12 +2865,12 @@
         }
       }
     },
-    "/book-facility/{facilityId}": {
+    "/book-facility/{id}": {
       "put": {
         "description": "",
         "parameters": [
           {
-            "name": "facilityId",
+            "name": "id",
             "in": "path",
             "required": true,
             "type": "string"
@@ -2824,9 +2890,6 @@
           },
           "401": {
             "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           },
           "404": {
             "description": "Not Found"
@@ -2862,9 +2925,6 @@
           },
           "401": {
             "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
           },
           "404": {
             "description": "Not Found"

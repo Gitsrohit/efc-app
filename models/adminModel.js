@@ -564,3 +564,5 @@ export const Bill = mongoose.model('Bill', billSchema);
 export const NewBill = mongoose.model("NewBill", BillSchema);
 export const OnlineBill = mongoose.model("OnlineBill", onlineBillSchema);
 export const NewFacility = mongoose.model("NewFacility", newFacilitySchema);
+export const Facility = mongoose.model("Facility", new mongoose.Schema({}, { strict: false }), "facilities");
+
