@@ -2126,12 +2126,12 @@ export const bookFacility = async (req, res) => {
         }
 
         // If already booked, return an error
-        if (facility.isBooked) {
+        if (facility.isBooked === true) {
             return res.status(400).json({ success: false, message: "Facility is already booked." });
         }
 
-        // Book the facility
-        Facility.isBooked = true;
+        // ✅ Correctly update the facility document
+        facility.isBooked = true;
         await facility.save();
 
         res.status(200).json({
@@ -2163,12 +2163,12 @@ export const unbookFacility = async (req, res) => {
         }
 
         // If already unbooked, return an error
-        if (!facility.isBooked) {
+        if (facility.isBooked === false) {
             return res.status(400).json({ success: false, message: "Facility is already unbooked." });
         }
 
-        // Unbook the facility
-        Facility.isBooked = false;
+        // ✅ Correctly update the facility document
+        facility.isBooked = false;
         await facility.save();
 
         res.status(200).json({
@@ -2181,6 +2181,7 @@ export const unbookFacility = async (req, res) => {
         res.status(500).json({ success: false, message: "Error unbooking facility.", error: error.message });
     }
 };
+
 
 
 
