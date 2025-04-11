@@ -5,7 +5,7 @@ import upload from '../middlewares/fileUploadMiddlewares.js';
 import multer from 'multer';
 import path from 'path';
 import resetStocksMiddleware from "../middlewares/resetStocksMiddleware.js";
-import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange} from "../controller/adminController.js";
+import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange,addCustomer,getAllCustomers,getCustomerByPhone,updateCustomerBalance,updateCustomerDetails} from "../controller/adminController.js";
 
 import { companyMiddleware } from "../middlewares/companyAuthMiddleware.js";
 
@@ -90,6 +90,14 @@ router.put("/edit-facility/:id", companyMiddleware, uploader.array("images", 5),
 router.delete("/delete-facility/:id", companyMiddleware, deleteFacility);
 router.put('/book-facility/:id', companyMiddleware, bookFacility);
 router.put('/unbook-facility/:id', companyMiddleware, unbookFacility);
+
+//customer apis
+router.post('/add-customer', companyMiddleware, addCustomer);
+router.get('/customers', companyMiddleware, getAllCustomers);
+router.get('/customer/:phoneNumber', companyMiddleware, getCustomerByPhone);
+router.put('/customer/update-balance/:phoneNumber', companyMiddleware, updateCustomerBalance);
+router.put('/customers/:id', companyMiddleware, updateCustomerDetails);
+
 
 
 export default router

@@ -16,6 +16,7 @@ import {NewBill} from '../models/adminModel.js';
 import {OnlineBill} from '../models/adminModel.js';
 import {NewFacility} from '../models/adminModel.js';
 import {Facility} from '../models/adminModel.js';
+import {Customer} from '../models/adminModel.js';
 // const onlineOrder = require("../middlewares/kafkaConsumer.js");
 
 
@@ -2118,19 +2119,16 @@ export const bookFacility = async (req, res) => {
             return res.status(400).json({ success: false, message: "Company ID is required." });
         }
 
-        // Find the facility by ID and companyId
         const facility = await Facility.findOne({ _id: id, companyId });
 
         if (!facility) {
             return res.status(404).json({ success: false, message: "Facility not found." });
         }
 
-        // If already booked, return an error
         if (facility.isBooked === true) {
             return res.status(400).json({ success: false, message: "Facility is already booked." });
         }
 
-        // ✅ Correctly update the facility document
         facility.isBooked = true;
         await facility.save();
 
@@ -2155,19 +2153,16 @@ export const unbookFacility = async (req, res) => {
             return res.status(400).json({ success: false, message: "Company ID is required." });
         }
 
-        // Find the facility by ID and companyId
         const facility = await Facility.findOne({ _id: id, companyId });
 
         if (!facility) {
             return res.status(404).json({ success: false, message: "Facility not found." });
         }
 
-        // If already unbooked, return an error
         if (facility.isBooked === false) {
             return res.status(400).json({ success: false, message: "Facility is already unbooked." });
         }
 
-        // ✅ Correctly update the facility document
         facility.isBooked = false;
         await facility.save();
 
@@ -2181,6 +2176,133 @@ export const unbookFacility = async (req, res) => {
         res.status(500).json({ success: false, message: "Error unbooking facility.", error: error.message });
     }
 };
+
+
+//adding customer to the database
+export const addCustomer = async (req, res) => {
+    try {
+        const companyId = req.companyId;
+        const { name, phoneNumber, positiveBalance = 0, negativeBalance = 0 } = req.body;
+
+        if (!companyId) return res.status(400).json({ success: false, message: "Company ID is required." });
+        if (!name || !phoneNumber) return res.status(400).json({ success: false, message: "Name and phone number are required." });
+
+        const existingCustomer = await Customer.findOne({ phoneNumber, companyId });
+        if (existingCustomer) return res.status(400).json({ success: false, message: "Customer already exists for this company." });
+
+        const newCustomer = await Customer.create({
+            name,
+            phoneNumber,
+            positiveBalance,
+            negativeBalance,
+            companyId
+        });
+
+        res.status(201).json({ success: true, message: "Customer added successfully.", data: newCustomer });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error adding customer", error: error.message });
+    }
+};
+
+
+// getting all customers
+export const getAllCustomers = async (req, res) => {
+    try {
+        const companyId = req.companyId;
+
+        if (!companyId) return res.status(400).json({ success: false, message: "Company ID is required." });
+
+        const customers = await Customer.find({ companyId });
+        res.status(200).json({ success: true, data: customers });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error fetching customers", error: error.message });
+    }
+};
+
+
+//getting customers via phone number
+export const getCustomerByPhone = async (req, res) => {
+    try {
+        const companyId = req.companyId;
+        const { phoneNumber } = req.params;
+
+        if (!companyId) return res.status(400).json({ success: false, message: "Company ID is required." });
+
+        const customer = await Customer.findOne({ phoneNumber, companyId });
+
+        if (!customer) return res.status(404).json({ success: false, message: "Customer not found." });
+
+        res.status(200).json({ success: true, data: customer });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error fetching customer", error: error.message });
+    }
+};
+
+//adding and reducing balance
+export const updateCustomerBalance = async (req, res) => {
+    try {
+        const companyId = req.companyId;
+        const { phoneNumber } = req.params;
+        const { deductAmount = 0, addNegative = 0 } = req.body;
+
+        if (!companyId) return res.status(400).json({ success: false, message: "Company ID is required." });
+
+        const customer = await Customer.findOne({ phoneNumber, companyId });
+
+        if (!customer) return res.status(404).json({ success: false, message: "Customer not found." });
+
+        if (deductAmount > 0) {
+            if (customer.positiveBalance < deductAmount) {
+                return res.status(400).json({ success: false, message: "Insufficient positive balance." });
+            }
+            customer.positiveBalance -= deductAmount;
+        }
+
+        if (addNegative > 0) {
+            customer.negativeBalance += addNegative;
+        }
+
+        await customer.save();
+
+        res.status(200).json({ success: true, message: "Customer balance updated.", data: customer });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error updating balance", error: error.message });
+    }
+};
+
+//edit customer
+export const updateCustomerDetails = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const companyId = req.companyId;
+
+        const { name, phoneNumber } = req.body;
+
+        if (!name || !phoneNumber) {
+            return res.status(400).json({ success: false, message: "Name and phone number are required." });
+        }
+
+        const customer = await Customer.findOne({ _id: id, companyId });
+
+        if (!customer) {
+            return res.status(404).json({ success: false, message: "Customer not found or does not belong to your company." });
+        }
+
+        customer.name = name;
+        customer.phoneNumber = phoneNumber;
+
+        await customer.save();
+
+        res.status(200).json({ success: true, message: "Customer details updated successfully.", data: customer });
+
+    } catch (error) {
+        console.error("Error updating customer details:", error.message);
+        res.status(500).json({ success: false, message: "Error updating customer details.", error: error.message });
+    }
+};
+
+
+
 
 
 

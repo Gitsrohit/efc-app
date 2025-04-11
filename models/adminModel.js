@@ -550,6 +550,33 @@ const newFacilitySchema = new mongoose.Schema({
     },
 }, { timestamps: true });
 
+const customerSchema = new mongoose.Schema({
+  name: {
+      type: String,
+      required: true,
+  },
+  phoneNumber: {
+      type: String,
+      required: true,
+      unique: true,
+  },
+  positiveBalance: {
+      type: Number,
+      default: 0,
+  },
+  negativeBalance: {
+      type: Number,
+      default: 0,
+  },
+  companyId: {
+    type: String,
+    required: true,
+  },
+}, {
+  timestamps: true
+});
+
+
 
 
 
@@ -564,6 +591,7 @@ export const Bill = mongoose.model('Bill', billSchema);
 export const NewBill = mongoose.model("NewBill", BillSchema);
 export const OnlineBill = mongoose.model("OnlineBill", onlineBillSchema);
 export const NewFacility = mongoose.model("NewFacility", newFacilitySchema);
+export const Customer = mongoose.model("Customer", customerSchema);
 // export const Facility = mongoose.model("Facility", new mongoose.Schema({}, { strict: false }), "facilities");
 export const Facility = mongoose.model("Facility", new mongoose.Schema({
   isBooked: { type: Boolean, default: false } // Ensure Mongoose understands this field
