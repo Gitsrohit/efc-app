@@ -96,7 +96,7 @@ const Signup = () => {
       {/* Logo Section */}
       <View style={styles.logoContainer}>
         <Image
-          source={require('/Users/iceberg/efcApk/assets/images/images.jpeg')}
+          source={require('../../assets/images/images.jpeg')}
           style={styles.logo}
         />
       </View>
