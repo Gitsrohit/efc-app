@@ -4,7 +4,15 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native'; 
 
 const Footer = () => {
-  const navigation = useNavigation(); 
+  const navigation = useNavigation();
+  
+  // Only show footer on these screens
+  const showFooterScreens = ['Home', 'FoodByCategory', 'DineOut', 'MyOrders'];
+  const currentRoute = navigation.getState()?.routes[navigation.getState().index]?.name;
+
+  if (!showFooterScreens.includes(currentRoute)) {
+    return null;
+  }
 
   return (
     <View style={styles.footerContainer}>
@@ -13,12 +21,12 @@ const Footer = () => {
         <Text style={styles.menuText}>DINEOUT</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.menuItemCenter} onPress={() => navigation.navigate('Home')}>
-        <MaterialIcons name="home" size={24} color="black" /> {/* Changed to black */}
+        <MaterialIcons name="home" size={24} color="black" />
         <Text style={styles.homeText}>HOME</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.menuItemRight} onPress={() => navigation.navigate('Settings')}>
-        <MaterialIcons name="settings" size={24} color="black" />
-        <Text style={styles.menuText}>SETTINGS</Text>
+      <TouchableOpacity style={styles.menuItemRight} onPress={() => navigation.navigate('MyOrders')}>
+        <MaterialIcons name="list-alt" size={24} color="black" />
+        <Text style={styles.menuText}>ORDERS</Text>
       </TouchableOpacity>
     </View>
   );
@@ -34,8 +42,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    position: 'relative',
-    height: 80, 
+    height: 70,
   },
   menuItemCenter: {
     alignItems: 'center',

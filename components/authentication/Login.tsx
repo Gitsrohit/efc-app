@@ -7,18 +7,17 @@ import {
   StyleSheet,
   Alert,
   Image,
-  Linking,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage'; 
-import { useNavigation } from '@react-navigation/native'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 
-const Login = () => {
+const Login = ({ onLoginSuccess }) => {  // Add onLoginSuccess prop
   const [loginData, setLoginData] = useState({
     username: '',
     password: '',
   });
 
-  const navigation = useNavigation(); 
+  const navigation = useNavigation();
 
   const handleInputChange = (key, value) => {
     setLoginData({ ...loginData, [key]: value });
@@ -56,6 +55,7 @@ const Login = () => {
           Alert.alert('Success', 'Login successful!');
           console.log('Token and UserID saved:', token, userId);
           navigation.navigate('Home');
+          onLoginSuccess();
         } else {
           Alert.alert('Error', 'Token or UserID missing in the response');
         }
@@ -68,16 +68,14 @@ const Login = () => {
       console.error(error);
     }
   };
-  
-  
 
   return (
     <View style={styles.container}>
       <View style={styles.logoContainer}>
-      <Image
-  source={require('../../assets/images/images.jpeg')}
-  style={styles.logo}
-/>
+        <Image
+          source={require('../../assets/images/images.jpeg')}
+          style={styles.logo}
+        />
       </View>
       <View style={styles.formContainer}>
         <Text style={styles.heading}>Login</Text>
