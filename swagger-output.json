@@ -1678,10 +1678,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "deductAmount": {
-                  "example": "any"
-                },
-                "addNegative": {
+                "amount": {
                   "example": "any"
                 }
               }
@@ -3382,10 +3379,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "deductAmount": {
-                  "example": "any"
-                },
-                "addNegative": {
+                "amount": {
                   "example": "any"
                 }
               }

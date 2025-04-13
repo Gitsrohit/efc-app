@@ -546,13 +546,17 @@ const customerSchema = new mongoose.Schema({
       required: true,
       unique: true,
   },
-  positiveBalance: {
-      type: Number,
-      default: 0,
-  },
-  negativeBalance: {
-      type: Number,
-      default: 0,
+  // positiveBalance: {
+  //     type: Number,
+  //     default: 0,
+  // },
+  // negativeBalance: {
+  //     type: Number,
+  //     default: 0,
+  // },
+  walletBalance: {
+    type: Number,
+    default: 0, 
   },
   companyId: {
     type: String,

@@ -2283,36 +2283,71 @@ export const getCustomerByPhone = async (req, res) => {
 };
 
 //adding and reducing balance
-export const updateCustomerBalance = async (req, res) => {
+// export const updateCustomerBalance = async (req, res) => {
+//     try {
+//         const companyId = req.companyId;
+//         const { phoneNumber } = req.params;
+//         const { deductAmount = 0, addNegative = 0 } = req.body;
+
+//         if (!companyId) return res.status(400).json({ success: false, message: "Company ID is required." });
+
+//         const customer = await Customer.findOne({ phoneNumber, companyId });
+
+//         if (!customer) return res.status(404).json({ success: false, message: "Customer not found." });
+
+//         if (deductAmount > 0) {
+//             if (customer.positiveBalance < deductAmount) {
+//                 return res.status(400).json({ success: false, message: "Insufficient positive balance." });
+//             }
+//             customer.positiveBalance -= deductAmount;
+//         }
+
+//         if (addNegative > 0) {
+//             customer.negativeBalance += addNegative;
+//         }
+
+//         await customer.save();
+
+//         res.status(200).json({ success: true, message: "Customer balance updated.", data: customer });
+//     } catch (error) {
+//         res.status(500).json({ success: false, message: "Error updating balance", error: error.message });
+//     }
+// };
+
+export const updateCustomerWallet = async (req, res) => {
     try {
-        const companyId = req.companyId;
-        const { phoneNumber } = req.params;
-        const { deductAmount = 0, addNegative = 0 } = req.body;
-
-        if (!companyId) return res.status(400).json({ success: false, message: "Company ID is required." });
-
-        const customer = await Customer.findOne({ phoneNumber, companyId });
-
-        if (!customer) return res.status(404).json({ success: false, message: "Customer not found." });
-
-        if (deductAmount > 0) {
-            if (customer.positiveBalance < deductAmount) {
-                return res.status(400).json({ success: false, message: "Insufficient positive balance." });
-            }
-            customer.positiveBalance -= deductAmount;
-        }
-
-        if (addNegative > 0) {
-            customer.negativeBalance += addNegative;
-        }
-
-        await customer.save();
-
-        res.status(200).json({ success: true, message: "Customer balance updated.", data: customer });
+      const companyId = req.companyId;
+      const { phoneNumber } = req.params;
+      const { amount } = req.body; // amount can be positive or negative
+  
+      if (!companyId) {
+        return res.status(400).json({ success: false, message: "Company ID is required." });
+      }
+  
+      const customer = await Customer.findOne({ phoneNumber, companyId });
+  
+      if (!customer) {
+        return res.status(404).json({ success: false, message: "Customer not found." });
+      }
+  
+      customer.walletBalance += amount;
+  
+      await customer.save();
+  
+      res.status(200).json({
+        success: true,
+        message: `Customer wallet updated by ${amount >= 0 ? 'adding' : 'deducting'} ₹${Math.abs(amount)}.`,
+        data: customer
+      });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Error updating balance", error: error.message });
+      res.status(500).json({
+        success: false,
+        message: "Error updating wallet balance",
+        error: error.message
+      });
     }
-};
+  };
+  
 
 //edit customer
 export const updateCustomerDetails = async (req, res) => {
