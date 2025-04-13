@@ -16,6 +16,7 @@ import {NewBill} from '../models/adminModel.js';
 import {OnlineBill} from '../models/adminModel.js';
 import {NewFacility} from '../models/adminModel.js';
 import {Facility} from '../models/adminModel.js';
+import { Order } from "../models/adminModel.js"; 
 import {Customer} from '../models/adminModel.js';
 // const onlineOrder = require("../middlewares/kafkaConsumer.js");
 
@@ -1444,9 +1445,52 @@ export const getReducedRevenueByDateRange = async (req, res) => {
     }
 };
 
+//get online orders revenue by date range
+export const getOnlineRevenue = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.body;
 
+        if (!startDate || !endDate) {
+            return res.status(400).json({ success: false, message: "Start date and end date are required" });
+        }
 
+        // Convert dates to UTC for consistent filtering
+        const start = new Date(`${startDate}T00:00:00.000Z`);
+        const end = new Date(`${endDate}T23:59:59.999Z`);
 
+        console.log("Start Date in UTC:", start);
+        console.log("End Date in UTC:", end);
+
+        // Fetch online bills in date range
+        const revenueData = await OnlineBill.find({
+            billDate: { $gte: start, $lte: end }
+        });
+
+        console.log("Fetched Online Revenue Data:", revenueData);
+
+        if (revenueData.length === 0) {
+            return res.status(200).json({ success: true, message: "No revenue data found", data: [] });
+        }
+
+        // Calculate total revenue
+        const totalRevenue = revenueData.reduce((sum, bill) => sum + (bill.totalAmount || 0), 0);
+
+        res.status(200).json({
+            success: true,
+            message: "Online revenue data fetched successfully",
+            totalRevenue,
+            data: revenueData,
+        });
+
+    } catch (error) {
+        console.error("Error fetching online revenue data:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error fetching online revenue data",
+            error: error.message,
+        });
+    }
+};
 
 
 //create bill for onlin order
@@ -2301,7 +2345,38 @@ export const updateCustomerDetails = async (req, res) => {
     }
 };
 
+//get previous orders apis
+export const getAllOnlineOrders = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 5;
+        const skip = (page - 1) * limit;
 
+        // Count total orders
+        const totalOrders = await Order.countDocuments();
+
+        // Fetch paginated orders, latest to oldest
+        const orders = await Order.find()
+            .sort({ createdAt: -1 }) // Sorting from newest to oldest
+            .skip(skip)
+            .limit(limit);
+
+        res.status(200).json({
+            success: true,
+            currentPage: page,
+            totalPages: Math.ceil(totalOrders / limit),
+            totalOrders,
+            data: orders,
+        });
+    } catch (error) {
+        console.error("Error fetching online orders:", error.message);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch online orders",
+            error: error.message,
+        });
+    }
+};
 
 
 

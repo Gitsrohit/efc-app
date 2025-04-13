@@ -73,20 +73,6 @@ const categoryItemSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// Order Schema
-const orderSchema = new mongoose.Schema({
-    user: {
-        name: { type: String, required: true },
-        phone: { type: String, required: true },
-    },
-    items: [{
-        menuItem: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
-        quantity: { type: Number, required: true },
-    }],
-    totalCost: { type: Number, required: true },
-    status: { type: String, enum: ['pending', 'completed'], default: 'pending' },
-}, { timestamps: true });
-
 //Table Schema
 // const tableSchema = new mongoose.Schema({
 //     name: {
@@ -582,7 +568,6 @@ const customerSchema = new mongoose.Schema({
 
 export const Category = mongoose.model('Category', categorySchema);
 export const CategoryItem = mongoose.model('CategoryItem',categoryItemSchema);
-export const Order = mongoose.model('Order', orderSchema);
 export const Table = mongoose.model('Table', tableSchema);
 export const KOT = mongoose.model('KOT', kotSchema);
 export const Ad = mongoose.model('Ad', adSchema);
@@ -596,5 +581,11 @@ export const Customer = mongoose.model("Customer", customerSchema);
 export const Facility = mongoose.model("Facility", new mongoose.Schema({
   isBooked: { type: Boolean, default: false } // Ensure Mongoose understands this field
 }, { strict: false }), "facilities");
+
+export const Order = mongoose.model(
+  "Order",
+  new mongoose.Schema({}, { strict: false, timestamps: true }),
+  "orders"
+);
 
 

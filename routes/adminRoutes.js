@@ -5,7 +5,7 @@ import upload from '../middlewares/fileUploadMiddlewares.js';
 import multer from 'multer';
 import path from 'path';
 import resetStocksMiddleware from "../middlewares/resetStocksMiddleware.js";
-import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange,addCustomer,getAllCustomers,getCustomerByPhone,updateCustomerBalance,updateCustomerDetails} from "../controller/adminController.js";
+import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange,addCustomer,getAllCustomers,getCustomerByPhone,updateCustomerBalance,updateCustomerDetails,getAllOnlineOrders,getOnlineRevenue} from "../controller/adminController.js";
 
 import { companyMiddleware } from "../middlewares/companyAuthMiddleware.js";
 
@@ -71,6 +71,7 @@ router.post("/generate-table-bill-new",companyMiddleware,generateNewBillControll
 router.post("/generate-online-bill",companyMiddleware,generateOnlineBillController)
 router.post("/generate-revenue",companyMiddleware,getRevenueByDateRange)
 router.post("/generate-reduced-revenue",companyMiddleware,getReducedRevenueByDateRange)
+router.post("/generate-revenue-online",companyMiddleware,getOnlineRevenue)
 
 //advertisment routes
 router.post('/add-Ad',companyMiddleware, upload.single('image'), addAdController);
@@ -97,6 +98,10 @@ router.get('/customers', companyMiddleware, getAllCustomers);
 router.get('/customer/:phoneNumber', companyMiddleware, getCustomerByPhone);
 router.put('/customer/update-balance/:phoneNumber', companyMiddleware, updateCustomerBalance);
 router.put('/customers/:id', companyMiddleware, updateCustomerDetails);
+
+//online orders
+router.get('/view-online-orders', companyMiddleware, getAllOnlineOrders);
+
 
 
 
