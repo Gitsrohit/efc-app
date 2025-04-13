@@ -2223,31 +2223,71 @@ export const unbookFacility = async (req, res) => {
 
 
 //adding customer to the database
+// export const addCustomer = async (req, res) => {
+//     try {
+//         const companyId = req.companyId;
+//         const { name, phoneNumber, positiveBalance = 0, negativeBalance = 0 } = req.body;
+
+//         if (!companyId) return res.status(400).json({ success: false, message: "Company ID is required." });
+//         if (!name || !phoneNumber) return res.status(400).json({ success: false, message: "Name and phone number are required." });
+
+//         const existingCustomer = await Customer.findOne({ phoneNumber, companyId });
+//         if (existingCustomer) return res.status(400).json({ success: false, message: "Customer already exists for this company." });
+
+//         const newCustomer = await Customer.create({
+//             name,
+//             phoneNumber,
+//             positiveBalance,
+//             negativeBalance,
+//             companyId
+//         });
+
+//         res.status(201).json({ success: true, message: "Customer added successfully.", data: newCustomer });
+//     } catch (error) {
+//         res.status(500).json({ success: false, message: "Error adding customer", error: error.message });
+//     }
+// };
+
 export const addCustomer = async (req, res) => {
     try {
-        const companyId = req.companyId;
-        const { name, phoneNumber, positiveBalance = 0, negativeBalance = 0 } = req.body;
-
-        if (!companyId) return res.status(400).json({ success: false, message: "Company ID is required." });
-        if (!name || !phoneNumber) return res.status(400).json({ success: false, message: "Name and phone number are required." });
-
-        const existingCustomer = await Customer.findOne({ phoneNumber, companyId });
-        if (existingCustomer) return res.status(400).json({ success: false, message: "Customer already exists for this company." });
-
-        const newCustomer = await Customer.create({
-            name,
-            phoneNumber,
-            positiveBalance,
-            negativeBalance,
-            companyId
-        });
-
-        res.status(201).json({ success: true, message: "Customer added successfully.", data: newCustomer });
+      const companyId = req.companyId;
+      const { name, phoneNumber, walletBalance = 0 } = req.body;
+  
+      if (!companyId) {
+        return res.status(400).json({ success: false, message: "Company ID is required." });
+      }
+  
+      if (!name || !phoneNumber) {
+        return res.status(400).json({ success: false, message: "Name and phone number are required." });
+      }
+  
+      // Check for duplicate phone number within the same company
+      const existingCustomer = await Customer.findOne({ phoneNumber, companyId });
+  
+      if (existingCustomer) {
+        return res.status(400).json({ success: false, message: "Customer with this phone number already exists for this company." });
+      }
+  
+      const newCustomer = new Customer({
+        name,
+        phoneNumber,
+        walletBalance,
+        companyId,
+      });
+  
+      await newCustomer.save();
+  
+      res.status(201).json({
+        success: true,
+        message: "Customer added successfully.",
+        data: newCustomer,
+      });
+  
     } catch (error) {
-        res.status(500).json({ success: false, message: "Error adding customer", error: error.message });
+      console.error("Error adding customer:", error.message);
+      res.status(500).json({ success: false, message: "Error adding customer", error: error.message });
     }
-};
-
+  };
 
 // getting all customers
 export const getAllCustomers = async (req, res) => {
@@ -2283,70 +2323,48 @@ export const getCustomerByPhone = async (req, res) => {
 };
 
 //adding and reducing balance
-// export const updateCustomerBalance = async (req, res) => {
-//     try {
-//         const companyId = req.companyId;
-//         const { phoneNumber } = req.params;
-//         const { deductAmount = 0, addNegative = 0 } = req.body;
-
-//         if (!companyId) return res.status(400).json({ success: false, message: "Company ID is required." });
-
-//         const customer = await Customer.findOne({ phoneNumber, companyId });
-
-//         if (!customer) return res.status(404).json({ success: false, message: "Customer not found." });
-
-//         if (deductAmount > 0) {
-//             if (customer.positiveBalance < deductAmount) {
-//                 return res.status(400).json({ success: false, message: "Insufficient positive balance." });
-//             }
-//             customer.positiveBalance -= deductAmount;
-//         }
-
-//         if (addNegative > 0) {
-//             customer.negativeBalance += addNegative;
-//         }
-
-//         await customer.save();
-
-//         res.status(200).json({ success: true, message: "Customer balance updated.", data: customer });
-//     } catch (error) {
-//         res.status(500).json({ success: false, message: "Error updating balance", error: error.message });
-//     }
-// };
-
 export const updateCustomerWallet = async (req, res) => {
     try {
       const companyId = req.companyId;
-      const { phoneNumber } = req.params;
+      const { id } = req.params; // ID from params
       const { amount } = req.body; // amount can be positive or negative
   
       if (!companyId) {
         return res.status(400).json({ success: false, message: "Company ID is required." });
       }
   
-      const customer = await Customer.findOne({ phoneNumber, companyId });
+      if (typeof amount !== 'number') {
+        return res.status(400).json({ success: false, message: "Amount must be a number." });
+      }
+  
+      const customer = await Customer.findOne({ _id: id, companyId });
   
       if (!customer) {
         return res.status(404).json({ success: false, message: "Customer not found." });
       }
   
-      customer.walletBalance += amount;
+      // Check for insufficient funds if deducting
+      if (amount < 0 && customer.walletBalance + amount < 0) {
+        return res.status(400).json({ success: false, message: "Insufficient wallet balance." });
+      }
   
+      customer.walletBalance += amount;
       await customer.save();
   
       res.status(200).json({
         success: true,
         message: `Customer wallet updated by ${amount >= 0 ? 'adding' : 'deducting'} ₹${Math.abs(amount)}.`,
-        data: customer
+        data: customer,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
         message: "Error updating wallet balance",
-        error: error.message
+        error: error.message,
       });
     }
   };
+  
   
 
 //edit customer

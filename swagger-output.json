@@ -1570,10 +1570,7 @@
                 "phoneNumber": {
                   "example": "any"
                 },
-                "positiveBalance": {
-                  "example": "any"
-                },
-                "negativeBalance": {
+                "walletBalance": {
                   "example": "any"
                 }
               }
@@ -1657,12 +1654,12 @@
         }
       }
     },
-    "/api/v1/admin/customer/update-balance/{phoneNumber}": {
+    "/api/v1/admin/customer/update-balance/{id}": {
       "put": {
         "description": "",
         "parameters": [
           {
-            "name": "phoneNumber",
+            "name": "id",
             "in": "path",
             "required": true,
             "type": "string"
@@ -3271,10 +3268,7 @@
                 "phoneNumber": {
                   "example": "any"
                 },
-                "positiveBalance": {
-                  "example": "any"
-                },
-                "negativeBalance": {
+                "walletBalance": {
                   "example": "any"
                 }
               }
@@ -3358,12 +3352,12 @@
         }
       }
     },
-    "/customer/update-balance/{phoneNumber}": {
+    "/customer/update-balance/{id}": {
       "put": {
         "description": "",
         "parameters": [
           {
-            "name": "phoneNumber",
+            "name": "id",
             "in": "path",
             "required": true,
             "type": "string"

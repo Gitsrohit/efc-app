@@ -96,7 +96,7 @@ router.put('/unbook-facility/:id', companyMiddleware, unbookFacility);
 router.post('/add-customer', companyMiddleware, addCustomer);
 router.get('/customers', companyMiddleware, getAllCustomers);
 router.get('/customer/:phoneNumber', companyMiddleware, getCustomerByPhone);
-router.put('/customer/update-balance/:phoneNumber', companyMiddleware, updateCustomerWallet);
+router.put('/customer/update-balance/:id', companyMiddleware, updateCustomerWallet);
 router.put('/customers/:id', companyMiddleware, updateCustomerDetails);
 
 //online orders
