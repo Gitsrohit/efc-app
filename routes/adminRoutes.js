@@ -74,7 +74,7 @@ router.post("/generate-reduced-revenue",companyMiddleware,getReducedRevenueByDat
 router.post("/generate-revenue-online",companyMiddleware,getOnlineRevenue)
 
 //advertisment routes
-router.post('/add-Ad',companyMiddleware, upload.single('image'), addAdController);
+router.post('/add-Ad',companyMiddleware, uploader.single('image'), addAdController);
 router.get('/active-ads',companyMiddleware, getActiveAdsController)
 router.patch('/deactivate-ads/:adId',companyMiddleware, deactivateAdController)
 

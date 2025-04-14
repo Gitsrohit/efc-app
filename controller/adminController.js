@@ -649,7 +649,8 @@ export const addAdController = async (req, res) => {
             });
         }
 
-        const imageUrl = await uploadFile(imagePath.buffer, 'categories');
+        const imageUrl = await uploadFile(req.file.buffer, 'ads');
+        // const imageUrl = await uploadFile(imagePath.buffer, 'categories');
 
         const newAd = await Ad.create({
             name,
