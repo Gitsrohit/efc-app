@@ -18,6 +18,7 @@ import {NewFacility} from '../models/adminModel.js';
 import {Facility} from '../models/adminModel.js';
 import { Order } from "../models/adminModel.js"; 
 import {Customer} from '../models/adminModel.js';
+import {TopDeal} from '../models/adminModel.js';
 // const onlineOrder = require("../middlewares/kafkaConsumer.js");
 
 
@@ -2431,6 +2432,98 @@ export const getAllOnlineOrders = async (req, res) => {
         });
     }
 };
+
+//top deals controller below
+
+export const addTopDealController = async (req, res) => {
+    try {
+      const { itemId, customPrice } = req.body;
+      const companyId = req.companyId;
+  
+      if (!itemId) {
+        return res.status(400).json({
+          success: false,
+          message: "itemId is required"
+        });
+      }
+  
+      const newTopDeal = await TopDeal.create({
+        itemId,
+        customPrice: customPrice || null,
+        companyId
+      });
+  
+      res.status(201).json({
+        success: true,
+        message: "Top Deal added successfully",
+        data: newTopDeal
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error adding top deal",
+        error: error.message
+      });
+    }
+  };
+
+  export const getTopDealsController = async (req, res) => {
+    try {
+      const companyId = req.companyId;  // or you can pass companyId from frontend if needed
+  
+      const topDeals = await TopDeal.find({ companyId, isActive: true }).populate('itemId');
+  
+      const response = topDeals.map(deal => ({
+        _id: deal._id,
+        itemName: deal.itemId.itemName,
+        image: deal.itemId.image,
+        price: deal.customPrice ?? deal.itemId.price,  // Admin's price if given, else original
+        isActive: deal.isActive
+      }));
+  
+      res.status(200).json({
+        success: true,
+        message: "Top Deals fetched successfully",
+        data: response
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error fetching top deals",
+        error: error.message
+      });
+    }
+  };
+
+  
+  export const deactivateTopDealController = async (req, res) => {
+    try {
+      const { topDealId } = req.params;
+  
+      const topDeal = await TopDeal.findById(topDealId);
+      if (!topDeal) {
+        return res.status(404).json({
+          success: false,
+          message: "Top deal not found",
+        });
+      }
+  
+      topDeal.isActive = false;
+      await topDeal.save();
+  
+      res.status(200).json({
+        success: true,
+        message: "Top deal deactivated successfully",
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to deactivate top deal",
+        error: error.message,
+      });
+    }
+  };
+  
 
 
 

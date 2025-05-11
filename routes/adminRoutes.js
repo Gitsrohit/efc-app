@@ -5,7 +5,7 @@ import upload from '../middlewares/fileUploadMiddlewares.js';
 import multer from 'multer';
 import path from 'path';
 import resetStocksMiddleware from "../middlewares/resetStocksMiddleware.js";
-import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange,addCustomer,getAllCustomers,getCustomerByPhone,updateCustomerWallet,updateCustomerDetails,getAllOnlineOrders,getOnlineRevenue} from "../controller/adminController.js";
+import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange,addCustomer,getAllCustomers,getCustomerByPhone,updateCustomerWallet,updateCustomerDetails,getAllOnlineOrders,getOnlineRevenue,addTopDealController,getTopDealsController,deactivateTopDealController} from "../controller/adminController.js";
 
 import { companyMiddleware } from "../middlewares/companyAuthMiddleware.js";
 
@@ -101,6 +101,11 @@ router.put('/customers/:id', companyMiddleware, updateCustomerDetails);
 
 //online orders
 router.get('/view-online-orders', companyMiddleware, getAllOnlineOrders);
+
+//top deals controller
+router.post('/add-topDeal',companyMiddleware, addTopDealController);
+router.get('/get-topDeals',companyMiddleware, getTopDealsController)
+router.patch('/deactivate-topDeals/:topDealId',companyMiddleware, deactivateTopDealController)
 
 
 

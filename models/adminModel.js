@@ -566,6 +566,26 @@ const customerSchema = new mongoose.Schema({
   timestamps: true
 });
 
+const topDealSchema = new mongoose.Schema({
+  itemId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CategoryItem',
+    required: true
+  },
+  customPrice: {
+    type: Number,   // Optional
+    default: null
+  },
+  companyId: {
+    type: String,
+    required: true,
+  },
+  isActive: {
+    type: Boolean,
+    default: true  // Always active when added
+  }
+});
+
 
 
 
@@ -591,5 +611,7 @@ export const Order = mongoose.model(
   new mongoose.Schema({}, { strict: false, timestamps: true }),
   "orders"
 );
+export const TopDeal = mongoose.model("TopDeal", topDealSchema);
+
 
 
