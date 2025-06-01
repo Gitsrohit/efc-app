@@ -303,6 +303,36 @@ export const getCategoryItems = async (req, res) => {
     }
 };
 
+//get all category item in db
+
+export const getAllCategoryItems = async (req, res) => {
+    try {
+      const companyId = req.companyId;
+  
+      if (!companyId) {
+        return res.status(400).json({
+          success: false,
+          message: 'companyId is required',
+        });
+      }
+  
+      const items = await CategoryItem.find({ companyId });
+  
+      res.status(200).json({
+        success: true,
+        message: 'All category items retrieved successfully',
+        data: items,
+      });
+    } catch (error) {
+      console.error("Error fetching category items:", error.message);
+      res.status(500).json({
+        success: false,
+        message: 'Error fetching category items',
+        error: error.message,
+      });
+    }
+  };  
+
 
 // edit category item controller
 export const editCategoryItemController = async (req, res) => {
