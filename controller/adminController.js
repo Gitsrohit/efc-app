@@ -1036,6 +1036,7 @@ export const generateKOTController = async (req, res) => {
 
         await table.save();
 
+
         
         const updatedTable = await Table.findById(tableId).populate({
             path: "kotGeneratedItems",
@@ -1047,7 +1048,7 @@ export const generateKOTController = async (req, res) => {
             message: "KOTs generated successfully",
             data: {
                 generatedKOTs,
-                previousKOTs: updatedTable.kotGeneratedItems, // ✅ Now includes KOT details
+                previousKOTs: updatedTable.kotGeneratedItems,
             },
         });
     } catch (error) {
@@ -2358,8 +2359,8 @@ export const getCustomerByPhone = async (req, res) => {
 export const updateCustomerWallet = async (req, res) => {
     try {
       const companyId = req.companyId;
-      const { id } = req.params; // ID from params
-      const { amount } = req.body; // amount can be positive or negative
+      const { id } = req.params;
+      const { amount } = req.body;
   
       if (!companyId) {
         return res.status(400).json({ success: false, message: "Company ID is required." });
@@ -2430,6 +2431,51 @@ export const updateCustomerDetails = async (req, res) => {
     }
 };
 
+//delete customers
+export const deleteCustomer = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const companyId = req.companyId;
+  
+      if (!companyId) {
+        return res.status(400).json({ success: false, message: "Company ID is required." });
+      }
+  
+      if (!id) {
+        return res.status(400).json({ success: false, message: "Customer ID is required." });
+      }
+  
+      const customer = await Customer.findOne({ _id: id, companyId });
+  
+      if (!customer) {
+        return res.status(404).json({ success: false, message: "Customer not found." });
+      }
+  
+      if (customer.walletBalance < 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Customer cannot be deleted because their wallet balance is negative.",
+        });
+      }
+  
+      await Customer.deleteOne({ _id: id });
+  
+      res.status(200).json({
+        success: true,
+        message: "Customer deleted successfully.",
+      });
+  
+    } catch (error) {
+      console.error("Error deleting customer:", error.message);
+      res.status(500).json({
+        success: false,
+        message: "Error deleting customer",
+        error: error.message,
+      });
+    }
+  };
+  
+
 //get previous orders apis
 export const getAllOnlineOrders = async (req, res) => {
     try {
@@ -2437,12 +2483,10 @@ export const getAllOnlineOrders = async (req, res) => {
         const limit = 5;
         const skip = (page - 1) * limit;
 
-        // Count total orders
         const totalOrders = await Order.countDocuments();
 
-        // Fetch paginated orders, latest to oldest
         const orders = await Order.find()
-            .sort({ createdAt: -1 }) // Sorting from newest to oldest
+            .sort({ createdAt: -1 }) 
             .skip(skip)
             .limit(limit);
 
@@ -2499,7 +2543,7 @@ export const addTopDealController = async (req, res) => {
 
   export const getTopDealsController = async (req, res) => {
     try {
-      const companyId = req.companyId;  // or you can pass companyId from frontend if needed
+      const companyId = req.companyId;  
   
       const topDeals = await TopDeal.find({ companyId, isActive: true }).populate('itemId');
   
@@ -2507,7 +2551,7 @@ export const addTopDealController = async (req, res) => {
         _id: deal._id,
         itemName: deal.itemId.itemName,
         image: deal.itemId.image,
-        price: deal.customPrice ?? deal.itemId.price,  // Admin's price if given, else original
+        price: deal.customPrice ?? deal.itemId.price,  
         isActive: deal.isActive
       }));
   
