@@ -5,7 +5,7 @@ import upload from '../middlewares/fileUploadMiddlewares.js';
 import multer from 'multer';
 import path from 'path';
 import resetStocksMiddleware from "../middlewares/resetStocksMiddleware.js";
-import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange,addCustomer,getAllCustomers,getCustomerByPhone,updateCustomerWallet,updateCustomerDetails,getAllOnlineOrders,getOnlineRevenue,addTopDealController,getTopDealsController,deactivateTopDealController,getAllCategoryItems,deleteCustomer} from "../controller/adminController.js";
+import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange,addCustomer,getAllCustomers,getCustomerByPhone,updateCustomerWallet,updateCustomerDetails,getAllOnlineOrders,getOnlineRevenue,addTopDealController,getTopDealsController,deactivateTopDealController,getAllCategoryItems,deleteCustomer,generateBillsSummaryPdf, generateFakeBillsSummaryPdf} from "../controller/adminController.js";
 
 import { companyMiddleware } from "../middlewares/companyAuthMiddleware.js";
 
@@ -73,6 +73,8 @@ router.post("/generate-online-bill",companyMiddleware,generateOnlineBillControll
 router.post("/generate-revenue",companyMiddleware,getRevenueByDateRange)
 router.post("/generate-reduced-revenue",companyMiddleware,getReducedRevenueByDateRange)
 router.post("/generate-revenue-online",companyMiddleware,getOnlineRevenue)
+router.post("/generate-pdf", companyMiddleware, generateBillsSummaryPdf)
+router.post("/generate-alt-pdf", companyMiddleware, generateFakeBillsSummaryPdf)
 
 //advertisment routes
 router.post('/add-Ad',companyMiddleware, uploader.single('image'), addAdController);

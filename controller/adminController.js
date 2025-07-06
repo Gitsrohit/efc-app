@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import jwt from 'jsonwebtoken';
+import PDFDocument from "pdfkit";
 // const { uploadToBackblaze } = require('../middlewares/multerBackblaze.js');
 // import { uploadToBackblaze } from '../middlewares/multerBackblaze.js';
 // import { uploadToBackblaze, uploadFileToBackblaze } from '../middlewares/multerBackblaze.js';
@@ -1477,6 +1478,156 @@ export const getReducedRevenueByDateRange = async (req, res) => {
         });
     }
 };
+
+// pdf controller for the original bills
+export const generateBillsSummaryPdf = async (req, res) => {
+    try {
+      // date are in format of yyyy-mm-dd 
+      const { startDate, endDate } = req.body;       
+      const companyId = req.companyId;              
+  
+      if (!startDate || !endDate) {
+        return res.status(400).json({ success: false, message: "startDate and endDate are required" });
+      }
+      if (!companyId) {
+        return res.status(400).json({ success: false, message: "companyId is required" });
+      }
+  
+      const start = new Date(`${startDate}T00:00:00.000Z`);
+      const end   = new Date(`${endDate}T23:59:59.999Z`);
+  
+      const bills = await Bill.find({
+        companyId,
+        billDate: { $gte: start, $lte: end },
+      }).select("billNumber billDate totalAmount").sort({ billDate: 1 });
+  
+      if (!bills.length) {
+        return res.status(404).json({ success: false, message: "No bills found in this date range" });
+      }
+  
+      // pdf generation code
+      const doc = new PDFDocument({ margin: 50 });
+      const chunks = [];
+      doc.on("data",  chunk => chunks.push(chunk));
+      doc.on("end",   ()   => {
+        const pdf = Buffer.concat(chunks);
+        const fileName = `bill-summary-${startDate}_to_${endDate}.pdf`;
+        res.set({
+          "Content-Type":        "application/pdf",
+          "Content-Disposition": `attachment; filename="${fileName}"`,
+          "Content-Length":      pdf.length,
+        });
+        res.send(pdf);
+      });
+  
+      doc.fontSize(18).text("Bill Summary", { align: "center" });
+      doc.moveDown(0.5);
+      doc.fontSize(12).text(`Company: ${companyId}`);
+      doc.text(`Period : ${startDate} → ${endDate}`);
+      doc.moveDown();
+  
+      doc.font("Helvetica-Bold");
+      doc.text("Bill No.",   50,  doc.y, { continued: true });
+      doc.text("Bill Date", 200,  doc.y, { continued: true });
+      doc.text("Amount",    350,  doc.y);
+      doc.moveDown(0.25);
+      doc.font("Helvetica").moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+      doc.moveDown(0.5);
+
+      let grandTotal = 0;
+      bills.forEach(b => {
+        grandTotal += b.totalAmount;
+        doc.text(b.billNumber,            50, doc.y, { continued: true });
+        doc.text(b.billDate.toISOString().slice(0,10), 200, doc.y, { continued: true });
+        doc.text(`₹${b.totalAmount.toFixed(2)}`,       350, doc.y);
+      });
+  
+      doc.moveDown();
+      doc.font("Helvetica-Bold");
+      doc.text("Grand Total:", 200, doc.y, { continued: true });
+      doc.text(`₹${grandTotal.toFixed(2)}`, 350, doc.y);
+      doc.end();
+  
+    } catch (err) {
+      console.error("generateBillsSummaryPdf error:", err);
+      res.status(500).json({ success: false, message: "Server error", error: err.message });
+    }
+  };
+
+// pdf controller for the fake bills
+export const generateFakeBillsSummaryPdf = async (req, res) => {
+    try {
+      // date are in format of yyyy-mm-dd 
+      const { startDate, endDate } = req.body;       
+      const companyId = req.companyId;              
+  
+      if (!startDate || !endDate) {
+        return res.status(400).json({ success: false, message: "startDate and endDate are required" });
+      }
+      if (!companyId) {
+        return res.status(400).json({ success: false, message: "companyId is required" });
+      }
+  
+      const start = new Date(`${startDate}T00:00:00.000Z`);
+      const end   = new Date(`${endDate}T23:59:59.999Z`);
+  
+      const bills = await NewBill.find({
+        companyId,
+        billDate: { $gte: start, $lte: end },
+      }).select("billNumber billDate totalAmount").sort({ billDate: 1 });
+  
+      if (!bills.length) {
+        return res.status(404).json({ success: false, message: "No bills found in this date range" });
+      }
+  
+      // pdf generation code
+      const doc = new PDFDocument({ margin: 50 });
+      const chunks = [];
+      doc.on("data",  chunk => chunks.push(chunk));
+      doc.on("end",   ()   => {
+        const pdf = Buffer.concat(chunks);
+        const fileName = `bill-summary-${startDate}_to_${endDate}.pdf`;
+        res.set({
+          "Content-Type":        "application/pdf",
+          "Content-Disposition": `attachment; filename="${fileName}"`,
+          "Content-Length":      pdf.length,
+        });
+        res.send(pdf);
+      });
+  
+      doc.fontSize(18).text("Bill Summary", { align: "center" });
+      doc.moveDown(0.5);
+      doc.fontSize(12).text(`Company: ${companyId}`);
+      doc.text(`Period : ${startDate} → ${endDate}`);
+      doc.moveDown();
+  
+      doc.font("Helvetica-Bold");
+      doc.text("Bill No.",   50,  doc.y, { continued: true });
+      doc.text("Bill Date", 200,  doc.y, { continued: true });
+      doc.text("Amount",    350,  doc.y);
+      doc.moveDown(0.25);
+      doc.font("Helvetica").moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+      doc.moveDown(0.5);
+
+      let grandTotal = 0;
+      bills.forEach(b => {
+        grandTotal += b.totalAmount;
+        doc.text(b.billNumber,            50, doc.y, { continued: true });
+        doc.text(b.billDate.toISOString().slice(0,10), 200, doc.y, { continued: true });
+        doc.text(`₹${b.totalAmount.toFixed(2)}`,       350, doc.y);
+      });
+  
+      doc.moveDown();
+      doc.font("Helvetica-Bold");
+      doc.text("Grand Total:", 200, doc.y, { continued: true });
+      doc.text(`₹${grandTotal.toFixed(2)}`, 350, doc.y);
+      doc.end();
+  
+    } catch (err) {
+      console.error("generateBillsSummaryPdf error:", err);
+      res.status(500).json({ success: false, message: "Server error", error: err.message });
+    }
+  };
 
 //get online orders revenue by date range
 export const getOnlineRevenue = async (req, res) => {
