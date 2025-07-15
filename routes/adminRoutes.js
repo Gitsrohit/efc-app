@@ -82,8 +82,8 @@ router.get('/active-ads',companyMiddleware, getActiveAdsController)
 router.patch('/deactivate-ads/:adId',companyMiddleware, deactivateAdController)
 
 //adminProfile routes
-router.post('/adminProfile',upsertAdminProfile);
-router.get('/adminProfile/:companyId',getAdminProfile);
+router.post('/adminProfile',companyMiddleware, upsertAdminProfile);
+router.get('/adminProfile/:companyId',companyMiddleware, getAdminProfile);
 router.post('/register-admin',registerAdminController)
 
 //facilities routes

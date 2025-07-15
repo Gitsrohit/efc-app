@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import jwt from 'jsonwebtoken';
 import PDFDocument from "pdfkit";
+import bcrypt from "bcryptjs";
 // const { uploadToBackblaze } = require('../middlewares/multerBackblaze.js');
 // import { uploadToBackblaze } from '../middlewares/multerBackblaze.js';
 // import { uploadToBackblaze, uploadFileToBackblaze } from '../middlewares/multerBackblaze.js';
@@ -2071,137 +2072,106 @@ export const generateNewBillController = async (req, res) => {
 // };
 
 export const registerAdminController = async (req, res) => {
-    try {
-        const {
-            restaurantName,
-            addressLine1,
-            addressLine2,
-            state,
-            contactNo,
-            emailId,
-            gstin,
-            cin,
-            baseCurrency,
-            currencyCode,
-            ticketFooterMessage,
-            startBillNo,
-            showLogoInReceipts,
-            companyId,
-            printers, // <-- NEW FIELD (array of objects)
-        } = req.body;
+  try {
+    const {
+      restaurantName,
+      addressLine1,
+      addressLine2,
+      state,
+      contactNo,
+      emailId,
+      gstin,
+      cin,
+      baseCurrency,
+      currencyCode,
+      ticketFooterMessage,
+      startBillNo,
+      showLogoInReceipts,
+      companyId,
+      printers,
+      password,
+      confirmPassword, // ✅ new fields
+    } = req.body;
 
-        if (!Array.isArray(printers)) {
-            return res.status(400).json({
-                success: false,
-                message: "Printers must be an array of objects",
-            });
-        }
-
-        const existingAdmin = await AdminProfile.findOne({
-            $or: [{ emailId }, { companyId }],
-        });
-
-        if (existingAdmin) {
-            return res.status(400).json({
-                success: false,
-                message: "Admin with this email or company ID already exists",
-            });
-        }
-
-        const newAdmin = await AdminProfile.create({
-            restaurantName,
-            addressLine1,
-            addressLine2,
-            state,
-            contactNo,
-            emailId,
-            gstin,
-            cin,
-            baseCurrency,
-            currencyCode,
-            ticketFooterMessage,
-            startBillNo,
-            showLogoInReceipts,
-            companyId,
-            printers, // <-- Save printers in DB
-        });
-
-        const token = jwt.sign(
-            { adminId: newAdmin._id, companyId: newAdmin.companyId },
-            process.env.JWT_ADMIN_SECRET,
-            { expiresIn: "1000d" }
-        );
-
-        res.status(201).json({
-            success: true,
-            message: "Admin registered successfully",
-            token,
-            data: {
-                restaurantName: newAdmin.restaurantName,
-                emailId: newAdmin.emailId,
-                companyId: newAdmin.companyId,
-                printers: newAdmin.printers,
-            },
-        });
-    } catch (error) {
-        console.error("Error registering admin:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error registering admin",
-            error: error.message,
-        });
+    // ✅ Validate printers is an array
+    if (!Array.isArray(printers)) {
+      return res.status(400).json({
+        success: false,
+        message: "Printers must be an array of objects",
+      });
     }
+
+    // ✅ Validate passwords
+    if (!password || !confirmPassword || password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Passwords are required and must match",
+      });
+    }
+
+    // ✅ Check for existing email or company ID
+    const existingAdmin = await AdminProfile.findOne({
+      $or: [{ emailId }, { companyId }],
+    });
+
+    if (existingAdmin) {
+      return res.status(400).json({
+        success: false,
+        message: "Admin with this email or company ID already exists",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newAdmin = await AdminProfile.create({
+      restaurantName,
+      addressLine1,
+      addressLine2,
+      state,
+      contactNo,
+      emailId,
+      gstin,
+      cin,
+      baseCurrency,
+      currencyCode,
+      ticketFooterMessage,
+      startBillNo,
+      showLogoInReceipts,
+      companyId,
+      printers,
+      password: hashedPassword, // ✅ store hashed password
+    });
+
+    // ✅ Generate token
+    const token = jwt.sign(
+      { adminId: newAdmin._id, companyId: newAdmin.companyId },
+      process.env.JWT_ADMIN_SECRET,
+      { expiresIn: "1000d" }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Admin registered successfully",
+      token,
+      data: {
+        restaurantName: newAdmin.restaurantName,
+        emailId: newAdmin.emailId,
+        companyId: newAdmin.companyId,
+        printers: newAdmin.printers,
+      },
+    });
+  } catch (error) {
+    console.error("Error registering admin:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error registering admin",
+      error: error.message,
+    });
+  }
 };
 
+
 //udate admin profile
-
-// export const upsertAdminProfile = async (req, res) => {
-//   try {
-//     const {
-//       restaurantName,
-//       addressLine1,
-//       addressLine2,
-//       state,
-//       contactNo,
-//       emailId,
-//       gstin,
-//       cin,
-//       baseCurrency,
-//       currencyCode,
-//       ticketFooterMessage,
-//       startBillNo,
-//       showLogoInReceipts,
-//       companyId,
-//     } = req.body;
-
-//     const profileData = {
-//       restaurantName,
-//       addressLine1,
-//       addressLine2,
-//       state,
-//       contactNo,
-//       emailId,
-//       gstin,
-//       cin,
-//       baseCurrency,
-//       currencyCode,
-//       ticketFooterMessage,
-//       startBillNo,
-//       showLogoInReceipts,
-//       companyId,
-//     };
-
-//     const profile = await AdminProfile.findOneAndUpdate(
-//       { companyId },
-//       profileData,
-//       { new: true, upsert: true }
-//     );
-
-//     res.status(200).json({ success: true, data: profile });
-//   } catch (error) {
-//     res.status(500).json({ success: false, message: error.message });
-//   }
-// };
 
 export const upsertAdminProfile = async (req, res) => {
     try {

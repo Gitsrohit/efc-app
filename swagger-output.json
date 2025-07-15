@@ -1379,6 +1379,12 @@
                 },
                 "printers": {
                   "example": "any"
+                },
+                "password": {
+                  "example": "any"
+                },
+                "confirmPassword": {
+                  "example": "any"
                 }
               }
             }
@@ -3330,6 +3336,12 @@
                   "example": "any"
                 },
                 "printers": {
+                  "example": "any"
+                },
+                "password": {
+                  "example": "any"
+                },
+                "confirmPassword": {
                   "example": "any"
                 }
               }
