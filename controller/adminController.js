@@ -2000,6 +2000,76 @@ export const generateNewBillController = async (req, res) => {
 
 
 // admin profile apis
+// export const registerAdminController = async (req, res) => {
+//     try {
+//         const {
+//             restaurantName,
+//             addressLine1,
+//             addressLine2,
+//             state,
+//             contactNo,
+//             emailId,
+//             gstin,
+//             cin,
+//             baseCurrency,
+//             currencyCode,
+//             ticketFooterMessage,
+//             startBillNo,
+//             showLogoInReceipts,
+//             companyId,
+//         } = req.body;
+
+//         const existingAdmin = await AdminProfile.findOne({ $or: [{ emailId }, { companyId }] });
+//         if (existingAdmin) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: 'Admin with this email or company ID already exists',
+//             });
+//         }
+
+//         const newAdmin = await AdminProfile.create({
+//             restaurantName,
+//             addressLine1,
+//             addressLine2,
+//             state,
+//             contactNo,
+//             emailId,
+//             gstin,
+//             cin,
+//             baseCurrency,
+//             currencyCode,
+//             ticketFooterMessage,
+//             startBillNo,
+//             showLogoInReceipts,
+//             companyId,
+//         });
+
+//         const token = jwt.sign(
+//             { adminId: newAdmin._id, companyId: newAdmin.companyId },
+//             process.env.JWT_ADMIN_SECRET,
+//             { expiresIn: '1000d' }
+//         );
+
+//         res.status(201).json({
+//             success: true,
+//             message: 'Admin registered successfully',
+//             token,
+//             data: {
+//                 restaurantName: newAdmin.restaurantName,
+//                 emailId: newAdmin.emailId,
+//                 companyId: newAdmin.companyId,
+//             },
+//         });
+//     } catch (error) {
+//         console.error('Error registering admin:', error.message);
+//         res.status(500).json({
+//             success: false,
+//             message: 'Error registering admin',
+//             error: error.message,
+//         });
+//     }
+// };
+
 export const registerAdminController = async (req, res) => {
     try {
         const {
@@ -2017,13 +2087,24 @@ export const registerAdminController = async (req, res) => {
             startBillNo,
             showLogoInReceipts,
             companyId,
+            printers, // <-- NEW FIELD (array of objects)
         } = req.body;
 
-        const existingAdmin = await AdminProfile.findOne({ $or: [{ emailId }, { companyId }] });
+        if (!Array.isArray(printers)) {
+            return res.status(400).json({
+                success: false,
+                message: "Printers must be an array of objects",
+            });
+        }
+
+        const existingAdmin = await AdminProfile.findOne({
+            $or: [{ emailId }, { companyId }],
+        });
+
         if (existingAdmin) {
             return res.status(400).json({
                 success: false,
-                message: 'Admin with this email or company ID already exists',
+                message: "Admin with this email or company ID already exists",
             });
         }
 
@@ -2042,82 +2123,150 @@ export const registerAdminController = async (req, res) => {
             startBillNo,
             showLogoInReceipts,
             companyId,
+            printers, // <-- Save printers in DB
         });
 
         const token = jwt.sign(
             { adminId: newAdmin._id, companyId: newAdmin.companyId },
             process.env.JWT_ADMIN_SECRET,
-            { expiresIn: '1000d' }
+            { expiresIn: "1000d" }
         );
 
         res.status(201).json({
             success: true,
-            message: 'Admin registered successfully',
+            message: "Admin registered successfully",
             token,
             data: {
                 restaurantName: newAdmin.restaurantName,
                 emailId: newAdmin.emailId,
                 companyId: newAdmin.companyId,
+                printers: newAdmin.printers,
             },
         });
     } catch (error) {
-        console.error('Error registering admin:', error.message);
+        console.error("Error registering admin:", error.message);
         res.status(500).json({
             success: false,
-            message: 'Error registering admin',
+            message: "Error registering admin",
             error: error.message,
         });
     }
 };
 
+//udate admin profile
+
+// export const upsertAdminProfile = async (req, res) => {
+//   try {
+//     const {
+//       restaurantName,
+//       addressLine1,
+//       addressLine2,
+//       state,
+//       contactNo,
+//       emailId,
+//       gstin,
+//       cin,
+//       baseCurrency,
+//       currencyCode,
+//       ticketFooterMessage,
+//       startBillNo,
+//       showLogoInReceipts,
+//       companyId,
+//     } = req.body;
+
+//     const profileData = {
+//       restaurantName,
+//       addressLine1,
+//       addressLine2,
+//       state,
+//       contactNo,
+//       emailId,
+//       gstin,
+//       cin,
+//       baseCurrency,
+//       currencyCode,
+//       ticketFooterMessage,
+//       startBillNo,
+//       showLogoInReceipts,
+//       companyId,
+//     };
+
+//     const profile = await AdminProfile.findOneAndUpdate(
+//       { companyId },
+//       profileData,
+//       { new: true, upsert: true }
+//     );
+
+//     res.status(200).json({ success: true, data: profile });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
 
 export const upsertAdminProfile = async (req, res) => {
-  try {
-    const {
-      restaurantName,
-      addressLine1,
-      addressLine2,
-      state,
-      contactNo,
-      emailId,
-      gstin,
-      cin,
-      baseCurrency,
-      currencyCode,
-      ticketFooterMessage,
-      startBillNo,
-      showLogoInReceipts,
-      companyId,
-    } = req.body;
-
-    const profileData = {
-      restaurantName,
-      addressLine1,
-      addressLine2,
-      state,
-      contactNo,
-      emailId,
-      gstin,
-      cin,
-      baseCurrency,
-      currencyCode,
-      ticketFooterMessage,
-      startBillNo,
-      showLogoInReceipts,
-      companyId,
-    };
-
-    const profile = await AdminProfile.findOneAndUpdate(
-      { companyId },
-      profileData,
-      { new: true, upsert: true }
-    );
-
-    res.status(200).json({ success: true, data: profile });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+    try {
+      const {
+        restaurantName,
+        addressLine1,
+        addressLine2,
+        state,
+        contactNo,
+        emailId,
+        gstin,
+        cin,
+        baseCurrency,
+        currencyCode,
+        ticketFooterMessage,
+        startBillNo,
+        showLogoInReceipts,
+        companyId,
+        printers, 
+      } = req.body;
+  
+      if (!companyId) {
+        return res.status(400).json({ success: false, message: "companyId is required" });
+      }
+  
+      // Validate printers if present
+      if (printers && !Array.isArray(printers)) {
+        return res.status(400).json({ success: false, message: "printers must be an array of objects" });
+      }
+  
+      const profileData = {
+        restaurantName,
+        addressLine1,
+        addressLine2,
+        state,
+        contactNo,
+        emailId,
+        gstin,
+        cin,
+        baseCurrency,
+        currencyCode,
+        ticketFooterMessage,
+        startBillNo,
+        showLogoInReceipts,
+        companyId,
+      };
+  
+      // Only add printers field if it exists in request
+      if (printers) {
+        profileData.printers = printers;
+      }
+  
+      const profile = await AdminProfile.findOneAndUpdate(
+        { companyId },
+        profileData,
+        { new: true, upsert: true }
+      );
+  
+      res.status(200).json({ success: true, data: profile });
+    } catch (error) {
+      console.error("Error in upsertAdminProfile:", error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
+  
 
 // Get Admin Profile
 export const getAdminProfile = async (req, res) => {
