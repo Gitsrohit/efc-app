@@ -356,31 +356,37 @@ const adSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
-
-// const AdminProfileSchema = new mongoose.Schema({
-//     restaurantName: { type: String, required: true },
-//     addressLine1: { type: String, required: true },
-//     addressLine2: { type: String },
-//     state: { type: String, required: true },
-//     contactNo: { type: String, required: true },
-//     emailId: { type: String, required: true },
-//     gstin: { type: String },
-//     cin: { type: String },
-//     baseCurrency: { type: String, required: true },
-//     currencyCode: { type: String, required: true },
-//     ticketFooterMessage: { type: String },
-//     startBillNo: { type: Number, default: 1 },
-//     showLogoInReceipts: { type: Boolean, default: false },
-//     companyId: { type: String, required: true, unique: true },
-//   }, { timestamps: true });
   
+// const AdminProfileSchema = new mongoose.Schema({
+//   restaurantName: { type: String, required: true },
+//   addressLine1: { type: String, required: true },
+//   addressLine2: { type: String },
+//   state: { type: String, required: true },
+//   contactNo: { type: String, required: true },
+//   emailId: { type: String, required: true },
+//   gstin: { type: String },
+//   cin: { type: String },
+//   baseCurrency: { type: String, required: true },
+//   currencyCode: { type: String, required: true },
+//   ticketFooterMessage: { type: String },
+//   startBillNo: { type: Number, default: 1 },
+//   showLogoInReceipts: { type: Boolean, default: false },
+//   companyId: { type: String, required: true, unique: true },
+//   printers: {
+//     type: [Object],  // Array of key-value objects like [{ printer_1: "..." }]
+//     default: [],
+//   },
+// }, {
+//   timestamps: true
+// });
+
 const AdminProfileSchema = new mongoose.Schema({
   restaurantName: { type: String, required: true },
   addressLine1: { type: String, required: true },
   addressLine2: { type: String },
   state: { type: String, required: true },
   contactNo: { type: String, required: true },
-  emailId: { type: String, required: true },
+  emailId: { type: String, required: true, unique: true },
   gstin: { type: String },
   cin: { type: String },
   baseCurrency: { type: String, required: true },
@@ -390,11 +396,19 @@ const AdminProfileSchema = new mongoose.Schema({
   showLogoInReceipts: { type: Boolean, default: false },
   companyId: { type: String, required: true, unique: true },
   printers: {
-    type: [Object],  // Array of key-value objects like [{ printer_1: "..." }]
+    type: [Object],
     default: [],
   },
+  password: { type: String, required: true },  // <-- Add this
+  token: { type: String },                     // <-- Add this
 }, {
   timestamps: true
+});
+
+const PrinterSchema = new mongoose.Schema({
+  printerName: { type: String, required: true },
+  printerKey: { type: String, required: true },
+  companyId: { type: String, required: true },
 });
 
 
@@ -628,6 +642,8 @@ export const Customer = mongoose.model("Customer", customerSchema);
 export const Facility = mongoose.model("Facility", new mongoose.Schema({
   isBooked: { type: Boolean, default: false } // Ensure Mongoose understands this field
 }, { strict: false }), "facilities");
+
+export const Printer = mongoose.model("Printer", PrinterSchema);
 
 export const Order = mongoose.model(
   "Order",

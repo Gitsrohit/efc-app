@@ -5,22 +5,23 @@ import bcrypt from "bcryptjs";
 // const { uploadToBackblaze } = require('../middlewares/multerBackblaze.js');
 // import { uploadToBackblaze } from '../middlewares/multerBackblaze.js';
 // import { uploadToBackblaze, uploadFileToBackblaze } from '../middlewares/multerBackblaze.js';
-import {uploadFile} from '../middlewares/cloudinary.js';
-import {Category} from '../models/adminModel.js';
-import {CategoryItem} from '../models/adminModel.js';
+import { uploadFile } from '../middlewares/cloudinary.js';
+import { Category } from '../models/adminModel.js';
+import { CategoryItem } from '../models/adminModel.js';
 // import { Order } from '../models/adminModel.js';
-import {Table} from '../models/adminModel.js';
-import {KOT} from '../models/adminModel.js';
-import {Ad} from '../models/adminModel.js';
-import {AdminProfile} from '../models/adminModel.js';
-import {Bill} from '../models/adminModel.js';
-import {NewBill} from '../models/adminModel.js';
-import {OnlineBill} from '../models/adminModel.js';
-import {NewFacility} from '../models/adminModel.js';
-import {Facility} from '../models/adminModel.js';
-import { Order } from "../models/adminModel.js"; 
-import {Customer} from '../models/adminModel.js';
-import {TopDeal} from '../models/adminModel.js';
+import { Table } from '../models/adminModel.js';
+import { KOT } from '../models/adminModel.js';
+import { Ad } from '../models/adminModel.js';
+import { AdminProfile } from '../models/adminModel.js';
+import { Bill } from '../models/adminModel.js';
+import { NewBill } from '../models/adminModel.js';
+import { OnlineBill } from '../models/adminModel.js';
+import { NewFacility } from '../models/adminModel.js';
+import { Facility } from '../models/adminModel.js';
+import { Order } from "../models/adminModel.js";
+import { Customer } from '../models/adminModel.js';
+import { TopDeal } from '../models/adminModel.js';
+import { Printer } from '../models/adminModel.js';
 // const onlineOrder = require("../middlewares/kafkaConsumer.js");
 
 
@@ -71,7 +72,7 @@ export const getAllCategories = async (req, res) => {
         if (!companyId) {
             return res.status(400).json({ success: false, message: 'companyId is required' });
         }
-        const categories = await Category.find({companyId}); 
+        const categories = await Category.find({ companyId });
         res.status(200).json({
             success: true,
             message: "Categories retrieved successfully",
@@ -89,10 +90,10 @@ export const getAllCategories = async (req, res) => {
 //edit category controller
 export const editCategoryController = async (req, res) => {
     try {
-        const categoryId = req.params.id; 
-        const {name} = req.body; 
-        const companyId = req.companyId; 
-        const imagePath = req.file ? req.file.path : null; 
+        const categoryId = req.params.id;
+        const { name } = req.body;
+        const companyId = req.companyId;
+        const imagePath = req.file ? req.file.path : null;
 
         if (!companyId) {
             return res.status(400).json({
@@ -124,8 +125,8 @@ export const editCategoryController = async (req, res) => {
         const updatedCategory = await Category.findByIdAndUpdate(
             categoryId,
 
-            updateData, 
-            {new: true} 
+            updateData,
+            { new: true }
         );
 
         if (!updatedCategory) {
@@ -153,8 +154,8 @@ export const editCategoryController = async (req, res) => {
 // delete category controller
 export const deleteCategoryController = async (req, res) => {
     try {
-        const categoryId = req.params.id; 
-        const companyId = req.companyId; 
+        const categoryId = req.params.id;
+        const companyId = req.companyId;
 
         if (!companyId) {
             return res.status(400).json({
@@ -203,10 +204,10 @@ export const addCategoryItem = async (req, res) => {
         }
 
         // Check for duplicate items with the same itemName, type, and companyId
-        const existingItem = await CategoryItem.findOne({ 
-            itemName, 
-            type, 
-            companyId 
+        const existingItem = await CategoryItem.findOne({
+            itemName,
+            type,
+            companyId
         });
 
         if (existingItem) {
@@ -265,8 +266,8 @@ export const addCategoryItem = async (req, res) => {
 // };
 export const getCategoryItems = async (req, res) => {
     try {
-        const categoryId  = req.params.id;
-        const companyId = req.companyId; 
+        const categoryId = req.params.id;
+        const companyId = req.companyId;
 
         if (!companyId) {
             return res.status(400).json({
@@ -282,7 +283,7 @@ export const getCategoryItems = async (req, res) => {
             });
         }
 
-        const category = await Category.findById({_id: categoryId, companyId}).populate('items');
+        const category = await Category.findById({ _id: categoryId, companyId }).populate('items');
 
         if (!category) {
             return res.status(404).json({
@@ -294,7 +295,7 @@ export const getCategoryItems = async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Category items retrieved successfully',
-            data: category.items, 
+            data: category.items,
         });
     } catch (error) {
         res.status(500).json({
@@ -309,40 +310,40 @@ export const getCategoryItems = async (req, res) => {
 
 export const getAllCategoryItems = async (req, res) => {
     try {
-      const companyId = req.companyId;
-  
-      if (!companyId) {
-        return res.status(400).json({
-          success: false,
-          message: 'companyId is required',
+        const companyId = req.companyId;
+
+        if (!companyId) {
+            return res.status(400).json({
+                success: false,
+                message: 'companyId is required',
+            });
+        }
+
+        const items = await CategoryItem.find({ companyId });
+
+        res.status(200).json({
+            success: true,
+            message: 'All category items retrieved successfully',
+            data: items,
         });
-      }
-  
-      const items = await CategoryItem.find({ companyId });
-  
-      res.status(200).json({
-        success: true,
-        message: 'All category items retrieved successfully',
-        data: items,
-      });
     } catch (error) {
-      console.error("Error fetching category items:", error.message);
-      res.status(500).json({
-        success: false,
-        message: 'Error fetching category items',
-        error: error.message,
-      });
+        console.error("Error fetching category items:", error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching category items',
+            error: error.message,
+        });
     }
-  };  
+};
 
 
 // edit category item controller
 export const editCategoryItemController = async (req, res) => {
     try {
-        const itemId = req.params.id; 
-        const {itemName, price, description, categoryId,type} = req.body;
-        const companyId = req.companyId;  
-        const imagePath = req.file ? req.file.path : null; 
+        const itemId = req.params.id;
+        const { itemName, price, description, categoryId, type } = req.body;
+        const companyId = req.companyId;
+        const imagePath = req.file ? req.file.path : null;
 
         if (!companyId) {
             return res.status(400).json({
@@ -375,9 +376,9 @@ export const editCategoryItemController = async (req, res) => {
         console.log("Update Data:", updateData);
 
         const updatedItem = await CategoryItem.findByIdAndUpdate(
-            itemId, 
-            updateData, 
-            {new: true}
+            itemId,
+            updateData,
+            { new: true }
         );
 
         if (!updatedItem) {
@@ -406,7 +407,7 @@ export const editCategoryItemController = async (req, res) => {
 export const deleteCategoryItemController = async (req, res) => {
     try {
         const itemId = req.params.id;
-        const companyId = req.companyId; 
+        const companyId = req.companyId;
 
         // const categoryItem = await CategoryItem.findById(itemId);
         // if (!categoryItem) {
@@ -443,7 +444,7 @@ export const deleteCategoryItemController = async (req, res) => {
         const categoryId = categoryItem.category;
         await Category.findByIdAndUpdate(categoryId, { $pull: { items: itemId } }, { new: true });
         await CategoryItem.findByIdAndDelete(itemId);
-        
+
         res.status(200).json({
             success: true,
             message: "Category item deleted successfully",
@@ -461,7 +462,7 @@ export const deleteCategoryItemController = async (req, res) => {
 //add stocks to each item
 export const addStockController = async (req, res) => {
     try {
-        const {itemId, stockToAdd} = req.body;
+        const { itemId, stockToAdd } = req.body;
 
         if (!itemId || stockToAdd === undefined) {
             return res.status(400).json({ message: "Item ID and stock quantity are required" });
@@ -473,7 +474,7 @@ export const addStockController = async (req, res) => {
             return res.status(404).json({ message: "Item not found" });
         }
 
-        item.stock += stockToAdd; 
+        item.stock += stockToAdd;
         await item.save();
 
         res.status(200).json({
@@ -490,8 +491,8 @@ export const addStockController = async (req, res) => {
 // add table controller
 export const addTableController = async (req, res) => {
     try {
-        const {name} = req.body;
-        const companyId = req.companyId; 
+        const { name } = req.body;
+        const companyId = req.companyId;
         if (!companyId) {
             return res.status(400).json({
                 success: false,
@@ -499,12 +500,12 @@ export const addTableController = async (req, res) => {
             });
         }
 
-        const existingTable = await Table.findOne({name});
+        const existingTable = await Table.findOne({ name });
         if (existingTable) {
-            return res.status(400).json({success: false, message: "Table already exists"});
+            return res.status(400).json({ success: false, message: "Table already exists" });
         }
 
-        const newTable = await Table.create({name,companyId});
+        const newTable = await Table.create({ name, companyId });
 
         res.status(201).json({ success: true, message: "Table added successfully", data: newTable });
     } catch (error) {
@@ -515,7 +516,7 @@ export const addTableController = async (req, res) => {
 //get table controller
 export const getAllTables = async (req, res) => {
     try {
-        const companyId = req.companyId; 
+        const companyId = req.companyId;
         if (!companyId) {
             return res.status(400).json({
                 success: false,
@@ -523,7 +524,7 @@ export const getAllTables = async (req, res) => {
             });
         }
 
-        const tables = await Table.find({companyId: companyId}).populate('menuItems.item', 'itemName price');
+        const tables = await Table.find({ companyId: companyId }).populate('menuItems.item', 'itemName price');
 
         if (tables.length === 0) {
             return res.status(404).json({
@@ -549,8 +550,8 @@ export const getAllTables = async (req, res) => {
 // delete table controller
 export const deleteTableController = async (req, res) => {
     try {
-        const tableId = req.params.id; 
-        const companyId = req.companyId; 
+        const tableId = req.params.id;
+        const companyId = req.companyId;
         if (!companyId) {
             return res.status(400).json({
                 success: false,
@@ -599,9 +600,9 @@ export const deleteTableController = async (req, res) => {
 //add menu items to table
 export const addMenuItemsToTable = async (req, res) => {
     try {
-        const {tableId} = req.params;
-        const {items} = req.body; 
-        const companyId = req.companyId; 
+        const { tableId } = req.params;
+        const { items } = req.body;
+        const companyId = req.companyId;
         if (!companyId) {
             return res.status(400).json({
                 success: false,
@@ -623,7 +624,7 @@ export const addMenuItemsToTable = async (req, res) => {
 
         const adminMenuItems = await CategoryItem.find({ companyId });
 
-        for (const {itemId, quantity} of items) {
+        for (const { itemId, quantity } of items) {
             const menuItem = adminMenuItems.find(item => item._id.toString() === itemId.toString());
             if (!menuItem) {
                 return res.status(404).json({ success: false, message: `Menu item not found or not part of your menu: ${itemId}` });
@@ -664,9 +665,9 @@ export const addMenuItemsToTable = async (req, res) => {
 // add Advertisement to the template
 export const addAdController = async (req, res) => {
     try {
-        const {name, description} = req.body;
+        const { name, description } = req.body;
         const imagePath = req.file ? req.file.path : null;
-        const companyId = req.companyId; 
+        const companyId = req.companyId;
 
         if (!name || !description) {
             return res.status(400).json({
@@ -689,7 +690,7 @@ export const addAdController = async (req, res) => {
             name,
             description,
             companyId,
-            image:imageUrl,
+            image: imageUrl,
         });
 
         res.status(201).json({
@@ -709,7 +710,7 @@ export const addAdController = async (req, res) => {
 // get active ads controller
 export const getActiveAdsController = async (req, res) => {
     try {
-        const companyId = req.companyId; 
+        const companyId = req.companyId;
 
         if (!companyId) {
             return res.status(400).json({
@@ -718,7 +719,7 @@ export const getActiveAdsController = async (req, res) => {
             });
         }
 
-        const ads = await Ad.find({isActive: true,companyId});
+        const ads = await Ad.find({ isActive: true, companyId });
 
         res.status(200).json({
             success: true,
@@ -737,14 +738,14 @@ export const getActiveAdsController = async (req, res) => {
 // deactivate ads 
 export const deactivateAdController = async (req, res) => {
     try {
-        const companyId = req.companyId; 
+        const companyId = req.companyId;
         if (!companyId) {
             return res.status(400).json({
                 success: false,
                 message: "companyId is required",
             });
         }
-        const {adId} = req.params;
+        const { adId } = req.params;
         const ad = await Ad.findOne({ _id: adId, companyId });
 
         if (!ad) {
@@ -767,206 +768,8 @@ export const deactivateAdController = async (req, res) => {
     }
 };
 
-// export const generateKOTController = async (req, res) => {
-//     try {
-//         const { tableId, operatorId } = req.body;
-//         const companyId = req.companyId;
 
-//         if (!companyId) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "companyId is required",
-//             });
-//         }
-
-//         const table = await Table.findOne({ _id: tableId, companyId }).populate(
-//             "menuItems.item",
-//             "_id itemName price kitchen"
-//         );
-
-//         if (!table) {
-//             return res.status(404).json({ success: false, message: "Table not found" });
-//         }
-
-//         const newItems = table.menuItems.filter((menuItem) => {
-//             const existingGeneratedItem = table.kotGeneratedItems.find(
-//                 (kotItem) => kotItem.item.toString() === menuItem.item._id.toString()
-//             );
-
-//             if (existingGeneratedItem) {
-//                 if (menuItem.quantity > existingGeneratedItem.quantity) {
-//                     menuItem.quantity -= existingGeneratedItem.quantity;
-//                     return true;
-//                 } else {
-//                     return false;
-//                 }
-//             }
-//             return true; 
-//         });
-
-//         if (newItems.length === 0) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "No new items to generate KOT for",
-//             });
-//         }
-
-//         const itemsByKitchen = newItems.reduce((acc, menuItem) => {
-//             const kitchen = menuItem.item.kitchen;
-//             if (!acc[kitchen]) acc[kitchen] = [];
-//             acc[kitchen].push({
-//                 itemName: menuItem.item.itemName,
-//                 quantity: menuItem.quantity,
-//                 price: menuItem.item.price,
-//                 itemId: menuItem.item._id,
-//             });
-//             return acc;
-//         }, {});
-
-//         const generatedKOTs = [];
-
-//         for (const kitchen in itemsByKitchen) {
-//             const items = itemsByKitchen[kitchen];
-
-//             const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
-
-//             const kot = await KOT.create({
-//                 ticketNumber,
-//                 tableName: table.name,
-//                 operatorId,
-//                 companyId,
-//                 items: items.map((item) => ({
-//                     itemName: item.itemName,
-//                     quantity: item.quantity,
-//                     price: item.price,
-//                 })),
-//             });
-
-//             items.forEach((item) => {
-//                 const existingGeneratedItem = table.kotGeneratedItems.find(
-//                     (kotItem) => kotItem.item.toString() === item.itemId.toString()
-//                 );
-
-//                 if (existingGeneratedItem) {
-//                     existingGeneratedItem.quantity += item.quantity;
-//                 } else {
-//                     table.kotGeneratedItems.push({
-//                         item: item.itemId,
-//                         quantity: item.quantity,
-//                     });
-//                 }
-//             });
-
-//             generatedKOTs.push(kot);
-//         }
-
-//         await table.save();
-
-//         res.status(201).json({
-//             success: true,
-//             message: "KOTs generated successfully",
-//             data: generatedKOTs,
-//         });
-//     } catch (error) {
-//         console.error("Error generating KOT:", error.message);
-//         res.status(500).json({
-//             success: false,
-//             message: "Error generating KOT",
-//             error: error.message,
-//         });
-//     }
-// };//this is the only version
-
-
-// export const generateKOTController = async (req, res) => {
-//     try {
-//         const { tableId, operatorId, items } = req.body;
-//         const companyId = req.companyId;
-//         console.log("companyId",companyId);
-
-//         if (!companyId) {
-//             return res.status(400).json({ success: false, message: "companyId is required" });
-//         }
-
-//         // const table = await Table.findById(tableId).select("+companyId");
-//         // console.log("Fetched Table with companyId:", table);
-
-
-//         let table = await Table.findById(tableId);
-//         console.log("fetched table:",table)
-
-//         if (!table) {
-//             return res.status(404).json({ success: false, message: "Table not found" });
-//         }
-//         console.log("Table company Id:",table.companyId)
-
-//         //Iss part ko review karna hoga 
-
-//         if (table.companyId.toString() !== companyId.toString()) {
-//             return res.status(403).json({ success: false, message: "Unauthorized" });
-//         }
-
-//         // Reserve the table if it's the first KOT
-//         if (!table.reserved) {
-//             table.reserved = true;
-//         }
-
-//         // Validate and group menu items by kitchen
-//         const adminMenuItems = await CategoryItem.find({ companyId });
-//         const itemsByKitchen = {};
-
-//         for (const { itemId, quantity } of items) {
-//             const menuItem = adminMenuItems.find((menu) => menu.id === itemId);
-
-//             if (!menuItem) {
-//                 return res.status(404).json({ success: false, message: `Menu item not found: ${itemId}` });
-//             }
-
-//             const itemData = {
-//                 itemName: menuItem.itemName,
-//                 quantity: quantity || 1,
-//                 price: menuItem.price,
-//             };
-
-//             if (!itemsByKitchen[menuItem.kitchen]) {
-//                 itemsByKitchen[menuItem.kitchen] = [];
-//             }
-
-//             itemsByKitchen[menuItem.kitchen].push(itemData);
-//         }
-
-//         const generatedKOTs = [];
-
-//         for (const kitchen in itemsByKitchen) {
-//             const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
-
-//             const kot = await KOT.create({
-//                 ticketNumber,
-//                 tableName: table.name,
-//                 operatorId,
-//                 companyId,
-//                 items: itemsByKitchen[kitchen],
-//             });
-
-//             generatedKOTs.push(kot);
-//         }
-
-//         await table.save();
-
-//         res.status(201).json({
-//             success: true,
-//             message: "KOTs generated successfully",
-//             data: generatedKOTs,
-//         });
-//     } catch (error) {
-//         console.error("Error generating KOT:", error.message);
-//         res.status(500).json({
-//             success: false,
-//             message: "Error generating KOT",
-//             error: error.message,
-//         });
-//     }
-// }; //original wala if something went wrong isko chalu kardo
+//og original kot controller
 
 export const generateKOTController = async (req, res) => {
     try {
@@ -979,7 +782,7 @@ export const generateKOTController = async (req, res) => {
 
         let table = await Table.findById(tableId).populate({
             path: "kotGeneratedItems",
-            select: "ticketNumber items createdAt", 
+            select: "ticketNumber items createdAt",
         });
 
         if (!table) {
@@ -1020,13 +823,27 @@ export const generateKOTController = async (req, res) => {
 
         const generatedKOTs = [];
 
-        for (const kitchen in itemsByKitchen) {
-            const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
+        // for (const kitchen in itemsByKitchen) {
+        //     const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
 
+        //     const kot = await KOT.create({
+        //         ticketNumber,
+        //         tableName: table.name,
+        //         operatorId: kitchen,
+        //         companyId,
+        //         items: itemsByKitchen[kitchen],
+        //     });
+
+        //     generatedKOTs.push(kot);
+        // }
+
+        const sharedTicketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
+
+        for (const kitchen in itemsByKitchen) {
             const kot = await KOT.create({
-                ticketNumber,
+                ticketNumber: sharedTicketNumber, // Use same ticket number
                 tableName: table.name,
-                operatorId,
+                operatorId: kitchen, // use kitchen name as operatorId
                 companyId,
                 items: itemsByKitchen[kitchen],
             });
@@ -1038,8 +855,6 @@ export const generateKOTController = async (req, res) => {
 
         await table.save();
 
-
-        
         const updatedTable = await Table.findById(tableId).populate({
             path: "kotGeneratedItems",
             select: "ticketNumber items createdAt",
@@ -1062,6 +877,108 @@ export const generateKOTController = async (req, res) => {
         });
     }
 }; //modified wala 
+
+// new kot table controller
+
+// export const generateKOTController = async (req, res) => {
+//     try {
+//         const { tableId, items } = req.body;
+//         const companyId = req.companyId;
+
+//         if (!companyId) {
+//             return res.status(400).json({ success: false, message: "companyId is required" });
+//         }
+
+//         let table = await Table.findById(tableId).populate({
+//             path: "kotGeneratedItems",
+//             select: "ticketNumber items createdAt",
+//         });
+
+//         if (!table) {
+//             return res.status(404).json({ success: false, message: "Table not found" });
+//         }
+
+//         if (table.companyId?.toString() !== companyId.toString()) {
+//             return res.status(403).json({ success: false, message: "Unauthorized" });
+//         }
+
+//         // Mark table as reserved if not already
+//         if (!table.reserved) {
+//             table.reserved = true;
+//             await table.save();
+//         }
+
+//         const adminMenuItems = await CategoryItem.find({ companyId });
+//         const itemsByKitchen = {};
+
+//         // Group items by kitchen
+//         for (const { itemId, quantity } of items) {
+//             const menuItem = adminMenuItems.find(menu => menu.id === itemId);
+//             if (!menuItem) {
+//                 return res.status(404).json({ success: false, message: `Menu item not found: ${itemId}` });
+//             }
+
+//             const itemData = {
+//                 itemId,
+//                 itemName: menuItem.itemName,
+//                 quantity: quantity || 1,
+//                 price: menuItem.price,
+//             };
+
+//             if (!itemsByKitchen[menuItem.kitchen]) {
+//                 itemsByKitchen[menuItem.kitchen] = [];
+//             }
+
+//             itemsByKitchen[menuItem.kitchen].push(itemData);
+//         }
+
+//         const generatedKOTs = [];
+
+//         // Create a KOT for each kitchen
+//         for (const kitchen in itemsByKitchen) {
+//             const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
+
+//             const kot = await KOT.create({
+//                 ticketNumber,
+//                 tableName: table.name,
+//                 operatorId: kitchen, // Set kitchen as the operator ID
+//                 companyId,
+//                 items: itemsByKitchen[kitchen],
+//             });
+
+//             generatedKOTs.push(kot);
+//         }
+
+//         // Append generated KOTs to the table
+//         table.kotGeneratedItems = [
+//             ...(table.kotGeneratedItems || []),
+//             ...generatedKOTs.map(kot => kot._id),
+//         ];
+//         await table.save();
+
+//         const updatedTable = await Table.findById(tableId).populate({
+//             path: "kotGeneratedItems",
+//             select: "ticketNumber items createdAt",
+//         });
+
+//         res.status(201).json({
+//             success: true,
+//             message: "KOTs generated successfully",
+//             data: {
+//                 generatedKOTs,
+//                 previousKOTs: updatedTable.kotGeneratedItems,
+//             },
+//         });
+//     } catch (error) {
+//         console.error("Error generating KOT:", error.message);
+//         res.status(500).json({
+//             success: false,
+//             message: "Error generating KOT",
+//             error: error.message,
+//         });
+//     }
+// };
+
 
 export const showBillController = async (req, res) => {
     try {
@@ -1131,110 +1048,110 @@ export const showBillController = async (req, res) => {
 
 // generate online kot
 export const generateOnlineKOTController = async (req, res) => {
-  try {
-    const { orderId, operatorId, items } = req.body;
-    const companyId = req.companyId;
+    try {
+        const { orderId, operatorId, items } = req.body;
+        const companyId = req.companyId;
 
-    if (!orderId || !operatorId || !items || !items.length) {
-      return res.status(400).json({
-        success: false,
-        message: "orderId, operatorId, and items are required",
-      });
-    }
+        if (!orderId || !operatorId || !items || !items.length) {
+            return res.status(400).json({
+                success: false,
+                message: "orderId, operatorId, and items are required",
+            });
+        }
 
-    if (!companyId) {
-      return res.status(400).json({ success: false, message: "companyId is required" });
-    }
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: "companyId is required" });
+        }
 
-    const adminMenuItems = await CategoryItem.find({ companyId });
-    const itemsByKitchen = {};
+        const adminMenuItems = await CategoryItem.find({ companyId });
+        const itemsByKitchen = {};
 
-    for (const { itemId, quantity } of items) {
-      const menuItem = adminMenuItems.find((menu) => menu.id === itemId);
+        for (const { itemId, quantity } of items) {
+            const menuItem = adminMenuItems.find((menu) => menu.id === itemId);
 
-      if (!menuItem) {
-        return res.status(404).json({
-          success: false,
-          message: `Menu item not found: ${itemId}`,
+            if (!menuItem) {
+                return res.status(404).json({
+                    success: false,
+                    message: `Menu item not found: ${itemId}`,
+                });
+            }
+
+            const itemData = {
+                itemName: menuItem.itemName,
+                quantity: quantity || 1,
+                price: menuItem.price,
+            };
+
+            if (!itemsByKitchen[menuItem.kitchen]) {
+                itemsByKitchen[menuItem.kitchen] = [];
+            }
+
+            itemsByKitchen[menuItem.kitchen].push(itemData);
+        }
+
+        const generatedKOTs = [];
+
+        for (const kitchen in itemsByKitchen) {
+            const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
+
+            const kot = await KOT.create({
+                ticketNumber,
+                orderId,
+                operatorId,
+                companyId,
+                items: itemsByKitchen[kitchen],
+            });
+
+            generatedKOTs.push(kot);
+        }
+
+        res.status(201).json({
+            success: true,
+            message: "KOTs generated successfully for online order",
+            data: generatedKOTs,
         });
-      }
-
-      const itemData = {
-        itemName: menuItem.itemName,
-        quantity: quantity || 1,
-        price: menuItem.price,
-      };
-
-      if (!itemsByKitchen[menuItem.kitchen]) {
-        itemsByKitchen[menuItem.kitchen] = [];
-      }
-
-      itemsByKitchen[menuItem.kitchen].push(itemData);
+    } catch (error) {
+        console.error("Error generating KOT for online order:", error.message);
+        res.status(500).json({
+            success: false,
+            message: "Error generating KOT for online order",
+            error: error.message,
+        });
     }
-
-    const generatedKOTs = [];
-
-    for (const kitchen in itemsByKitchen) {
-      const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
-
-      const kot = await KOT.create({
-        ticketNumber,
-        orderId,
-        operatorId,
-        companyId,
-        items: itemsByKitchen[kitchen],
-      });
-
-      generatedKOTs.push(kot);
-    }
-
-    res.status(201).json({
-      success: true,
-      message: "KOTs generated successfully for online order",
-      data: generatedKOTs,
-    });
-  } catch (error) {
-    console.error("Error generating KOT for online order:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Error generating KOT for online order",
-      error: error.message,
-    });
-  }
 };
 
 // export const generateBillController = async (req, res) => {
 //     try {
 //       const { tableId, paymentMode } = req.body;
 //       const companyId = req.companyId;
-  
+
 //       if (!companyId) {
 //         return res.status(400).json({ success: false, message: "companyId is required" });
 //       }
-  
+
 //       const table = await Table.findById(tableId);
 //       if (!table) {
 //         return res.status(404).json({ success: false, message: "Table not found" });
 //       }
-  
+
 //       if (!table.reserved) {
 //         return res.status(400).json({ success: false, message: "Table is not reserved" });
 //       }
-  
+
 //       // Fetch all KOTs for the table (don't include previous bill KOTs)
 //       const kots = await KOT.find({ tableName: table.name, companyId });
-  
+
 //       if (!kots.length) {
 //         return res.status(400).json({ success: false, message: "No KOTs found for this table" });
 //       }
-  
+
 //       // Generate unique bill number
 //       const billNumber = `BILL-${Math.floor(10000 + Math.random() * 90000)}`;
 //       const orderNumber = `ORD-${Math.floor(10000 + Math.random() * 90000)}`;
-  
+
 //       let totalAmount = 0;
 //       const consolidatedItems = [];
-  
+
 //       // Consolidate all items from KOTs
 //       kots.forEach(kot => {
 //         kot.items.forEach(item => {
@@ -1247,7 +1164,7 @@ export const generateOnlineKOTController = async (req, res) => {
 //           totalAmount += item.price * item.quantity;
 //         });
 //       });
-  
+
 //       // Create and save the bill
 //       const bill = await Bill.create({
 //         billNumber,
@@ -1261,12 +1178,12 @@ export const generateOnlineKOTController = async (req, res) => {
 //         totalAmount,
 //         paymentMode,
 //       });
-  
+
 //       // Unreserve the table and clear KOTs for that table
 //       table.reserved = false;
 //       table.kotGeneratedItems = []; // Clear KOTs after bill is generated
 //       await table.save();
-  
+
 //       // Respond with the bill details
 //       res.status(201).json({
 //         success: true,
@@ -1306,17 +1223,17 @@ export const generateBillController = async (req, res) => {
         }
 
         let totalAmount = 0;
-        const itemMap = new Map(); 
+        const itemMap = new Map();
 
         table.kotGeneratedItems.forEach(kot => {
-            if (!kot.items || kot.items.length === 0) return; 
+            if (!kot.items || kot.items.length === 0) return;
 
             kot.items.forEach(item => {
                 if (itemMap.has(item.itemName)) {
-                    
+
                     itemMap.get(item.itemName).quantity += item.quantity;
                 } else {
-                    
+
                     itemMap.set(item.itemName, {
                         quantity: item.quantity,
                         price: item.price,
@@ -1355,8 +1272,8 @@ export const generateBillController = async (req, res) => {
         });
 
         table.reserved = false;
-        table.kotGeneratedItems = []; 
-        table.menuItems = []; 
+        table.kotGeneratedItems = [];
+        table.menuItems = [];
         await table.save();
 
         res.status(201).json({
@@ -1483,152 +1400,152 @@ export const getReducedRevenueByDateRange = async (req, res) => {
 // pdf controller for the original bills
 export const generateBillsSummaryPdf = async (req, res) => {
     try {
-      // date are in format of yyyy-mm-dd 
-      const { startDate, endDate } = req.body;       
-      const companyId = req.companyId;              
-  
-      if (!startDate || !endDate) {
-        return res.status(400).json({ success: false, message: "startDate and endDate are required" });
-      }
-      if (!companyId) {
-        return res.status(400).json({ success: false, message: "companyId is required" });
-      }
-  
-      const start = new Date(`${startDate}T00:00:00.000Z`);
-      const end   = new Date(`${endDate}T23:59:59.999Z`);
-  
-      const bills = await Bill.find({
-        companyId,
-        billDate: { $gte: start, $lte: end },
-      }).select("billNumber billDate totalAmount").sort({ billDate: 1 });
-  
-      if (!bills.length) {
-        return res.status(404).json({ success: false, message: "No bills found in this date range" });
-      }
-  
-      // pdf generation code
-      const doc = new PDFDocument({ margin: 50 });
-      const chunks = [];
-      doc.on("data",  chunk => chunks.push(chunk));
-      doc.on("end",   ()   => {
-        const pdf = Buffer.concat(chunks);
-        const fileName = `bill-summary-${startDate}_to_${endDate}.pdf`;
-        res.set({
-          "Content-Type":        "application/pdf",
-          "Content-Disposition": `attachment; filename="${fileName}"`,
-          "Content-Length":      pdf.length,
-        });
-        res.send(pdf);
-      });
-  
-      doc.fontSize(18).text("Bill Summary", { align: "center" });
-      doc.moveDown(0.5);
-      doc.fontSize(12).text(`Company: ${companyId}`);
-      doc.text(`Period : ${startDate} → ${endDate}`);
-      doc.moveDown();
-  
-      doc.font("Helvetica-Bold");
-      doc.text("Bill No.",   50,  doc.y, { continued: true });
-      doc.text("Bill Date", 200,  doc.y, { continued: true });
-      doc.text("Amount",    350,  doc.y);
-      doc.moveDown(0.25);
-      doc.font("Helvetica").moveTo(50, doc.y).lineTo(550, doc.y).stroke();
-      doc.moveDown(0.5);
+        // date are in format of yyyy-mm-dd 
+        const { startDate, endDate } = req.body;
+        const companyId = req.companyId;
 
-      let grandTotal = 0;
-      bills.forEach(b => {
-        grandTotal += b.totalAmount;
-        doc.text(b.billNumber,            50, doc.y, { continued: true });
-        doc.text(b.billDate.toISOString().slice(0,10), 200, doc.y, { continued: true });
-        doc.text(`₹${b.totalAmount.toFixed(2)}`,       350, doc.y);
-      });
-  
-      doc.moveDown();
-      doc.font("Helvetica-Bold");
-      doc.text("Grand Total:", 200, doc.y, { continued: true });
-      doc.text(`₹${grandTotal.toFixed(2)}`, 350, doc.y);
-      doc.end();
-  
+        if (!startDate || !endDate) {
+            return res.status(400).json({ success: false, message: "startDate and endDate are required" });
+        }
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: "companyId is required" });
+        }
+
+        const start = new Date(`${startDate}T00:00:00.000Z`);
+        const end = new Date(`${endDate}T23:59:59.999Z`);
+
+        const bills = await Bill.find({
+            companyId,
+            billDate: { $gte: start, $lte: end },
+        }).select("billNumber billDate totalAmount").sort({ billDate: 1 });
+
+        if (!bills.length) {
+            return res.status(404).json({ success: false, message: "No bills found in this date range" });
+        }
+
+        // pdf generation code
+        const doc = new PDFDocument({ margin: 50 });
+        const chunks = [];
+        doc.on("data", chunk => chunks.push(chunk));
+        doc.on("end", () => {
+            const pdf = Buffer.concat(chunks);
+            const fileName = `bill-summary-${startDate}_to_${endDate}.pdf`;
+            res.set({
+                "Content-Type": "application/pdf",
+                "Content-Disposition": `attachment; filename="${fileName}"`,
+                "Content-Length": pdf.length,
+            });
+            res.send(pdf);
+        });
+
+        doc.fontSize(18).text("Bill Summary", { align: "center" });
+        doc.moveDown(0.5);
+        doc.fontSize(12).text(`Company: ${companyId}`);
+        doc.text(`Period : ${startDate} → ${endDate}`);
+        doc.moveDown();
+
+        doc.font("Helvetica-Bold");
+        doc.text("Bill No.", 50, doc.y, { continued: true });
+        doc.text("Bill Date", 200, doc.y, { continued: true });
+        doc.text("Amount", 350, doc.y);
+        doc.moveDown(0.25);
+        doc.font("Helvetica").moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+        doc.moveDown(0.5);
+
+        let grandTotal = 0;
+        bills.forEach(b => {
+            grandTotal += b.totalAmount;
+            doc.text(b.billNumber, 50, doc.y, { continued: true });
+            doc.text(b.billDate.toISOString().slice(0, 10), 200, doc.y, { continued: true });
+            doc.text(`₹${b.totalAmount.toFixed(2)}`, 350, doc.y);
+        });
+
+        doc.moveDown();
+        doc.font("Helvetica-Bold");
+        doc.text("Grand Total:", 200, doc.y, { continued: true });
+        doc.text(`₹${grandTotal.toFixed(2)}`, 350, doc.y);
+        doc.end();
+
     } catch (err) {
-      console.error("generateBillsSummaryPdf error:", err);
-      res.status(500).json({ success: false, message: "Server error", error: err.message });
+        console.error("generateBillsSummaryPdf error:", err);
+        res.status(500).json({ success: false, message: "Server error", error: err.message });
     }
-  };
+};
 
 // pdf controller for the fake bills
 export const generateFakeBillsSummaryPdf = async (req, res) => {
     try {
-      // date are in format of yyyy-mm-dd 
-      const { startDate, endDate } = req.body;       
-      const companyId = req.companyId;              
-  
-      if (!startDate || !endDate) {
-        return res.status(400).json({ success: false, message: "startDate and endDate are required" });
-      }
-      if (!companyId) {
-        return res.status(400).json({ success: false, message: "companyId is required" });
-      }
-  
-      const start = new Date(`${startDate}T00:00:00.000Z`);
-      const end   = new Date(`${endDate}T23:59:59.999Z`);
-  
-      const bills = await NewBill.find({
-        companyId,
-        billDate: { $gte: start, $lte: end },
-      }).select("billNumber billDate totalAmount").sort({ billDate: 1 });
-  
-      if (!bills.length) {
-        return res.status(404).json({ success: false, message: "No bills found in this date range" });
-      }
-  
-      // pdf generation code
-      const doc = new PDFDocument({ margin: 50 });
-      const chunks = [];
-      doc.on("data",  chunk => chunks.push(chunk));
-      doc.on("end",   ()   => {
-        const pdf = Buffer.concat(chunks);
-        const fileName = `bill-summary-${startDate}_to_${endDate}.pdf`;
-        res.set({
-          "Content-Type":        "application/pdf",
-          "Content-Disposition": `attachment; filename="${fileName}"`,
-          "Content-Length":      pdf.length,
-        });
-        res.send(pdf);
-      });
-  
-      doc.fontSize(18).text("Bill Summary", { align: "center" });
-      doc.moveDown(0.5);
-      doc.fontSize(12).text(`Company: ${companyId}`);
-      doc.text(`Period : ${startDate} → ${endDate}`);
-      doc.moveDown();
-  
-      doc.font("Helvetica-Bold");
-      doc.text("Bill No.",   50,  doc.y, { continued: true });
-      doc.text("Bill Date", 200,  doc.y, { continued: true });
-      doc.text("Amount",    350,  doc.y);
-      doc.moveDown(0.25);
-      doc.font("Helvetica").moveTo(50, doc.y).lineTo(550, doc.y).stroke();
-      doc.moveDown(0.5);
+        // date are in format of yyyy-mm-dd 
+        const { startDate, endDate } = req.body;
+        const companyId = req.companyId;
 
-      let grandTotal = 0;
-      bills.forEach(b => {
-        grandTotal += b.totalAmount;
-        doc.text(b.billNumber,            50, doc.y, { continued: true });
-        doc.text(b.billDate.toISOString().slice(0,10), 200, doc.y, { continued: true });
-        doc.text(`₹${b.totalAmount.toFixed(2)}`,       350, doc.y);
-      });
-  
-      doc.moveDown();
-      doc.font("Helvetica-Bold");
-      doc.text("Grand Total:", 200, doc.y, { continued: true });
-      doc.text(`₹${grandTotal.toFixed(2)}`, 350, doc.y);
-      doc.end();
-  
+        if (!startDate || !endDate) {
+            return res.status(400).json({ success: false, message: "startDate and endDate are required" });
+        }
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: "companyId is required" });
+        }
+
+        const start = new Date(`${startDate}T00:00:00.000Z`);
+        const end = new Date(`${endDate}T23:59:59.999Z`);
+
+        const bills = await NewBill.find({
+            companyId,
+            billDate: { $gte: start, $lte: end },
+        }).select("billNumber billDate totalAmount").sort({ billDate: 1 });
+
+        if (!bills.length) {
+            return res.status(404).json({ success: false, message: "No bills found in this date range" });
+        }
+
+        // pdf generation code
+        const doc = new PDFDocument({ margin: 50 });
+        const chunks = [];
+        doc.on("data", chunk => chunks.push(chunk));
+        doc.on("end", () => {
+            const pdf = Buffer.concat(chunks);
+            const fileName = `bill-summary-${startDate}_to_${endDate}.pdf`;
+            res.set({
+                "Content-Type": "application/pdf",
+                "Content-Disposition": `attachment; filename="${fileName}"`,
+                "Content-Length": pdf.length,
+            });
+            res.send(pdf);
+        });
+
+        doc.fontSize(18).text("Bill Summary", { align: "center" });
+        doc.moveDown(0.5);
+        doc.fontSize(12).text(`Company: ${companyId}`);
+        doc.text(`Period : ${startDate} → ${endDate}`);
+        doc.moveDown();
+
+        doc.font("Helvetica-Bold");
+        doc.text("Bill No.", 50, doc.y, { continued: true });
+        doc.text("Bill Date", 200, doc.y, { continued: true });
+        doc.text("Amount", 350, doc.y);
+        doc.moveDown(0.25);
+        doc.font("Helvetica").moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+        doc.moveDown(0.5);
+
+        let grandTotal = 0;
+        bills.forEach(b => {
+            grandTotal += b.totalAmount;
+            doc.text(b.billNumber, 50, doc.y, { continued: true });
+            doc.text(b.billDate.toISOString().slice(0, 10), 200, doc.y, { continued: true });
+            doc.text(`₹${b.totalAmount.toFixed(2)}`, 350, doc.y);
+        });
+
+        doc.moveDown();
+        doc.font("Helvetica-Bold");
+        doc.text("Grand Total:", 200, doc.y, { continued: true });
+        doc.text(`₹${grandTotal.toFixed(2)}`, 350, doc.y);
+        doc.end();
+
     } catch (err) {
-      console.error("generateBillsSummaryPdf error:", err);
-      res.status(500).json({ success: false, message: "Server error", error: err.message });
+        console.error("generateBillsSummaryPdf error:", err);
+        res.status(500).json({ success: false, message: "Server error", error: err.message });
     }
-  };
+};
 
 //get online orders revenue by date range
 export const getOnlineRevenue = async (req, res) => {
@@ -1683,7 +1600,7 @@ export const getOnlineRevenue = async (req, res) => {
 //     try {
 //       const { name, id: orderId, operator, items, paymentMode } = req.body;
 //       const companyId = req.companyId;
-  
+
 //       // Validate request payload
 //       if (!orderId || !operator || !items || !items.length) {
 //         return res.status(400).json({
@@ -1691,20 +1608,20 @@ export const getOnlineRevenue = async (req, res) => {
 //           message: "Order ID, operator, and items are required.",
 //         });
 //       }
-  
+
 //       if (!companyId) {
 //         return res.status(400).json({ success: false, message: "Company ID is required." });
 //       }
-  
+
 //       // Calculate total amount
 //       let totalAmount = 0;
 //       items.forEach(item => {
 //         totalAmount += item.price * item.quantity;
 //       });
-  
+
 //       // Generate unique bill number
 //       const billNumber = `BILL-${Math.floor(10000 + Math.random() * 90000)}`;
-  
+
 //       // Create and save the bill
 //       const bill = await OnlineBill.create({
 //         billNumber,
@@ -1717,7 +1634,7 @@ export const getOnlineRevenue = async (req, res) => {
 //         totalAmount,
 //         paymentMode: paymentMode || "Online Payment",
 //       });
-  
+
 //       res.status(201).json({
 //         success: true,
 //         message: "Bill generated successfully for online order.",
@@ -1829,7 +1746,7 @@ export const generateOnlineBillController = async (req, res) => {
             error: error.message,
         });
     }
-}; 
+};
 
 
 
@@ -1958,7 +1875,7 @@ export const generateNewBillController = async (req, res) => {
         kots.forEach((kot) => {
             kot.items.forEach((item) => {
                 const rate = item.price;
-                const amount = item.quantity * rate * 0.1; 
+                const amount = item.quantity * rate * 0.1;
 
                 billItems.push({
                     itemName: item.itemName,
@@ -2072,102 +1989,139 @@ export const generateNewBillController = async (req, res) => {
 // };
 
 export const registerAdminController = async (req, res) => {
-  try {
-    const {
-      restaurantName,
-      addressLine1,
-      addressLine2,
-      state,
-      contactNo,
-      emailId,
-      gstin,
-      cin,
-      baseCurrency,
-      currencyCode,
-      ticketFooterMessage,
-      startBillNo,
-      showLogoInReceipts,
-      companyId,
-      printers,
-      password,
-      confirmPassword, // ✅ new fields
-    } = req.body;
+    try {
+        const {
+            restaurantName,
+            addressLine1,
+            addressLine2,
+            state,
+            contactNo,
+            emailId,
+            gstin,
+            cin,
+            baseCurrency,
+            currencyCode,
+            ticketFooterMessage,
+            startBillNo,
+            showLogoInReceipts,
+            companyId,
+            printers,
+            password,
+            confirmPassword,
+        } = req.body;
 
-    // ✅ Validate printers is an array
-    if (!Array.isArray(printers)) {
-      return res.status(400).json({
-        success: false,
-        message: "Printers must be an array of objects",
-      });
+        if (!Array.isArray(printers)) {
+            return res.status(400).json({
+                success: false,
+                message: "Printers must be an array of objects",
+            });
+        }
+
+        if (!password || !confirmPassword || password !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Passwords are required and must match",
+            });
+        }
+
+        const existingAdmin = await AdminProfile.findOne({
+            $or: [{ emailId }, { companyId }],
+        });
+
+        if (existingAdmin) {
+            return res.status(400).json({
+                success: false,
+                message: "Admin with this email or company ID already exists",
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const newAdmin = await AdminProfile.create({
+            restaurantName,
+            addressLine1,
+            addressLine2,
+            state,
+            contactNo,
+            emailId,
+            gstin,
+            cin,
+            baseCurrency,
+            currencyCode,
+            ticketFooterMessage,
+            startBillNo,
+            showLogoInReceipts,
+            companyId,
+            printers,
+            password: hashedPassword,
+        });
+
+        const token = jwt.sign(
+            { adminId: newAdmin._id, companyId: newAdmin.companyId },
+            process.env.JWT_ADMIN_SECRET,
+            { expiresIn: "1000d" }
+        );
+
+        newAdmin.token = token;
+        await newAdmin.save();
+
+        res.status(201).json({
+            success: true,
+            message: "Admin registered successfully",
+            token
+        });
+    } catch (error) {
+        console.error("Error registering admin:", error.message);
+        res.status(500).json({
+            success: false,
+            message: "Error registering admin",
+            error: error.message,
+        });
     }
+};
 
-    // ✅ Validate passwords
-    if (!password || !confirmPassword || password !== confirmPassword) {
-      return res.status(400).json({
-        success: false,
-        message: "Passwords are required and must match",
-      });
+export const loginAdminController = async (req, res) => {
+    try {
+        const { emailId, password } = req.body;
+
+        if (!emailId || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and password are required",
+            });
+        }
+
+        const admin = await AdminProfile.findOne({ emailId });
+
+        if (!admin) {
+            return res.status(404).json({
+                success: false,
+                message: "Admin not found",
+            });
+        }
+
+        const isMatch = await bcrypt.compare(password, admin.password);
+
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid password",
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Login successful",
+            token: admin.token,
+        });
+    } catch (error) {
+        console.error("Error in admin login:", error.message);
+        res.status(500).json({
+            success: false,
+            message: "Server error during login",
+            error: error.message,
+        });
     }
-
-    // ✅ Check for existing email or company ID
-    const existingAdmin = await AdminProfile.findOne({
-      $or: [{ emailId }, { companyId }],
-    });
-
-    if (existingAdmin) {
-      return res.status(400).json({
-        success: false,
-        message: "Admin with this email or company ID already exists",
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newAdmin = await AdminProfile.create({
-      restaurantName,
-      addressLine1,
-      addressLine2,
-      state,
-      contactNo,
-      emailId,
-      gstin,
-      cin,
-      baseCurrency,
-      currencyCode,
-      ticketFooterMessage,
-      startBillNo,
-      showLogoInReceipts,
-      companyId,
-      printers,
-      password: hashedPassword, // ✅ store hashed password
-    });
-
-    // ✅ Generate token
-    const token = jwt.sign(
-      { adminId: newAdmin._id, companyId: newAdmin.companyId },
-      process.env.JWT_ADMIN_SECRET,
-      { expiresIn: "1000d" }
-    );
-
-    res.status(201).json({
-      success: true,
-      message: "Admin registered successfully",
-      token,
-      data: {
-        restaurantName: newAdmin.restaurantName,
-        emailId: newAdmin.emailId,
-        companyId: newAdmin.companyId,
-        printers: newAdmin.printers,
-      },
-    });
-  } catch (error) {
-    console.error("Error registering admin:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Error registering admin",
-      error: error.message,
-    });
-  }
 };
 
 
@@ -2175,83 +2129,83 @@ export const registerAdminController = async (req, res) => {
 
 export const upsertAdminProfile = async (req, res) => {
     try {
-      const {
-        restaurantName,
-        addressLine1,
-        addressLine2,
-        state,
-        contactNo,
-        emailId,
-        gstin,
-        cin,
-        baseCurrency,
-        currencyCode,
-        ticketFooterMessage,
-        startBillNo,
-        showLogoInReceipts,
-        companyId,
-        printers, 
-      } = req.body;
-  
-      if (!companyId) {
-        return res.status(400).json({ success: false, message: "companyId is required" });
-      }
-  
-      // Validate printers if present
-      if (printers && !Array.isArray(printers)) {
-        return res.status(400).json({ success: false, message: "printers must be an array of objects" });
-      }
-  
-      const profileData = {
-        restaurantName,
-        addressLine1,
-        addressLine2,
-        state,
-        contactNo,
-        emailId,
-        gstin,
-        cin,
-        baseCurrency,
-        currencyCode,
-        ticketFooterMessage,
-        startBillNo,
-        showLogoInReceipts,
-        companyId,
-      };
-  
-      // Only add printers field if it exists in request
-      if (printers) {
-        profileData.printers = printers;
-      }
-  
-      const profile = await AdminProfile.findOneAndUpdate(
-        { companyId },
-        profileData,
-        { new: true, upsert: true }
-      );
-  
-      res.status(200).json({ success: true, data: profile });
+        const {
+            restaurantName,
+            addressLine1,
+            addressLine2,
+            state,
+            contactNo,
+            emailId,
+            gstin,
+            cin,
+            baseCurrency,
+            currencyCode,
+            ticketFooterMessage,
+            startBillNo,
+            showLogoInReceipts,
+            companyId,
+            printers,
+        } = req.body;
+
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: "companyId is required" });
+        }
+
+        // Validate printers if present
+        if (printers && !Array.isArray(printers)) {
+            return res.status(400).json({ success: false, message: "printers must be an array of objects" });
+        }
+
+        const profileData = {
+            restaurantName,
+            addressLine1,
+            addressLine2,
+            state,
+            contactNo,
+            emailId,
+            gstin,
+            cin,
+            baseCurrency,
+            currencyCode,
+            ticketFooterMessage,
+            startBillNo,
+            showLogoInReceipts,
+            companyId,
+        };
+
+        // Only add printers field if it exists in request
+        if (printers) {
+            profileData.printers = printers;
+        }
+
+        const profile = await AdminProfile.findOneAndUpdate(
+            { companyId },
+            profileData,
+            { new: true, upsert: true }
+        );
+
+        res.status(200).json({ success: true, data: profile });
     } catch (error) {
-      console.error("Error in upsertAdminProfile:", error.message);
-      res.status(500).json({ success: false, message: error.message });
+        console.error("Error in upsertAdminProfile:", error.message);
+        res.status(500).json({ success: false, message: error.message });
     }
-  };
-  
+};
+
 
 // Get Admin Profile
 export const getAdminProfile = async (req, res) => {
-  try {
-    const {companyId} = req.params;
+    try {
+        const { companyId } = req.params;
 
-    const profile = await AdminProfile.findOne({ companyId });
-    if (!profile) {
-      return res.status(404).json({ success: false, message: 'Profile not found' });
+        const profile = await AdminProfile.findOne({ companyId });
+        if (!profile) {
+            return res.status(404).json({ success: false, message: 'Profile not found' });
+        }
+
+        res.status(200).json({ success: true, data: profile });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
-
-    res.status(200).json({ success: true, data: profile });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
 };
 
 
@@ -2323,7 +2277,7 @@ export const addNewFacility = async (req, res) => {
             });
         }
 
-        const { name, type, capacity, description ,isBooked = false } = req.body;
+        const { name, type, capacity, description, isBooked = false } = req.body;
 
         if (!name || !type || !capacity) {
             return res.status(400).json({ success: false, message: "Name, type, and capacity are required." });
@@ -2345,7 +2299,7 @@ export const addNewFacility = async (req, res) => {
             capacity,
             description,
             pictureUrls,
-            companyId,  
+            companyId,
             isBooked
         });
 
@@ -2553,44 +2507,44 @@ export const unbookFacility = async (req, res) => {
 
 export const addCustomer = async (req, res) => {
     try {
-      const companyId = req.companyId;
-      const { name, phoneNumber, walletBalance = 0 } = req.body;
-  
-      if (!companyId) {
-        return res.status(400).json({ success: false, message: "Company ID is required." });
-      }
-  
-      if (!name || !phoneNumber) {
-        return res.status(400).json({ success: false, message: "Name and phone number are required." });
-      }
-  
-      // Check for duplicate phone number within the same company
-      const existingCustomer = await Customer.findOne({ phoneNumber, companyId });
-  
-      if (existingCustomer) {
-        return res.status(400).json({ success: false, message: "Customer with this phone number already exists for this company." });
-      }
-  
-      const newCustomer = new Customer({
-        name,
-        phoneNumber,
-        walletBalance,
-        companyId,
-      });
-  
-      await newCustomer.save();
-  
-      res.status(201).json({
-        success: true,
-        message: "Customer added successfully.",
-        data: newCustomer,
-      });
-  
+        const companyId = req.companyId;
+        const { name, phoneNumber, walletBalance = 0 } = req.body;
+
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: "Company ID is required." });
+        }
+
+        if (!name || !phoneNumber) {
+            return res.status(400).json({ success: false, message: "Name and phone number are required." });
+        }
+
+        // Check for duplicate phone number within the same company
+        const existingCustomer = await Customer.findOne({ phoneNumber, companyId });
+
+        if (existingCustomer) {
+            return res.status(400).json({ success: false, message: "Customer with this phone number already exists for this company." });
+        }
+
+        const newCustomer = new Customer({
+            name,
+            phoneNumber,
+            walletBalance,
+            companyId,
+        });
+
+        await newCustomer.save();
+
+        res.status(201).json({
+            success: true,
+            message: "Customer added successfully.",
+            data: newCustomer,
+        });
+
     } catch (error) {
-      console.error("Error adding customer:", error.message);
-      res.status(500).json({ success: false, message: "Error adding customer", error: error.message });
+        console.error("Error adding customer:", error.message);
+        res.status(500).json({ success: false, message: "Error adding customer", error: error.message });
     }
-  };
+};
 
 // getting all customers
 export const getAllCustomers = async (req, res) => {
@@ -2628,47 +2582,47 @@ export const getCustomerByPhone = async (req, res) => {
 //adding and reducing balance
 export const updateCustomerWallet = async (req, res) => {
     try {
-      const companyId = req.companyId;
-      const { id } = req.params;
-      const { amount } = req.body;
-  
-      if (!companyId) {
-        return res.status(400).json({ success: false, message: "Company ID is required." });
-      }
-  
-      if (typeof amount !== 'number') {
-        return res.status(400).json({ success: false, message: "Amount must be a number." });
-      }
-  
-      const customer = await Customer.findOne({ _id: id, companyId });
-  
-      if (!customer) {
-        return res.status(404).json({ success: false, message: "Customer not found." });
-      }
-  
-      // Check for insufficient funds if deducting
-      if (amount < 0 && customer.walletBalance + amount < 0) {
-        return res.status(400).json({ success: false, message: "Insufficient wallet balance." });
-      }
-  
-      customer.walletBalance += amount;
-      await customer.save();
-  
-      res.status(200).json({
-        success: true,
-        message: `Customer wallet updated by ${amount >= 0 ? 'adding' : 'deducting'} ₹${Math.abs(amount)}.`,
-        data: customer,
-      });
+        const companyId = req.companyId;
+        const { id } = req.params;
+        const { amount } = req.body;
+
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: "Company ID is required." });
+        }
+
+        if (typeof amount !== 'number') {
+            return res.status(400).json({ success: false, message: "Amount must be a number." });
+        }
+
+        const customer = await Customer.findOne({ _id: id, companyId });
+
+        if (!customer) {
+            return res.status(404).json({ success: false, message: "Customer not found." });
+        }
+
+        // Check for insufficient funds if deducting
+        if (amount < 0 && customer.walletBalance + amount < 0) {
+            return res.status(400).json({ success: false, message: "Insufficient wallet balance." });
+        }
+
+        customer.walletBalance += amount;
+        await customer.save();
+
+        res.status(200).json({
+            success: true,
+            message: `Customer wallet updated by ${amount >= 0 ? 'adding' : 'deducting'} ₹${Math.abs(amount)}.`,
+            data: customer,
+        });
     } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: "Error updating wallet balance",
-        error: error.message,
-      });
+        res.status(500).json({
+            success: false,
+            message: "Error updating wallet balance",
+            error: error.message,
+        });
     }
-  };
-  
-  
+};
+
+
 
 //edit customer
 export const updateCustomerDetails = async (req, res) => {
@@ -2704,47 +2658,47 @@ export const updateCustomerDetails = async (req, res) => {
 //delete customers
 export const deleteCustomer = async (req, res) => {
     try {
-      const { id } = req.params;
-      const companyId = req.companyId;
-  
-      if (!companyId) {
-        return res.status(400).json({ success: false, message: "Company ID is required." });
-      }
-  
-      if (!id) {
-        return res.status(400).json({ success: false, message: "Customer ID is required." });
-      }
-  
-      const customer = await Customer.findOne({ _id: id, companyId });
-  
-      if (!customer) {
-        return res.status(404).json({ success: false, message: "Customer not found." });
-      }
-  
-      if (customer.walletBalance < 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Customer cannot be deleted because their wallet balance is negative.",
+        const { id } = req.params;
+        const companyId = req.companyId;
+
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: "Company ID is required." });
+        }
+
+        if (!id) {
+            return res.status(400).json({ success: false, message: "Customer ID is required." });
+        }
+
+        const customer = await Customer.findOne({ _id: id, companyId });
+
+        if (!customer) {
+            return res.status(404).json({ success: false, message: "Customer not found." });
+        }
+
+        if (customer.walletBalance < 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Customer cannot be deleted because their wallet balance is negative.",
+            });
+        }
+
+        await Customer.deleteOne({ _id: id });
+
+        res.status(200).json({
+            success: true,
+            message: "Customer deleted successfully.",
         });
-      }
-  
-      await Customer.deleteOne({ _id: id });
-  
-      res.status(200).json({
-        success: true,
-        message: "Customer deleted successfully.",
-      });
-  
+
     } catch (error) {
-      console.error("Error deleting customer:", error.message);
-      res.status(500).json({
-        success: false,
-        message: "Error deleting customer",
-        error: error.message,
-      });
+        console.error("Error deleting customer:", error.message);
+        res.status(500).json({
+            success: false,
+            message: "Error deleting customer",
+            error: error.message,
+        });
     }
-  };
-  
+};
+
 
 //get previous orders apis
 export const getAllOnlineOrders = async (req, res) => {
@@ -2756,7 +2710,7 @@ export const getAllOnlineOrders = async (req, res) => {
         const totalOrders = await Order.countDocuments();
 
         const orders = await Order.find()
-            .sort({ createdAt: -1 }) 
+            .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
 
@@ -2781,93 +2735,93 @@ export const getAllOnlineOrders = async (req, res) => {
 
 export const addTopDealController = async (req, res) => {
     try {
-      const { itemId, customPrice } = req.body;
-      const companyId = req.companyId;
-  
-      if (!itemId) {
-        return res.status(400).json({
-          success: false,
-          message: "itemId is required"
-        });
-      }
-  
-      const newTopDeal = await TopDeal.create({
-        itemId,
-        customPrice: customPrice || null,
-        companyId
-      });
-  
-      res.status(201).json({
-        success: true,
-        message: "Top Deal added successfully",
-        data: newTopDeal
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: "Error adding top deal",
-        error: error.message
-      });
-    }
-  };
+        const { itemId, customPrice } = req.body;
+        const companyId = req.companyId;
 
-  export const getTopDealsController = async (req, res) => {
-    try {
-      const companyId = req.companyId;  
-  
-      const topDeals = await TopDeal.find({ companyId, isActive: true }).populate('itemId');
-  
-      const response = topDeals.map(deal => ({
-        _id: deal._id,
-        itemName: deal.itemId.itemName,
-        image: deal.itemId.image,
-        price: deal.customPrice ?? deal.itemId.price,  
-        isActive: deal.isActive
-      }));
-  
-      res.status(200).json({
-        success: true,
-        message: "Top Deals fetched successfully",
-        data: response
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: "Error fetching top deals",
-        error: error.message
-      });
-    }
-  };
+        if (!itemId) {
+            return res.status(400).json({
+                success: false,
+                message: "itemId is required"
+            });
+        }
 
-  
-  export const deactivateTopDealController = async (req, res) => {
-    try {
-      const { topDealId } = req.params;
-  
-      const topDeal = await TopDeal.findById(topDealId);
-      if (!topDeal) {
-        return res.status(404).json({
-          success: false,
-          message: "Top deal not found",
+        const newTopDeal = await TopDeal.create({
+            itemId,
+            customPrice: customPrice || null,
+            companyId
         });
-      }
-  
-      topDeal.isActive = false;
-      await topDeal.save();
-  
-      res.status(200).json({
-        success: true,
-        message: "Top deal deactivated successfully",
-      });
+
+        res.status(201).json({
+            success: true,
+            message: "Top Deal added successfully",
+            data: newTopDeal
+        });
     } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: "Failed to deactivate top deal",
-        error: error.message,
-      });
+        res.status(500).json({
+            success: false,
+            message: "Error adding top deal",
+            error: error.message
+        });
     }
-  };
-  
+};
+
+export const getTopDealsController = async (req, res) => {
+    try {
+        const companyId = req.companyId;
+
+        const topDeals = await TopDeal.find({ companyId, isActive: true }).populate('itemId');
+
+        const response = topDeals.map(deal => ({
+            _id: deal._id,
+            itemName: deal.itemId.itemName,
+            image: deal.itemId.image,
+            price: deal.customPrice ?? deal.itemId.price,
+            isActive: deal.isActive
+        }));
+
+        res.status(200).json({
+            success: true,
+            message: "Top Deals fetched successfully",
+            data: response
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error fetching top deals",
+            error: error.message
+        });
+    }
+};
+
+
+export const deactivateTopDealController = async (req, res) => {
+    try {
+        const { topDealId } = req.params;
+
+        const topDeal = await TopDeal.findById(topDealId);
+        if (!topDeal) {
+            return res.status(404).json({
+                success: false,
+                message: "Top deal not found",
+            });
+        }
+
+        topDeal.isActive = false;
+        await topDeal.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Top deal deactivated successfully",
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to deactivate top deal",
+            error: error.message,
+        });
+    }
+};
+
 
 
 
