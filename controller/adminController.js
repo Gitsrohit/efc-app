@@ -2010,12 +2010,12 @@ export const registerAdminController = async (req, res) => {
             confirmPassword,
         } = req.body;
 
-        if (!Array.isArray(printers)) {
-            return res.status(400).json({
-                success: false,
-                message: "Printers must be an array of objects",
-            });
-        }
+        // if (!Array.isArray(printers)) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: "Printers must be an array of objects",
+        //     });
+        // }
 
         if (!password || !confirmPassword || password !== confirmPassword) {
             return res.status(400).json({
@@ -2052,7 +2052,7 @@ export const registerAdminController = async (req, res) => {
             startBillNo,
             showLogoInReceipts,
             companyId,
-            printers,
+            // printers,
             password: hashedPassword,
         });
 
@@ -2080,6 +2080,96 @@ export const registerAdminController = async (req, res) => {
     }
 };
 
+//edit admin profile
+
+export const editAdminProfile = async (req, res) => {
+  try {
+    const companyId = req.companyId; // Injected by auth middleware
+    const updateData = req.body;
+
+    // Prevent editing sensitive fields explicitly
+    if (updateData.emailId || updateData.companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "Email ID and Company ID cannot be updated.",
+      });
+    }
+
+    // Handle password update
+    if (updateData.password || updateData.confirmPassword) {
+      if (
+        !updateData.password ||
+        !updateData.confirmPassword ||
+        updateData.password !== updateData.confirmPassword
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Passwords are required and must match.",
+        });
+      }
+
+      updateData.password = await bcrypt.hash(updateData.password, 10);
+      delete updateData.confirmPassword;
+    }
+
+    // Define allowed fields only
+    const allowedFields = [
+      'restaurantName', 'addressLine1', 'addressLine2', 'state',
+      'contactNo', 'gstin', 'cin', 'baseCurrency', 'currencyCode',
+      'ticketFooterMessage', 'startBillNo', 'showLogoInReceipts', 'password'
+    ];
+
+    // Pick only allowed fields from updateData
+    const sanitizedUpdate = {};
+    allowedFields.forEach(field => {
+      if (updateData[field] !== undefined) {
+        sanitizedUpdate[field] = updateData[field];
+      }
+    });
+
+    const updatedAdmin = await AdminProfile.findOneAndUpdate(
+      { companyId },
+      { $set: sanitizedUpdate },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedAdmin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Admin profile updated successfully",
+      data: {
+        restaurantName: updatedAdmin.restaurantName,
+        addressLine1: updatedAdmin.addressLine1,
+        addressLine2: updatedAdmin.addressLine2,
+        state: updatedAdmin.state,
+        contactNo: updatedAdmin.contactNo,
+        gstin: updatedAdmin.gstin,
+        cin: updatedAdmin.cin,
+        baseCurrency: updatedAdmin.baseCurrency,
+        currencyCode: updatedAdmin.currencyCode,
+        ticketFooterMessage: updatedAdmin.ticketFooterMessage,
+        startBillNo: updatedAdmin.startBillNo,
+        showLogoInReceipts: updatedAdmin.showLogoInReceipts
+      }
+    });
+  } catch (error) {
+    console.error("Error updating admin profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+
+//login admin controller
 export const loginAdminController = async (req, res) => {
     try {
         const { emailId, password } = req.body;
@@ -2210,62 +2300,6 @@ export const getAdminProfile = async (req, res) => {
 
 
 // Facilities section all controllers below
-
-// export const addNewFacility = async (req, res) => {
-//     try {
-//         const { name, type, capacity, description } = req.body;
-
-//         if (!name || !type || !capacity) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "Name, type, and capacity are required.",
-//             });
-//         }
-
-//         const companyId = req.companyId; 
-//         if (!companyId) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "companyId is required",
-//             });
-//         }
-
-//         let pictureUrls = [];
-
-//         // Check if files are uploaded
-//         if (req.files && req.files.length > 0) {
-//             for (const file of req.files) {
-//                 const imageUrl = await uploadFile(file.buffer, "facilities");
-//                 pictureUrls.push(imageUrl);
-//             }
-//         } else {
-//             return res.status(400).json({ message: "At least one image file is required" });
-//         }
-
-//         // Create a new facility with images
-//         const newFacility = await NewFacility.create({
-//             name,
-//             type,
-//             capacity,
-//             description,
-//             pictureUrls, 
-//             companyId,
-//         });
-
-//         res.status(201).json({
-//             success: true,
-//             message: "New facility added successfully.",
-//             data: newFacility,
-//         });
-//     } catch (error) {
-//         console.error("Error adding new facility:", error.message);
-//         res.status(500).json({
-//             success: false,
-//             message: "Error adding new facility.",
-//             error: error.message,
-//         });
-//     }
-// };
 
 export const addNewFacility = async (req, res) => {
     try {
@@ -2480,30 +2514,6 @@ export const unbookFacility = async (req, res) => {
 
 
 //adding customer to the database
-// export const addCustomer = async (req, res) => {
-//     try {
-//         const companyId = req.companyId;
-//         const { name, phoneNumber, positiveBalance = 0, negativeBalance = 0 } = req.body;
-
-//         if (!companyId) return res.status(400).json({ success: false, message: "Company ID is required." });
-//         if (!name || !phoneNumber) return res.status(400).json({ success: false, message: "Name and phone number are required." });
-
-//         const existingCustomer = await Customer.findOne({ phoneNumber, companyId });
-//         if (existingCustomer) return res.status(400).json({ success: false, message: "Customer already exists for this company." });
-
-//         const newCustomer = await Customer.create({
-//             name,
-//             phoneNumber,
-//             positiveBalance,
-//             negativeBalance,
-//             companyId
-//         });
-
-//         res.status(201).json({ success: true, message: "Customer added successfully.", data: newCustomer });
-//     } catch (error) {
-//         res.status(500).json({ success: false, message: "Error adding customer", error: error.message });
-//     }
-// };
 
 export const addCustomer = async (req, res) => {
     try {
@@ -2822,7 +2832,221 @@ export const deactivateTopDealController = async (req, res) => {
     }
 };
 
+// Printer Controllers
 
+// export const assignPrinters = async (req, res) => {
+//   try {
+//     const assignments = req.body;
+//     const companyId = req.companyId;
+
+//     if (!companyId || !assignments || typeof assignments !== "object") {
+//       return res.status(400).json({
+//         success: false,
+//         message: "companyId and assignments (object) are required",
+//       });
+//     }
+
+//     const operatorIds = Object.keys(assignments);
+
+//     // Check if any operator is already assigned a printer
+//     const existingAssignments = await Printer.find({
+//       operatorId: { $in: operatorIds },
+//     });
+
+//     if (existingAssignments.length > 0) {
+//       const alreadyAssigned = existingAssignments.map((a) => a.operatorId);
+//       return res.status(409).json({
+//         success: false,
+//         message: "Some operators are already assigned to a printer",
+//         alreadyAssigned,
+//       });
+//     }
+
+//     // Create new assignments
+//     const newAssignments = operatorIds.map((operatorId) => ({
+//       companyId,
+//       operatorId,
+//       printerName: assignments[operatorId],
+//     }));
+
+//     await Printer.insertMany(newAssignments);
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "Printer assignments successful",
+//       data: newAssignments,
+//     });
+//   } catch (err) {
+//     console.error("Error assigning printers:", err);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Internal server error",
+//     });
+//   }
+// };
+
+
+ export const assignPrinters = async (req, res) => {
+  try {
+    const companyId = req.companyId; 
+    const assignments = req.body; 
+
+    if (!assignments || typeof assignments !== "object") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid request body. Expected key-value pairs of operatorId: printerName",
+      });
+    }
+
+    const responseData = [];
+
+    for (const [operatorId, printerName] of Object.entries(assignments)) {
+      // 1. Check if the operator already has a printer assigned
+      const existing = await Printer.findOne({ operatorId });
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          message: `Operator ${operatorId} is already assigned to printer ${existing.printerName}`,
+        });
+      }
+
+      // 2. Create the new assignment
+      const newAssignment = new Printer({
+        companyId,
+        operatorId,
+        printerName,
+      });
+
+      await newAssignment.save();
+      responseData.push({
+        operatorId,
+        printerName,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Printers assigned successfully",
+      data: responseData,
+    });
+  } catch (error) {
+    console.error("Error assigning printers:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// export const updatePrinterForOperator = async (req, res) => {
+//   try {
+//     const companyId = req.companyId; // injected by auth middleware
+//     const { operatorId, printerName } = req.body;
+
+//     if (!operatorId || !printerName) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Both operatorId and new printerName are required",
+//       });
+//     }
+
+//     // Find the existing assignment by operatorId and companyId
+//     const assignment = await Printer.findOne({ operatorId, companyId });
+
+//     if (!assignment) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "No printer assignment found for the given operator in your company",
+//       });
+//     }
+
+//     // Update printer name
+//     assignment.printerName = printerName;
+//     await assignment.save();
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Printer updated successfully for the operator",
+//       data: assignment,
+//     });
+//   } catch (error) {
+//     console.error("Error updating printer:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Internal server error",
+//     });
+//   }
+// };
+
+export const updatePrinterForOperator = async (req, res) => {
+  try {
+    const companyId = req.companyId;
+    const { operatorId, printerName } = req.body;
+
+    if (!operatorId || !printerName) {
+      return res.status(400).json({
+        success: false,
+        message: "Both operatorId and new printerName are required",
+      });
+    }
+
+    const assignment = await PrinterAssignment.findOne({ operatorId, companyId });
+
+    if (!assignment) {
+      return res.status(404).json({
+        success: false,
+        message: "No printer assignment found for the given operator in your company",
+      });
+    }
+
+    assignment.printerName = printerName;
+    await assignment.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Printer updated successfully for the operator",
+      data: {
+        operatorId: assignment.operatorId,
+        printerName: assignment.printerName,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating printer:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+
+
+export const getAllPrinterMappings = async (req, res) => {
+  try {
+    const companyId = req.companyId; // comes from middleware
+
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "Company ID is missing from request",
+      });
+    }
+
+    const mappings = await Printer.find({ companyId });
+
+    res.status(200).json({
+      success: true,
+      message: "Fetched all printer-operator mappings successfully",
+      data: mappings,
+    });
+  } catch (error) {
+    console.error("Error fetching printer mappings:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
 
 
 

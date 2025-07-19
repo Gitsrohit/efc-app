@@ -73,44 +73,6 @@ const categoryItemSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-//Table Schema
-// const tableSchema = new mongoose.Schema({
-//     name: {
-//         type: String,
-//         required: true,
-//         unique: true,
-//     },
-//     menuItems: [
-//         {
-//             item: { 
-//                 type: mongoose.Schema.Types.ObjectId, ref: 'CategoryItem' 
-//             },
-//             quantity: { 
-//                 type: Number, 
-//                 default: 1 
-//             },
-//             price: { 
-//                 type: Number, 
-//                 required: true, 
-//             },
-//         },
-//     ],
-//     reserved: {
-//         type: Boolean,
-//         default: false, 
-//     },
-//     companyId: { 
-//         type: String, 
-//         required: true 
-//     },
-//     kotGeneratedItems: [
-//         {
-//             item: { type: mongoose.Schema.Types.ObjectId, ref: 'CategoryItem' },
-//             quantity: { type: Number, default: 1 },
-//         },
-//     ],
-// }, { timestamps: true });
-
 // const tableSchema = new mongoose.Schema(
 //     {
 //       name: {
@@ -224,37 +186,6 @@ const billSchema = new mongoose.Schema(
   { timestamps: true }
 ); 
   
-// const kotSchema = new mongoose.Schema({
-//     ticketNumber: {
-//         type: String,
-//         required: true,
-//         unique: true,
-//     },
-//     tableName: {
-//         type: String,
-//         required: true,
-//     },
-//     billDate: {
-//         type: Date,
-//         default: Date.now,
-//     },
-//     companyId: { 
-//         type: String, 
-//         required: true 
-//     },
-//     operatorId: {
-//         type: String, 
-//         required: true,
-//     },
-//     items: [
-//         {
-//             itemName: { type: String, required: true },
-//             quantity: { type: Number, required: true },
-//             price: { type: Number, required: true }, 
-//         },
-//     ],
-// }, { timestamps: true });
-
 // const kotSchema = new mongoose.Schema(
 //     {
 //       ticketNumber: {
@@ -356,29 +287,6 @@ const adSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
-  
-// const AdminProfileSchema = new mongoose.Schema({
-//   restaurantName: { type: String, required: true },
-//   addressLine1: { type: String, required: true },
-//   addressLine2: { type: String },
-//   state: { type: String, required: true },
-//   contactNo: { type: String, required: true },
-//   emailId: { type: String, required: true },
-//   gstin: { type: String },
-//   cin: { type: String },
-//   baseCurrency: { type: String, required: true },
-//   currencyCode: { type: String, required: true },
-//   ticketFooterMessage: { type: String },
-//   startBillNo: { type: Number, default: 1 },
-//   showLogoInReceipts: { type: Boolean, default: false },
-//   companyId: { type: String, required: true, unique: true },
-//   printers: {
-//     type: [Object],  // Array of key-value objects like [{ printer_1: "..." }]
-//     default: [],
-//   },
-// }, {
-//   timestamps: true
-// });
 
 const AdminProfileSchema = new mongoose.Schema({
   restaurantName: { type: String, required: true },
@@ -395,53 +303,11 @@ const AdminProfileSchema = new mongoose.Schema({
   startBillNo: { type: Number, default: 1 },
   showLogoInReceipts: { type: Boolean, default: false },
   companyId: { type: String, required: true, unique: true },
-  printers: {
-    type: [Object],
-    default: [],
-  },
   password: { type: String, required: true },  // <-- Add this
   token: { type: String },                     // <-- Add this
 }, {
   timestamps: true
 });
-
-const PrinterSchema = new mongoose.Schema({
-  printerName: { type: String, required: true },
-  printerKey: { type: String, required: true },
-  companyId: { type: String, required: true },
-});
-
-
-// const billSchema = new mongoose.Schema({
-//     tableName: {
-//         type: String,
-//         required: true,
-//     },
-//     items: [
-//         {
-//             itemName: { type: String, required: true },
-//             quantity: { type: Number, required: true },
-//             rate: { type: Number, required: true },
-//             amount: { type: Number, required: true },
-//         },
-//     ],
-//     totalAmount: {
-//         type: Number,
-//         required: true,
-//     },
-//     operatorId: {
-//         type: String,
-//         required: true,
-//     },
-//     companyId: {
-//         type: String,
-//         required: true,
-//     },
-//     generatedAt: {
-//         type: Date,
-//         default: Date.now,
-//     },
-// }, { timestamps: true });
 
 // const billSchema = new mongoose.Schema({
 //     billNumber: {
@@ -583,14 +449,6 @@ const customerSchema = new mongoose.Schema({
       required: true,
       unique: true,
   },
-  // positiveBalance: {
-  //     type: Number,
-  //     default: 0,
-  // },
-  // negativeBalance: {
-  //     type: Number,
-  //     default: 0,
-  // },
   walletBalance: {
     type: Number,
     default: 0, 
@@ -623,6 +481,24 @@ const topDealSchema = new mongoose.Schema({
   }
 });
 
+// models/OperatorPrinterAssignment.js
+
+const printerSchema = new mongoose.Schema({
+  companyId: {
+    type: String,
+    required: true,
+  },
+  operatorId: {
+    type: String,
+    required: true,
+    unique: true, // Ensures one printer per operator
+  },
+  printerName: {
+    type: String,
+    required: true,
+  },
+});
+
 
 
 
@@ -638,12 +514,12 @@ export const NewBill = mongoose.model("NewBill", BillSchema);
 export const OnlineBill = mongoose.model("OnlineBill", onlineBillSchema);
 export const NewFacility = mongoose.model("NewFacility", newFacilitySchema);
 export const Customer = mongoose.model("Customer", customerSchema);
-// export const Facility = mongoose.model("Facility", new mongoose.Schema({}, { strict: false }), "facilities");
+//  export const Facility = mongoose.model("Facility", new mongoose.Schema({}, { strict: false }), "facilities");
 export const Facility = mongoose.model("Facility", new mongoose.Schema({
-  isBooked: { type: Boolean, default: false } // Ensure Mongoose understands this field
+  isBooked: { type: Boolean, default: false } 
 }, { strict: false }), "facilities");
 
-export const Printer = mongoose.model("Printer", PrinterSchema);
+export const Printer = mongoose.model("Printer", printerSchema);
 
 export const Order = mongoose.model(
   "Order",

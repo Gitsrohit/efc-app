@@ -655,6 +655,9 @@
                 "tableId": {
                   "example": "any"
                 },
+                "operatorId": {
+                  "example": "any"
+                },
                 "items": {
                   "example": "any"
                 }
@@ -1226,8 +1229,8 @@
         }
       }
     },
-    "/api/v1/admin/adminProfile": {
-      "post": {
+    "/api/v1/admin/edit-admin": {
+      "put": {
         "description": "",
         "parameters": [
           {
@@ -1241,49 +1244,16 @@
             "schema": {
               "type": "object",
               "properties": {
-                "restaurantName": {
-                  "example": "any"
-                },
-                "addressLine1": {
-                  "example": "any"
-                },
-                "addressLine2": {
-                  "example": "any"
-                },
-                "state": {
-                  "example": "any"
-                },
-                "contactNo": {
-                  "example": "any"
-                },
                 "emailId": {
-                  "example": "any"
-                },
-                "gstin": {
-                  "example": "any"
-                },
-                "cin": {
-                  "example": "any"
-                },
-                "baseCurrency": {
-                  "example": "any"
-                },
-                "currencyCode": {
-                  "example": "any"
-                },
-                "ticketFooterMessage": {
-                  "example": "any"
-                },
-                "startBillNo": {
-                  "example": "any"
-                },
-                "showLogoInReceipts": {
                   "example": "any"
                 },
                 "companyId": {
                   "example": "any"
                 },
-                "printers": {
+                "password": {
+                  "example": "any"
+                },
+                "confirmPassword": {
                   "example": "any"
                 }
               }
@@ -1299,6 +1269,9 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
           },
           "500": {
             "description": "Internal Server Error"
@@ -2091,6 +2064,102 @@
         }
       }
     },
+    "/api/v1/admin/add-printers": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/edit-printers": {
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "operatorId": {
+                  "example": "any"
+                },
+                "printerName": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/get-printers": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
     "/add-category": {
       "post": {
         "description": "",
@@ -2665,6 +2734,9 @@
                 "tableId": {
                   "example": "any"
                 },
+                "operatorId": {
+                  "example": "any"
+                },
                 "items": {
                   "example": "any"
                 }
@@ -3236,8 +3308,8 @@
         }
       }
     },
-    "/adminProfile": {
-      "post": {
+    "/edit-admin": {
+      "put": {
         "description": "",
         "parameters": [
           {
@@ -3251,49 +3323,16 @@
             "schema": {
               "type": "object",
               "properties": {
-                "restaurantName": {
-                  "example": "any"
-                },
-                "addressLine1": {
-                  "example": "any"
-                },
-                "addressLine2": {
-                  "example": "any"
-                },
-                "state": {
-                  "example": "any"
-                },
-                "contactNo": {
-                  "example": "any"
-                },
                 "emailId": {
-                  "example": "any"
-                },
-                "gstin": {
-                  "example": "any"
-                },
-                "cin": {
-                  "example": "any"
-                },
-                "baseCurrency": {
-                  "example": "any"
-                },
-                "currencyCode": {
-                  "example": "any"
-                },
-                "ticketFooterMessage": {
-                  "example": "any"
-                },
-                "startBillNo": {
-                  "example": "any"
-                },
-                "showLogoInReceipts": {
                   "example": "any"
                 },
                 "companyId": {
                   "example": "any"
                 },
-                "printers": {
+                "password": {
+                  "example": "any"
+                },
+                "confirmPassword": {
                   "example": "any"
                 }
               }
@@ -3309,6 +3348,9 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
           },
           "500": {
             "description": "Internal Server Error"
@@ -4094,6 +4136,102 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/add-printers": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/edit-printers": {
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "operatorId": {
+                  "example": "any"
+                },
+                "printerName": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/get-printers": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "500": {
             "description": "Internal Server Error"

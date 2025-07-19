@@ -5,7 +5,7 @@ import upload from '../middlewares/fileUploadMiddlewares.js';
 import multer from 'multer';
 import path from 'path';
 import resetStocksMiddleware from "../middlewares/resetStocksMiddleware.js";
-import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange,addCustomer,getAllCustomers,getCustomerByPhone,updateCustomerWallet,updateCustomerDetails,getAllOnlineOrders,getOnlineRevenue,addTopDealController,getTopDealsController,deactivateTopDealController,getAllCategoryItems,deleteCustomer,generateBillsSummaryPdf, generateFakeBillsSummaryPdf,loginAdminController} from "../controller/adminController.js";
+import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,upsertAdminProfile,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange,addCustomer,getAllCustomers,getCustomerByPhone,updateCustomerWallet,updateCustomerDetails,getAllOnlineOrders,getOnlineRevenue,addTopDealController,getTopDealsController,deactivateTopDealController,getAllCategoryItems,deleteCustomer,generateBillsSummaryPdf, generateFakeBillsSummaryPdf,loginAdminController, assignPrinters, updatePrinterForOperator, getAllPrinterMappings, editAdminProfile} from "../controller/adminController.js";
 
 import { companyMiddleware } from "../middlewares/companyAuthMiddleware.js";
 
@@ -82,7 +82,7 @@ router.get('/active-ads',companyMiddleware, getActiveAdsController)
 router.patch('/deactivate-ads/:adId',companyMiddleware, deactivateAdController)
 
 //adminProfile routes
-router.post('/adminProfile',companyMiddleware, upsertAdminProfile);
+router.put('/edit-admin',companyMiddleware, editAdminProfile);
 router.get('/adminProfile/:companyId',companyMiddleware, getAdminProfile);
 router.post('/register-admin',registerAdminController)
 router.post('/login-admin',loginAdminController)
@@ -111,6 +111,12 @@ router.get('/view-online-orders', companyMiddleware, getAllOnlineOrders);
 router.post('/add-topDeal',companyMiddleware, addTopDealController);
 router.get('/get-topDeals',companyMiddleware, getTopDealsController)
 router.patch('/deactivate-topDeals/:topDealId',companyMiddleware, deactivateTopDealController)
+
+// Printers routes
+router.post('/add-printers',companyMiddleware, assignPrinters);
+router.put('/edit-printers',companyMiddleware, updatePrinterForOperator);
+router.get('/get-printers',companyMiddleware, getAllPrinterMappings);
+
 
 
 
