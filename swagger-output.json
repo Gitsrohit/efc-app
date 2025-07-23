@@ -1345,25 +1345,7 @@
                 "cin": {
                   "example": "any"
                 },
-                "baseCurrency": {
-                  "example": "any"
-                },
-                "currencyCode": {
-                  "example": "any"
-                },
-                "ticketFooterMessage": {
-                  "example": "any"
-                },
-                "startBillNo": {
-                  "example": "any"
-                },
-                "showLogoInReceipts": {
-                  "example": "any"
-                },
                 "companyId": {
-                  "example": "any"
-                },
-                "printers": {
                   "example": "any"
                 },
                 "password": {
@@ -3424,25 +3406,7 @@
                 "cin": {
                   "example": "any"
                 },
-                "baseCurrency": {
-                  "example": "any"
-                },
-                "currencyCode": {
-                  "example": "any"
-                },
-                "ticketFooterMessage": {
-                  "example": "any"
-                },
-                "startBillNo": {
-                  "example": "any"
-                },
-                "showLogoInReceipts": {
-                  "example": "any"
-                },
                 "companyId": {
-                  "example": "any"
-                },
-                "printers": {
                   "example": "any"
                 },
                 "password": {

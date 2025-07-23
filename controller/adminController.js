@@ -1473,9 +1473,9 @@ export const generateBillsSummaryPdf = async (req, res) => {
 };
 
 // pdf controller for the fake bills
+
 export const generateFakeBillsSummaryPdf = async (req, res) => {
     try {
-        // date are in format of yyyy-mm-dd 
         const { startDate, endDate } = req.body;
         const companyId = req.companyId;
 
@@ -1489,7 +1489,7 @@ export const generateFakeBillsSummaryPdf = async (req, res) => {
         const start = new Date(`${startDate}T00:00:00.000Z`);
         const end = new Date(`${endDate}T23:59:59.999Z`);
 
-        const bills = await NewBill.find({
+        const bills = await Bill.find({
             companyId,
             billDate: { $gte: start, $lte: end },
         }).select("billNumber billDate totalAmount").sort({ billDate: 1 });
@@ -1498,7 +1498,7 @@ export const generateFakeBillsSummaryPdf = async (req, res) => {
             return res.status(404).json({ success: false, message: "No bills found in this date range" });
         }
 
-        // pdf generation code
+        // PDF generation
         const doc = new PDFDocument({ margin: 50 });
         const chunks = [];
         doc.on("data", chunk => chunks.push(chunk));
@@ -1529,10 +1529,11 @@ export const generateFakeBillsSummaryPdf = async (req, res) => {
 
         let grandTotal = 0;
         bills.forEach(b => {
-            grandTotal += b.totalAmount;
+            const discountedAmount = b.totalAmount * 0.10;
+            grandTotal += discountedAmount;
             doc.text(b.billNumber, 50, doc.y, { continued: true });
             doc.text(b.billDate.toISOString().slice(0, 10), 200, doc.y, { continued: true });
-            doc.text(`₹${b.totalAmount.toFixed(2)}`, 350, doc.y);
+            doc.text(`₹${discountedAmount.toFixed(2)}`, 350, doc.y);
         });
 
         doc.moveDown();
@@ -1546,6 +1547,8 @@ export const generateFakeBillsSummaryPdf = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error", error: err.message });
     }
 };
+
+
 
 //get online orders revenue by date range
 export const getOnlineRevenue = async (req, res) => {
@@ -1918,75 +1921,6 @@ export const generateNewBillController = async (req, res) => {
 
 
 // admin profile apis
-// export const registerAdminController = async (req, res) => {
-//     try {
-//         const {
-//             restaurantName,
-//             addressLine1,
-//             addressLine2,
-//             state,
-//             contactNo,
-//             emailId,
-//             gstin,
-//             cin,
-//             baseCurrency,
-//             currencyCode,
-//             ticketFooterMessage,
-//             startBillNo,
-//             showLogoInReceipts,
-//             companyId,
-//         } = req.body;
-
-//         const existingAdmin = await AdminProfile.findOne({ $or: [{ emailId }, { companyId }] });
-//         if (existingAdmin) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: 'Admin with this email or company ID already exists',
-//             });
-//         }
-
-//         const newAdmin = await AdminProfile.create({
-//             restaurantName,
-//             addressLine1,
-//             addressLine2,
-//             state,
-//             contactNo,
-//             emailId,
-//             gstin,
-//             cin,
-//             baseCurrency,
-//             currencyCode,
-//             ticketFooterMessage,
-//             startBillNo,
-//             showLogoInReceipts,
-//             companyId,
-//         });
-
-//         const token = jwt.sign(
-//             { adminId: newAdmin._id, companyId: newAdmin.companyId },
-//             process.env.JWT_ADMIN_SECRET,
-//             { expiresIn: '1000d' }
-//         );
-
-//         res.status(201).json({
-//             success: true,
-//             message: 'Admin registered successfully',
-//             token,
-//             data: {
-//                 restaurantName: newAdmin.restaurantName,
-//                 emailId: newAdmin.emailId,
-//                 companyId: newAdmin.companyId,
-//             },
-//         });
-//     } catch (error) {
-//         console.error('Error registering admin:', error.message);
-//         res.status(500).json({
-//             success: false,
-//             message: 'Error registering admin',
-//             error: error.message,
-//         });
-//     }
-// };
 
 export const registerAdminController = async (req, res) => {
     try {
@@ -1999,13 +1933,13 @@ export const registerAdminController = async (req, res) => {
             emailId,
             gstin,
             cin,
-            baseCurrency,
-            currencyCode,
-            ticketFooterMessage,
-            startBillNo,
-            showLogoInReceipts,
+            // baseCurrency,
+            // currencyCode,
+            // ticketFooterMessage,
+            // startBillNo,
+            // showLogoInReceipts,
             companyId,
-            printers,
+            // printers,
             password,
             confirmPassword,
         } = req.body;
@@ -2046,11 +1980,11 @@ export const registerAdminController = async (req, res) => {
             emailId,
             gstin,
             cin,
-            baseCurrency,
-            currencyCode,
-            ticketFooterMessage,
-            startBillNo,
-            showLogoInReceipts,
+            // baseCurrency,
+            // currencyCode,
+            // ticketFooterMessage,
+            // startBillNo,
+            // showLogoInReceipts,
             companyId,
             // printers,
             password: hashedPassword,
@@ -2115,8 +2049,7 @@ export const editAdminProfile = async (req, res) => {
     // Define allowed fields only
     const allowedFields = [
       'restaurantName', 'addressLine1', 'addressLine2', 'state',
-      'contactNo', 'gstin', 'cin', 'baseCurrency', 'currencyCode',
-      'ticketFooterMessage', 'startBillNo', 'showLogoInReceipts', 'password'
+      'contactNo', 'gstin', 'cin', 'password'
     ];
 
     // Pick only allowed fields from updateData
@@ -2151,11 +2084,11 @@ export const editAdminProfile = async (req, res) => {
         contactNo: updatedAdmin.contactNo,
         gstin: updatedAdmin.gstin,
         cin: updatedAdmin.cin,
-        baseCurrency: updatedAdmin.baseCurrency,
-        currencyCode: updatedAdmin.currencyCode,
-        ticketFooterMessage: updatedAdmin.ticketFooterMessage,
-        startBillNo: updatedAdmin.startBillNo,
-        showLogoInReceipts: updatedAdmin.showLogoInReceipts
+        // baseCurrency: updatedAdmin.baseCurrency,
+        // currencyCode: updatedAdmin.currencyCode,
+        // ticketFooterMessage: updatedAdmin.ticketFooterMessage,
+        // startBillNo: updatedAdmin.startBillNo,
+        // showLogoInReceipts: updatedAdmin.showLogoInReceipts
       }
     });
   } catch (error) {
@@ -2217,69 +2150,69 @@ export const loginAdminController = async (req, res) => {
 
 //udate admin profile
 
-export const upsertAdminProfile = async (req, res) => {
-    try {
-        const {
-            restaurantName,
-            addressLine1,
-            addressLine2,
-            state,
-            contactNo,
-            emailId,
-            gstin,
-            cin,
-            baseCurrency,
-            currencyCode,
-            ticketFooterMessage,
-            startBillNo,
-            showLogoInReceipts,
-            companyId,
-            printers,
-        } = req.body;
+// export const upsertAdminProfile = async (req, res) => {
+//     try {
+//         const {
+//             restaurantName,
+//             addressLine1,
+//             addressLine2,
+//             state,
+//             contactNo,
+//             emailId,
+//             gstin,
+//             cin,
+//             baseCurrency,
+//             currencyCode,
+//             ticketFooterMessage,
+//             startBillNo,
+//             showLogoInReceipts,
+//             companyId,
+//             printers,
+//         } = req.body;
 
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "companyId is required" });
-        }
+//         if (!companyId) {
+//             return res.status(400).json({ success: false, message: "companyId is required" });
+//         }
 
-        // Validate printers if present
-        if (printers && !Array.isArray(printers)) {
-            return res.status(400).json({ success: false, message: "printers must be an array of objects" });
-        }
+//         // Validate printers if present
+//         if (printers && !Array.isArray(printers)) {
+//             return res.status(400).json({ success: false, message: "printers must be an array of objects" });
+//         }
 
-        const profileData = {
-            restaurantName,
-            addressLine1,
-            addressLine2,
-            state,
-            contactNo,
-            emailId,
-            gstin,
-            cin,
-            baseCurrency,
-            currencyCode,
-            ticketFooterMessage,
-            startBillNo,
-            showLogoInReceipts,
-            companyId,
-        };
+//         const profileData = {
+//             restaurantName,
+//             addressLine1,
+//             addressLine2,
+//             state,
+//             contactNo,
+//             emailId,
+//             gstin,
+//             cin,
+//             baseCurrency,
+//             currencyCode,
+//             ticketFooterMessage,
+//             startBillNo,
+//             showLogoInReceipts,
+//             companyId,
+//         };
 
-        // Only add printers field if it exists in request
-        if (printers) {
-            profileData.printers = printers;
-        }
+//         // Only add printers field if it exists in request
+//         if (printers) {
+//             profileData.printers = printers;
+//         }
 
-        const profile = await AdminProfile.findOneAndUpdate(
-            { companyId },
-            profileData,
-            { new: true, upsert: true }
-        );
+//         const profile = await AdminProfile.findOneAndUpdate(
+//             { companyId },
+//             profileData,
+//             { new: true, upsert: true }
+//         );
 
-        res.status(200).json({ success: true, data: profile });
-    } catch (error) {
-        console.error("Error in upsertAdminProfile:", error.message);
-        res.status(500).json({ success: false, message: error.message });
-    }
-};
+//         res.status(200).json({ success: true, data: profile });
+//     } catch (error) {
+//         console.error("Error in upsertAdminProfile:", error.message);
+//         res.status(500).json({ success: false, message: error.message });
+//     }
+// };
 
 
 // Get Admin Profile

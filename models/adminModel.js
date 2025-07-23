@@ -297,11 +297,11 @@ const AdminProfileSchema = new mongoose.Schema({
   emailId: { type: String, required: true, unique: true },
   gstin: { type: String },
   cin: { type: String },
-  baseCurrency: { type: String, required: true },
-  currencyCode: { type: String, required: true },
-  ticketFooterMessage: { type: String },
-  startBillNo: { type: Number, default: 1 },
-  showLogoInReceipts: { type: Boolean, default: false },
+  // baseCurrency: { type: String, required: true },
+  // currencyCode: { type: String, required: true },
+  // ticketFooterMessage: { type: String },
+  // startBillNo: { type: Number, default: 1 },
+  // showLogoInReceipts: { type: Boolean, default: false },
   companyId: { type: String, required: true, unique: true },
   password: { type: String, required: true },  // <-- Add this
   token: { type: String },                     // <-- Add this
