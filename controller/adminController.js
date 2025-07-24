@@ -24,6 +24,10 @@ import { TopDeal } from '../models/adminModel.js';
 import { Printer } from '../models/adminModel.js';
 // const onlineOrder = require("../middlewares/kafkaConsumer.js");
 
+//health controller
+export const healthCheck = async (req,res) =>{
+    res.status(200).json({ success: true, message: 'Server is healthy' });
+}
 
 // add-category controller
 export const addCategoryController = async (req, res) => {
@@ -2544,9 +2548,9 @@ export const updateCustomerWallet = async (req, res) => {
         }
 
         // Check for insufficient funds if deducting
-        if (amount < 0 && customer.walletBalance + amount < 0) {
-            return res.status(400).json({ success: false, message: "Insufficient wallet balance." });
-        }
+        // if (amount < 0 && customer.walletBalance + amount < 0) {
+        //     return res.status(400).json({ success: false, message: "Insufficient wallet balance." });
+        // }
 
         customer.walletBalance += amount;
         await customer.save();

@@ -5,7 +5,7 @@ import upload from '../middlewares/fileUploadMiddlewares.js';
 import multer from 'multer';
 import path from 'path';
 import resetStocksMiddleware from "../middlewares/resetStocksMiddleware.js";
-import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange,addCustomer,getAllCustomers,getCustomerByPhone,updateCustomerWallet,updateCustomerDetails,getAllOnlineOrders,getOnlineRevenue,addTopDealController,getTopDealsController,deactivateTopDealController,getAllCategoryItems,deleteCustomer,generateBillsSummaryPdf, generateFakeBillsSummaryPdf,loginAdminController, assignPrinters, updatePrinterForOperator, getAllPrinterMappings, editAdminProfile} from "../controller/adminController.js";
+import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange,addCustomer,getAllCustomers,getCustomerByPhone,updateCustomerWallet,updateCustomerDetails,getAllOnlineOrders,getOnlineRevenue,addTopDealController,getTopDealsController,deactivateTopDealController,getAllCategoryItems,deleteCustomer,generateBillsSummaryPdf, generateFakeBillsSummaryPdf,loginAdminController, assignPrinters, updatePrinterForOperator, getAllPrinterMappings, editAdminProfile, healthCheck} from "../controller/adminController.js";
 
 import { companyMiddleware } from "../middlewares/companyAuthMiddleware.js";
 
@@ -43,6 +43,9 @@ const uploader = multer({ storage });
 // const uploader = multer({ storage });
 
 //create routes
+//health api
+router.get('/health',companyMiddleware, healthCheck);
+
 //category routes
 router.post('/add-category',companyMiddleware,uploader.single('image'), addCategoryController);
 router.get('/get-category', companyMiddleware,getAllCategories);
