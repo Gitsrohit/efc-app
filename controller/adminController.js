@@ -3038,7 +3038,7 @@ export const updatePrinterForOperator = async (req, res) => {
       });
     }
 
-    const assignment = await PrinterAssignment.findOne({ operatorId, companyId });
+    const assignment = await Printer.findOne({ operatorId, companyId });
 
     if (!assignment) {
       return res.status(404).json({
