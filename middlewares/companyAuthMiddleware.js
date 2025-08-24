@@ -8,6 +8,7 @@ export const companyMiddleware = (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_ADMIN_SECRET);
+    req.adminId = decoded.adminId; 
     req.companyId = decoded.companyId; 
     next();
   } catch (error) {

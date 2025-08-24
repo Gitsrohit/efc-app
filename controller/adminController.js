@@ -22,6 +22,8 @@ import { Order } from "../models/adminModel.js";
 import { Customer } from '../models/adminModel.js';
 import { TopDeal } from '../models/adminModel.js';
 import { Printer } from '../models/adminModel.js';
+import { CompanyUser } from '../models/adminModel.js';
+import { Kitchen } from '../models/adminModel.js';
 // const onlineOrder = require("../middlewares/kafkaConsumer.js");
 
 //health controller
@@ -1989,9 +1991,17 @@ export const registerAdminController = async (req, res) => {
             // ticketFooterMessage,
             // startBillNo,
             // showLogoInReceipts,
+            role: "sysadmin",
             companyId,
             // printers,
             password: hashedPassword,
+        });
+
+            const newUser = await CompanyUser.create({
+            companyId,
+            emailId,
+            password: hashedPassword,
+            role : "sysadmin",
         });
 
         const token = jwt.sign(
@@ -2018,8 +2028,83 @@ export const registerAdminController = async (req, res) => {
     }
 };
 
-//edit admin profile
+//register admin and cashier
+export const createCompanyUserController = async (req, res) => {
+  try {
+    const { emailId, password, confirmPassword, role } = req.body;
+    const companyId = req.companyId; // Extracted from sysadmin's token by middleware
 
+    if (!companyId) {
+      return res.status(403).json({ success: false, message: "Unauthorized: No companyId found" });
+    }
+
+    if (!emailId || !password || !confirmPassword || !role) {
+      return res.status(400).json({ success: false, message: "All fields are required" });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ success: false, message: "Passwords do not match" });
+    }
+
+    const existingUser = await CompanyUser.findOne({ emailId, companyId });
+    if (existingUser) {
+      return res.status(409).json({ success: false, message: "User already exists under this company" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await CompanyUser.create({
+      companyId,
+      emailId,
+      password: hashedPassword,
+      role,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: `${role} created under company`,
+      user: {
+        id: newUser._id,
+        emailId: newUser.emailId,
+        role: newUser.role,
+        companyId: newUser.companyId,
+      },
+    });
+  } catch (err) {
+    console.error("Error creating company user:", err.message);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// login user according to the role 
+export const loginCompanyUserController = async (req, res) => {
+  try {
+    const { emailId, password } = req.body;
+    const companyId = req.companyId;
+
+    const user = await CompanyUser.findOne({ emailId, companyId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found under this company" });
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      role: user.role,
+      companyId: user.companyId,
+      emailId: user.emailId,
+    });
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+};
+
+//edit admin profile
 export const editAdminProfile = async (req, res) => {
   try {
     const companyId = req.companyId; // Injected by auth middleware
@@ -2455,7 +2540,7 @@ export const unbookFacility = async (req, res) => {
 export const addCustomer = async (req, res) => {
     try {
         const companyId = req.companyId;
-        const { name, phoneNumber, walletBalance = 0 } = req.body;
+        const { name, phoneNumber, walletBalance = 0, address} = req.body;
 
         if (!companyId) {
             return res.status(400).json({ success: false, message: "Company ID is required." });
@@ -2477,6 +2562,7 @@ export const addCustomer = async (req, res) => {
             phoneNumber,
             walletBalance,
             companyId,
+            address,
         });
 
         await newCustomer.save();
@@ -2491,6 +2577,30 @@ export const addCustomer = async (req, res) => {
         console.error("Error adding customer:", error.message);
         res.status(500).json({ success: false, message: "Error adding customer", error: error.message });
     }
+};
+
+//edit customer api
+export const editCustomer = async (req, res) => {
+  try {
+    const { customerId } = req.params; 
+    const { name, phoneNumber, address } = req.body;
+    const companyId = req.companyId; 
+
+    const customer = await Customer.findOne({ _id: customerId, companyId });
+    if (!customer) {
+      return res.status(404).json({ success: false, message: "Customer not found" });
+    }
+
+    if (name) customer.name = name;
+    if (phoneNumber) customer.phoneNumber = phoneNumber;
+    if (address) customer.address = address;
+
+    await customer.save();
+
+    res.status(200).json({ success: true, message: "Customer updated successfully", data: customer });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error", error: error.message });
+  }
 };
 
 // getting all customers
@@ -2577,11 +2687,11 @@ export const updateCustomerDetails = async (req, res) => {
         const { id } = req.params;
         const companyId = req.companyId;
 
-        const { name, phoneNumber } = req.body;
+        const { name, phoneNumber, address} = req.body;
 
-        if (!name || !phoneNumber) {
-            return res.status(400).json({ success: false, message: "Name and phone number are required." });
-        }
+        // if (!name || !phoneNumber) {
+        //     return res.status(400).json({ success: false, message: "Name and phone number are required." });
+        // }
 
         const customer = await Customer.findOne({ _id: id, companyId });
 
@@ -2589,8 +2699,9 @@ export const updateCustomerDetails = async (req, res) => {
             return res.status(404).json({ success: false, message: "Customer not found or does not belong to your company." });
         }
 
-        customer.name = name;
-        customer.phoneNumber = phoneNumber;
+        if (name) customer.name = name;
+        if(phoneNumber) customer.phoneNumber = phoneNumber;
+        if (address) customer.address = address;
 
         await customer.save();
 
@@ -2984,6 +3095,66 @@ export const getAllPrinterMappings = async (req, res) => {
     });
   }
 };
+
+//Kitchen related apis
+
+//add kitchen
+export const addKitchen = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const companyId = req.companyId; 
+
+    if (!name) {
+      return res.status(400).json({ success: false, message: "Kitchen name is required" });
+    }
+
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "Company ID is missing from request",
+      });
+    }
+
+    const newKitchen = new Kitchen({ name, companyId });
+    await newKitchen.save();
+
+    res.status(201).json({ success: true, data: newKitchen });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+//get kitchen api
+export const getKitchens = async (req, res) => {
+  try {
+    const  companyId  = req.companyId;
+
+    const kitchens = await Kitchen.find({ companyId });
+
+    res.status(200).json({ success: true, data: kitchens });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+//delete kitchen api
+export const deleteKitchen = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const companyId  = req.companyId;
+
+    const deleted = await Kitchen.findOneAndDelete({ _id: id, companyId });
+
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: "Kitchen not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Kitchen deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 
 
 

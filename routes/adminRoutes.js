@@ -5,9 +5,10 @@ import upload from '../middlewares/fileUploadMiddlewares.js';
 import multer from 'multer';
 import path from 'path';
 import resetStocksMiddleware from "../middlewares/resetStocksMiddleware.js";
-import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange,addCustomer,getAllCustomers,getCustomerByPhone,updateCustomerWallet,updateCustomerDetails,getAllOnlineOrders,getOnlineRevenue,addTopDealController,getTopDealsController,deactivateTopDealController,getAllCategoryItems,deleteCustomer,generateBillsSummaryPdf, generateFakeBillsSummaryPdf,loginAdminController, assignPrinters, updatePrinterForOperator, getAllPrinterMappings, editAdminProfile, healthCheck} from "../controller/adminController.js";
+import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange,addCustomer,getAllCustomers,getCustomerByPhone,updateCustomerWallet,updateCustomerDetails,getAllOnlineOrders,getOnlineRevenue,addTopDealController,getTopDealsController,deactivateTopDealController,getAllCategoryItems,deleteCustomer,generateBillsSummaryPdf, generateFakeBillsSummaryPdf,loginAdminController, assignPrinters, updatePrinterForOperator, getAllPrinterMappings, editAdminProfile, healthCheck,createCompanyUserController,loginCompanyUserController,addKitchen,getKitchens,deleteKitchen,editCustomer} from "../controller/adminController.js";
 
 import { companyMiddleware } from "../middlewares/companyAuthMiddleware.js";
+import { roleMiddleware } from "../middlewares/companyRoleMiddleware.js";
 
 const router = express.Router();
 resetStocksMiddleware();
@@ -90,6 +91,11 @@ router.get('/adminProfile/:companyId',companyMiddleware, getAdminProfile);
 router.post('/register-admin',registerAdminController)
 router.post('/login-admin',loginAdminController)
 
+//Create user
+router.post('/add-user',companyMiddleware, roleMiddleware(["sysadmin","admin"]), createCompanyUserController);
+router.post('/login-user',companyMiddleware, loginCompanyUserController);
+
+
 //facilities routes
 router.post("/add-facility", companyMiddleware, uploader.array("images", 5), addNewFacility);
 router.get("/get-facilities",companyMiddleware, getAllFacilities);
@@ -101,6 +107,7 @@ router.put('/unbook-facility/:id', companyMiddleware, unbookFacility);
 
 //customer apis
 router.post('/add-customer', companyMiddleware, addCustomer);
+router.put('/edit-customer/:customerId', companyMiddleware, editCustomer);
 router.get('/customers', companyMiddleware, getAllCustomers);
 router.get('/customer/:phoneNumber', companyMiddleware, getCustomerByPhone);
 router.put('/customer/update-balance/:id', companyMiddleware, updateCustomerWallet);
@@ -120,6 +127,10 @@ router.post('/add-printers',companyMiddleware, assignPrinters);
 router.put('/edit-printers',companyMiddleware, updatePrinterForOperator);
 router.get('/get-printers',companyMiddleware, getAllPrinterMappings);
 
+//Kitchen apis
+router.post('/add-kitchen',companyMiddleware,addKitchen);
+router.get('/get-kitchens',companyMiddleware,getKitchens);
+router.delete('/delete-kitchen/:id',companyMiddleware,deleteKitchen);
 
 
 

@@ -302,12 +302,46 @@ const AdminProfileSchema = new mongoose.Schema({
   // ticketFooterMessage: { type: String },
   // startBillNo: { type: Number, default: 1 },
   // showLogoInReceipts: { type: Boolean, default: false },
+  role: {
+    type: String,
+    default: "sysadmin",
+  },
   companyId: { type: String, required: true, unique: true },
   password: { type: String, required: true },  // <-- Add this
   token: { type: String },                     // <-- Add this
 }, {
   timestamps: true
 });
+
+const CompanyUserSchema = new mongoose.Schema(
+  {
+    companyId: {
+      type: String,
+      required: true,
+      index: true
+    },
+    emailId: {
+      type: String,
+      required: true,
+      unique: true
+    },
+    password: {
+      type: String,
+      required: true
+    },
+    role: {
+      type: String,
+      enum: ["admin", "cashier", "sysadmin"],
+      required: true
+    },
+    token: {
+      type: String
+    }
+  },
+  {
+    timestamps: true
+  }
+);
 
 // const billSchema = new mongoose.Schema({
 //     billNumber: {
@@ -457,6 +491,9 @@ const customerSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+   address: {
+    type: String,  
+  },
 }, {
   timestamps: true
 });
@@ -499,6 +536,24 @@ const printerSchema = new mongoose.Schema({
   },
 });
 
+//kitechen schema
+
+const kitchenSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+    },
+    companyId: {
+      type: String,
+      required: true,
+    },
+  },
+  { timestamps: true }
+);
+
+
+
 
 
 
@@ -527,6 +582,8 @@ export const Order = mongoose.model(
   "orders"
 );
 export const TopDeal = mongoose.model("TopDeal", topDealSchema);
+export const CompanyUser = mongoose.model("CompanyUser", CompanyUserSchema);
+export const Kitchen = mongoose.model("Kitchen", kitchenSchema);
 
 
 
