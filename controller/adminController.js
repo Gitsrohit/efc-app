@@ -1,262 +1,276 @@
 import mongoose from "mongoose";
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
 import PDFDocument from "pdfkit";
 import bcrypt from "bcryptjs";
 // const { uploadToBackblaze } = require('../middlewares/multerBackblaze.js');
 // import { uploadToBackblaze } from '../middlewares/multerBackblaze.js';
 // import { uploadToBackblaze, uploadFileToBackblaze } from '../middlewares/multerBackblaze.js';
-import { uploadFile } from '../middlewares/cloudinary.js';
-import { Category } from '../models/adminModel.js';
-import { CategoryItem } from '../models/adminModel.js';
+import { uploadFile } from "../middlewares/cloudinary.js";
+import { Category } from "../models/adminModel.js";
+import { CategoryItem } from "../models/adminModel.js";
 // import { Order } from '../models/adminModel.js';
-import { Table } from '../models/adminModel.js';
-import { KOT } from '../models/adminModel.js';
-import { Ad } from '../models/adminModel.js';
-import { AdminProfile } from '../models/adminModel.js';
-import { Bill } from '../models/adminModel.js';
-import { NewBill } from '../models/adminModel.js';
-import { OnlineBill } from '../models/adminModel.js';
-import { NewFacility } from '../models/adminModel.js';
-import { Facility } from '../models/adminModel.js';
+import { Table } from "../models/adminModel.js";
+import { KOT } from "../models/adminModel.js";
+import { Ad } from "../models/adminModel.js";
+import { AdminProfile } from "../models/adminModel.js";
+import { Bill } from "../models/adminModel.js";
+import { NewBill } from "../models/adminModel.js";
+import { OnlineBill } from "../models/adminModel.js";
+import { NewFacility } from "../models/adminModel.js";
+import { Facility } from "../models/adminModel.js";
 import { Order } from "../models/adminModel.js";
-import { Customer } from '../models/adminModel.js';
-import { TopDeal } from '../models/adminModel.js';
-import { Printer } from '../models/adminModel.js';
-import { CompanyUser } from '../models/adminModel.js';
-import { Kitchen } from '../models/adminModel.js';
+import { Customer } from "../models/adminModel.js";
+import { TopDeal } from "../models/adminModel.js";
+import { Printer } from "../models/adminModel.js";
+import { CompanyUser } from "../models/adminModel.js";
+import { Kitchen } from "../models/adminModel.js";
+import XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import fs from "fs";
+import path from "path";
 // const onlineOrder = require("../middlewares/kafkaConsumer.js");
 
 //health controller
-export const healthCheck = async (req,res) =>{
-    res.status(200).json({ success: true, message: 'Server is healthy' });
-}
+export const healthCheck = async (req, res) => {
+  res.status(200).json({ success: true, message: "Server is healthy" });
+};
 
 // add-category controller
 export const addCategoryController = async (req, res) => {
-    try {
-        const { name } = req.body;
-        const companyId = req.companyId;
+  try {
+    const { name } = req.body;
+    const companyId = req.companyId;
 
-        if (!req.file) {
-            return res.status(400).json({ success: false, message: 'No file uploaded' });
-        }
-
-        // Pass file buffer to Cloudinary uploader
-        const imageUrl = await uploadFile(req.file.buffer, 'categories');
-
-        const existingCategory = await Category.findOne({ name, companyId });
-        if (existingCategory) {
-            return res.status(400).json({
-                success: false,
-                message: "Category already exists",
-            });
-        }
-
-        const newCategory = await Category.create({
-            name,
-            companyId,
-            image: imageUrl,
-        });
-
-        res.status(201).json({
-            success: true,
-            message: "New category added successfully",
-            data: newCategory,
-        });
-    } catch (error) {
-        console.error('Error:', error.message);
-        res.status(500).json({ error: error.message });
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No file uploaded" });
     }
-};
 
+    // Pass file buffer to Cloudinary uploader
+    const imageUrl = await uploadFile(req.file.buffer, "categories");
+
+    const existingCategory = await Category.findOne({ name, companyId });
+    if (existingCategory) {
+      return res.status(400).json({
+        success: false,
+        message: "Category already exists",
+      });
+    }
+
+    const newCategory = await Category.create({
+      name,
+      companyId,
+      image: imageUrl,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "New category added successfully",
+      data: newCategory,
+    });
+  } catch (error) {
+    console.error("Error:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
 
 // get all category controller
 export const getAllCategories = async (req, res) => {
-    try {
-        const companyId = req.companyId;
+  try {
+    const companyId = req.companyId;
 
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: 'companyId is required' });
-        }
-        const categories = await Category.find({ companyId });
-        res.status(200).json({
-            success: true,
-            message: "Categories retrieved successfully",
-            data: categories,
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error retrieving categories",
-            error: error.message,
-        });
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
     }
+    const categories = await Category.find({ companyId });
+    res.status(200).json({
+      success: true,
+      message: "Categories retrieved successfully",
+      data: categories,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error retrieving categories",
+      error: error.message,
+    });
+  }
 };
 
 //edit category controller
 export const editCategoryController = async (req, res) => {
-    try {
-        const categoryId = req.params.id;
-        const { name } = req.body;
-        const companyId = req.companyId;
-        const imagePath = req.file ? req.file.path : null;
+  try {
+    const categoryId = req.params.id;
+    const { name } = req.body;
+    const companyId = req.companyId;
+    const imagePath = req.file ? req.file.path : null;
 
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required",
-            });
-        }
-
-        const category = await Category.findOne({ _id: categoryId, companyId });
-        if (!category) {
-            return res.status(404).json({
-                success: false,
-                message: "Category not found or access denied",
-            });
-        }
-
-        const updateData = {};
-        if (name) updateData.name = name;
-        if (companyId) updateData.companyId = companyId;
-
-        if (imagePath) {
-            const imageUrl = await uploadFile(imagePath.buffer, 'categories');
-            updateData.image = imageUrl;
-        }
-        // if (imagePath) updateData.image = imagePath;
-
-        console.log("Update Data:", updateData);
-
-        const updatedCategory = await Category.findByIdAndUpdate(
-            categoryId,
-
-            updateData,
-            { new: true }
-        );
-
-        if (!updatedCategory) {
-            return res.status(404).json({
-                success: false,
-                message: "Category not found",
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: "Category updated successfully",
-            data: updatedCategory,
-        });
-    } catch (error) {
-        console.error("Error updating category:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error updating category",
-            error: error.message,
-        });
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
     }
+
+    const category = await Category.findOne({ _id: categoryId, companyId });
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Category not found or access denied",
+      });
+    }
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (companyId) updateData.companyId = companyId;
+
+    if (imagePath) {
+      const imageUrl = await uploadFile(imagePath.buffer, "categories");
+      updateData.image = imageUrl;
+    }
+    // if (imagePath) updateData.image = imagePath;
+
+    console.log("Update Data:", updateData);
+
+    const updatedCategory = await Category.findByIdAndUpdate(
+      categoryId,
+
+      updateData,
+      { new: true }
+    );
+
+    if (!updatedCategory) {
+      return res.status(404).json({
+        success: false,
+        message: "Category not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Category updated successfully",
+      data: updatedCategory,
+    });
+  } catch (error) {
+    console.error("Error updating category:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error updating category",
+      error: error.message,
+    });
+  }
 };
 
 // delete category controller
 export const deleteCategoryController = async (req, res) => {
-    try {
-        const categoryId = req.params.id;
-        const companyId = req.companyId;
+  try {
+    const categoryId = req.params.id;
+    const companyId = req.companyId;
 
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required",
-            });
-        }
-
-        const category = await Category.findOne({ _id: categoryId, companyId });
-        if (!category) {
-            return res.status(404).json({
-                success: false,
-                message: "Category not found or you don't have access to delete this category",
-            });
-        }
-
-        await Category.findByIdAndDelete(categoryId);
-
-        res.status(200).json({
-            success: true,
-            message: "Category deleted successfully",
-        });
-    } catch (error) {
-        console.error("Error deleting category:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error deleting category",
-            error: error.message,
-        });
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
     }
+
+    const category = await Category.findOne({ _id: categoryId, companyId });
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Category not found or you don't have access to delete this category",
+      });
+    }
+
+    await Category.findByIdAndDelete(categoryId);
+
+    res.status(200).json({
+      success: true,
+      message: "Category deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting category:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting category",
+      error: error.message,
+    });
+  }
 };
 
 // add category item controller
 export const addCategoryItem = async (req, res) => {
-    try {
-        const { itemName, type, kitchen, price, categoryId, description } = req.body;
-        const companyId = req.companyId;
+  try {
+    const { itemName, type, kitchen, price, categoryId, description } =
+      req.body;
+    const companyId = req.companyId;
 
-        if (!companyId) {
-            return res.status(400).json({ message: 'companyId is required' });
-        }
-
-        const category = await Category.findById(categoryId);
-        if (!category) {
-            return res.status(404).json({ message: 'Category not found' });
-        }
-
-        // Check for duplicate items with the same itemName, type, and companyId
-        const existingItem = await CategoryItem.findOne({
-            itemName,
-            type,
-            companyId
-        });
-
-        if (existingItem) {
-            return res.status(400).json({
-                message: 'An item with the same name and type already exists for this company.',
-            });
-        }
-
-        let imageUrl = null;
-
-        if (req.file && req.file.buffer) {
-            imageUrl = await uploadFile(req.file.buffer, 'categories');
-        } else {
-            return res.status(400).json({ message: 'Image file is required' });
-        }
-
-        const newItem = await CategoryItem.create({
-            itemName,
-            type,
-            kitchen,
-            price,
-            description,
-            image: imageUrl,
-            category: categoryId,
-            companyId,
-        });
-
-        category.items.push(newItem._id);
-        await category.save();
-
-        res.status(201).json({ message: 'Menu item added successfully', item: newItem });
-    } catch (error) {
-        console.error("Error adding menu item:", error.message);
-        res.status(500).json({ message: 'Error adding menu item', error: error.message });
+    if (!companyId) {
+      return res.status(400).json({ message: "companyId is required" });
     }
+
+    const category = await Category.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    // Check for duplicate items with the same itemName, type, and companyId
+    const existingItem = await CategoryItem.findOne({
+      itemName,
+      type,
+      companyId,
+    });
+
+    if (existingItem) {
+      return res.status(400).json({
+        message:
+          "An item with the same name and type already exists for this company.",
+      });
+    }
+
+    let imageUrl = null;
+
+    if (req.file && req.file.buffer) {
+      imageUrl = await uploadFile(req.file.buffer, "categories");
+    } else if (req.body.image) {
+      imageUrl = req.body.image; // from bulk upload or manual JSON input
+    } else {
+      imageUrl = "https://your-cdn.com/default-item.png"; // fallback
+    }
+
+    const newItem = await CategoryItem.create({
+      itemName,
+      type,
+      kitchen,
+      price,
+      description,
+      image: imageUrl,
+      category: categoryId,
+      companyId,
+    });
+
+    category.items.push(newItem._id);
+    await category.save();
+
+    res
+      .status(201)
+      .json({ message: "Menu item added successfully", item: newItem });
+  } catch (error) {
+    console.error("Error adding menu item:", error.message);
+    res
+      .status(500)
+      .json({ message: "Error adding menu item", error: error.message });
+  }
 };
-
-
 
 // get category item controller
 // export const getCategoryItems = async (req, res) => {
 //     try {
-//         const {itemId} = req.query; 
+//         const {itemId} = req.query;
 
 //         const query = itemId ? {category: itemId} : {};
 //         const items = await CategoryItem.find(query).populate('category', 'name type');
@@ -271,618 +285,664 @@ export const addCategoryItem = async (req, res) => {
 //     }
 // };
 export const getCategoryItems = async (req, res) => {
-    try {
-        const categoryId = req.params.id;
-        const companyId = req.companyId;
+  try {
+    const categoryId = req.params.id;
+    const companyId = req.companyId;
 
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required",
-            });
-        }
-
-        if (!mongoose.Types.ObjectId.isValid(categoryId)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid category ID',
-            });
-        }
-
-        const category = await Category.findById({ _id: categoryId, companyId }).populate('items');
-
-        if (!category) {
-            return res.status(404).json({
-                success: false,
-                message: 'Category not found',
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: 'Category items retrieved successfully',
-            data: category.items,
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error retrieving category items',
-            error: error.message,
-        });
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
     }
+
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid category ID",
+      });
+    }
+
+    const category = await Category.findById({
+      _id: categoryId,
+      companyId,
+    }).populate("items");
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Category not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Category items retrieved successfully",
+      data: category.items,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error retrieving category items",
+      error: error.message,
+    });
+  }
 };
 
 //get all category item in db
 
 export const getAllCategoryItems = async (req, res) => {
-    try {
-        const companyId = req.companyId;
+  try {
+    const companyId = req.companyId;
 
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: 'companyId is required',
-            });
-        }
-
-        const items = await CategoryItem.find({ companyId });
-
-        res.status(200).json({
-            success: true,
-            message: 'All category items retrieved successfully',
-            data: items,
-        });
-    } catch (error) {
-        console.error("Error fetching category items:", error.message);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching category items',
-            error: error.message,
-        });
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
     }
-};
 
+    const items = await CategoryItem.find({ companyId });
+
+    res.status(200).json({
+      success: true,
+      message: "All category items retrieved successfully",
+      data: items,
+    });
+  } catch (error) {
+    console.error("Error fetching category items:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching category items",
+      error: error.message,
+    });
+  }
+};
 
 // edit category item controller
 export const editCategoryItemController = async (req, res) => {
-    try {
-        const itemId = req.params.id;
-        const { itemName, price, description, categoryId, type } = req.body;
-        const companyId = req.companyId;
-        const imagePath = req.file ? req.file.path : null;
+  try {
+    const itemId = req.params.id;
+    const { itemName, price, description, categoryId, type } = req.body;
+    const companyId = req.companyId;
+    const imagePath = req.file ? req.file.path : null;
 
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required",
-            });
-        }
-
-        const categoryItem = await CategoryItem.findOne({ _id: itemId, companyId });
-        if (!categoryItem) {
-            return res.status(404).json({
-                success: false,
-                message: "Category item not found or you don't have access to edit this item",
-            });
-        }
-
-        const updateData = {};
-        if (itemName) updateData.itemName = itemName;
-        if (price) updateData.price = price;
-        if (description) updateData.description = description;
-        if (imagePath) {
-            const imageUrl = await uploadFile(imagePath.buffer, 'categories');
-            updateData.image = imageUrl;
-        }
-        // if (imagePath) updateData.image = imagePath;
-        if (categoryId) updateData.category = categoryId;
-        if (type) updateData.type = type;
-        if (companyId) updateData.companyId = companyId;
-
-        console.log("Update Data:", updateData);
-
-        const updatedItem = await CategoryItem.findByIdAndUpdate(
-            itemId,
-            updateData,
-            { new: true }
-        );
-
-        if (!updatedItem) {
-            return res.status(404).json({
-                success: false,
-                message: "Category item not found",
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: "Category item updated successfully",
-            data: updatedItem,
-        });
-    } catch (error) {
-        console.error("Error updating category item:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error updating category item",
-            error: error.message,
-        });
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
     }
+
+    const categoryItem = await CategoryItem.findOne({ _id: itemId, companyId });
+    if (!categoryItem) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Category item not found or you don't have access to edit this item",
+      });
+    }
+
+    const updateData = {};
+    if (itemName) updateData.itemName = itemName;
+    if (price) updateData.price = price;
+    if (description) updateData.description = description;
+    if (imagePath) {
+      const imageUrl = await uploadFile(imagePath.buffer, "categories");
+      updateData.image = imageUrl;
+    }
+    // if (imagePath) updateData.image = imagePath;
+    if (categoryId) updateData.category = categoryId;
+    if (type) updateData.type = type;
+    if (companyId) updateData.companyId = companyId;
+
+    console.log("Update Data:", updateData);
+
+    const updatedItem = await CategoryItem.findByIdAndUpdate(
+      itemId,
+      updateData,
+      { new: true }
+    );
+
+    if (!updatedItem) {
+      return res.status(404).json({
+        success: false,
+        message: "Category item not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Category item updated successfully",
+      data: updatedItem,
+    });
+  } catch (error) {
+    console.error("Error updating category item:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error updating category item",
+      error: error.message,
+    });
+  }
 };
 
 // delete category item controller
 export const deleteCategoryItemController = async (req, res) => {
-    try {
-        const itemId = req.params.id;
-        const companyId = req.companyId;
+  try {
+    const itemId = req.params.id;
+    const companyId = req.companyId;
 
-        // const categoryItem = await CategoryItem.findById(itemId);
-        // if (!categoryItem) {
-        //     return res.status(404).json({
-        //         success: false,
-        //         message: "Category item not found",
-        //     });
-        // }
+    // const categoryItem = await CategoryItem.findById(itemId);
+    // if (!categoryItem) {
+    //     return res.status(404).json({
+    //         success: false,
+    //         message: "Category item not found",
+    //     });
+    // }
 
-        // const categoryId = categoryItem.category;
-        // await Category.findByIdAndUpdate(
-        //     categoryId,
-        //     {$pull: {items: itemId}},
-        //     {new: true}
-        // );
+    // const categoryId = categoryItem.category;
+    // await Category.findByIdAndUpdate(
+    //     categoryId,
+    //     {$pull: {items: itemId}},
+    //     {new: true}
+    // );
 
-        // await CategoryItem.findByIdAndDelete(itemId);
+    // await CategoryItem.findByIdAndDelete(itemId);
 
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required",
-            });
-        }
-
-        const categoryItem = await CategoryItem.findOne({ _id: itemId, companyId });
-        if (!categoryItem) {
-            return res.status(404).json({
-                success: false,
-                message: "Category item not found or you don't have access to delete this item",
-            });
-        }
-
-        const categoryId = categoryItem.category;
-        await Category.findByIdAndUpdate(categoryId, { $pull: { items: itemId } }, { new: true });
-        await CategoryItem.findByIdAndDelete(itemId);
-
-        res.status(200).json({
-            success: true,
-            message: "Category item deleted successfully",
-        });
-    } catch (error) {
-        console.error("Error deleting category item:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error deleting category item",
-            error: error.message,
-        });
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
     }
+
+    const categoryItem = await CategoryItem.findOne({ _id: itemId, companyId });
+    if (!categoryItem) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Category item not found or you don't have access to delete this item",
+      });
+    }
+
+    const categoryId = categoryItem.category;
+    await Category.findByIdAndUpdate(
+      categoryId,
+      { $pull: { items: itemId } },
+      { new: true }
+    );
+    await CategoryItem.findByIdAndDelete(itemId);
+
+    res.status(200).json({
+      success: true,
+      message: "Category item deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting category item:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting category item",
+      error: error.message,
+    });
+  }
 };
 
 //add stocks to each item
 export const addStockController = async (req, res) => {
-    try {
-        const { itemId, stockToAdd } = req.body;
+  try {
+    const { itemId, stockToAdd } = req.body;
 
-        if (!itemId || stockToAdd === undefined) {
-            return res.status(400).json({ message: "Item ID and stock quantity are required" });
-        }
-
-        const item = await CategoryItem.findById(itemId);
-
-        if (!item) {
-            return res.status(404).json({ message: "Item not found" });
-        }
-
-        item.stock += stockToAdd;
-        await item.save();
-
-        res.status(200).json({
-            message: "Stock updated successfully",
-            data: { itemName: item.itemName, stock: item.stock },
-        });
-    } catch (error) {
-        console.error("Error updating stock:", error.message);
-        res.status(500).json({ message: "Error updating stock", error: error.message });
+    if (!itemId || stockToAdd === undefined) {
+      return res
+        .status(400)
+        .json({ message: "Item ID and stock quantity are required" });
     }
-};
 
+    const item = await CategoryItem.findById(itemId);
+
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    item.stock += stockToAdd;
+    await item.save();
+
+    res.status(200).json({
+      message: "Stock updated successfully",
+      data: { itemName: item.itemName, stock: item.stock },
+    });
+  } catch (error) {
+    console.error("Error updating stock:", error.message);
+    res
+      .status(500)
+      .json({ message: "Error updating stock", error: error.message });
+  }
+};
 
 // add table controller
 export const addTableController = async (req, res) => {
-    try {
-        const { name } = req.body;
-        const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required",
-            });
-        }
-
-        const existingTable = await Table.findOne({ name });
-        if (existingTable) {
-            return res.status(400).json({ success: false, message: "Table already exists" });
-        }
-
-        const newTable = await Table.create({ name, companyId });
-
-        res.status(201).json({ success: true, message: "Table added successfully", data: newTable });
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Error adding table", error: error.message });
+  try {
+    const { name } = req.body;
+    const companyId = req.companyId;
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
     }
+
+    const existingTable = await Table.findOne({ name });
+    if (existingTable) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Table already exists" });
+    }
+
+    const newTable = await Table.create({ name, companyId });
+
+    res
+      .status(201)
+      .json({
+        success: true,
+        message: "Table added successfully",
+        data: newTable,
+      });
+  } catch (error) {
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error adding table",
+        error: error.message,
+      });
+  }
 };
 
 //get table controller
 export const getAllTables = async (req, res) => {
-    try {
-        const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required",
-            });
-        }
-
-        const tables = await Table.find({ companyId: companyId }).populate('menuItems.item', 'itemName price');
-
-        if (tables.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "No tables found for this company",
-            });
-        }
-        res.status(200).json({
-            success: true,
-            message: "Tables fetched successfully",
-            data: tables,
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error fetching tables",
-            error: error.message,
-        });
+  try {
+    const companyId = req.companyId;
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
     }
-};
 
+    const tables = await Table.find({ companyId: companyId }).populate(
+      "menuItems.item",
+      "itemName price"
+    );
+
+    if (tables.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No tables found for this company",
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: "Tables fetched successfully",
+      data: tables,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching tables",
+      error: error.message,
+    });
+  }
+};
 
 // delete table controller
 export const deleteTableController = async (req, res) => {
-    try {
-        const tableId = req.params.id;
-        const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required",
-            });
-        }
-
-        const table = await Table.findById(tableId);
-        if (!table) {
-            return res.status(404).json({
-                success: false,
-                message: "Table not found",
-            });
-        }
-
-        if (table.companyId.toString() !== companyId.toString()) {
-            return res.status(403).json({
-                success: false,
-                message: "You are not authorized to delete this table",
-            });
-        }
-
-        const deletedTable = await Table.findByIdAndDelete(tableId);
-
-        if (!deletedTable) {
-            return res.status(404).json({
-                success: false,
-                message: "Table not found",
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: "Table deleted successfully",
-        });
-    } catch (error) {
-        console.error("Error deleting table:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error deleting table",
-            error: error.message,
-        });
+  try {
+    const tableId = req.params.id;
+    const companyId = req.companyId;
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
     }
+
+    const table = await Table.findById(tableId);
+    if (!table) {
+      return res.status(404).json({
+        success: false,
+        message: "Table not found",
+      });
+    }
+
+    if (table.companyId.toString() !== companyId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to delete this table",
+      });
+    }
+
+    const deletedTable = await Table.findByIdAndDelete(tableId);
+
+    if (!deletedTable) {
+      return res.status(404).json({
+        success: false,
+        message: "Table not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Table deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting table:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting table",
+      error: error.message,
+    });
+  }
 };
 
 //add menu items to table
 export const addMenuItemsToTable = async (req, res) => {
-    try {
-        const { tableId } = req.params;
-        const { items } = req.body;
-        const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required",
-            });
-        }
-
-        const table = await Table.findById(tableId);
-        if (!table) {
-            return res.status(404).json({ success: false, message: "Table not found" });
-        }
-
-        if (table.companyId.toString() !== companyId.toString()) {
-            return res.status(403).json({
-                success: false,
-                message: "You are not authorized to add menu items to this table",
-            });
-        }
-
-        const adminMenuItems = await CategoryItem.find({ companyId });
-
-        for (const { itemId, quantity } of items) {
-            const menuItem = adminMenuItems.find(item => item._id.toString() === itemId.toString());
-            if (!menuItem) {
-                return res.status(404).json({ success: false, message: `Menu item not found or not part of your menu: ${itemId}` });
-            }
-
-            const existingItem = table.menuItems.find(
-                (menuItem) => menuItem.item.toString() === itemId
-            );
-
-            if (existingItem) {
-                existingItem.quantity += quantity || 1;
-            } else {
-                table.menuItems.push({
-                    item: itemId,
-                    quantity: quantity || 1,
-                    price: menuItem.price,
-                });
-            }
-        }
-
-        table.reserved = true;
-        await table.save();
-
-        res.status(200).json({
-            success: true,
-            message: "Menu items added to the table successfully",
-            data: table,
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error adding menu items to table",
-            error: error.message,
-        });
+  try {
+    const { tableId } = req.params;
+    const { items } = req.body;
+    const companyId = req.companyId;
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
     }
+
+    const table = await Table.findById(tableId);
+    if (!table) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Table not found" });
+    }
+
+    if (table.companyId.toString() !== companyId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to add menu items to this table",
+      });
+    }
+
+    const adminMenuItems = await CategoryItem.find({ companyId });
+
+    for (const { itemId, quantity } of items) {
+      const menuItem = adminMenuItems.find(
+        (item) => item._id.toString() === itemId.toString()
+      );
+      if (!menuItem) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+            message: `Menu item not found or not part of your menu: ${itemId}`,
+          });
+      }
+
+      const existingItem = table.menuItems.find(
+        (menuItem) => menuItem.item.toString() === itemId
+      );
+
+      if (existingItem) {
+        existingItem.quantity += quantity || 1;
+      } else {
+        table.menuItems.push({
+          item: itemId,
+          quantity: quantity || 1,
+          price: menuItem.price,
+        });
+      }
+    }
+
+    table.reserved = true;
+    await table.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Menu items added to the table successfully",
+      data: table,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error adding menu items to table",
+      error: error.message,
+    });
+  }
 };
 
 // add Advertisement to the template
 export const addAdController = async (req, res) => {
-    try {
-        const { name, description } = req.body;
-        const imagePath = req.file ? req.file.path : null;
-        const companyId = req.companyId;
+  try {
+    const { name, description } = req.body;
+    const imagePath = req.file ? req.file.path : null;
+    const companyId = req.companyId;
 
-        if (!name || !description) {
-            return res.status(400).json({
-                success: false,
-                message: "All fields are required: foodItemName, description",
-            });
-        }
-
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required",
-            });
-        }
-
-        const imageUrl = await uploadFile(req.file.buffer, 'ads');
-        // const imageUrl = await uploadFile(imagePath.buffer, 'categories');
-
-        const newAd = await Ad.create({
-            name,
-            description,
-            companyId,
-            image: imageUrl,
-        });
-
-        res.status(201).json({
-            success: true,
-            message: "Ad created successfully",
-            data: newAd,
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error creating ad",
-            error: error.message,
-        });
+    if (!name || !description) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required: foodItemName, description",
+      });
     }
+
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
+    }
+
+    const imageUrl = await uploadFile(req.file.buffer, "ads");
+    // const imageUrl = await uploadFile(imagePath.buffer, 'categories');
+
+    const newAd = await Ad.create({
+      name,
+      description,
+      companyId,
+      image: imageUrl,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Ad created successfully",
+      data: newAd,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error creating ad",
+      error: error.message,
+    });
+  }
 };
 
 // get active ads controller
 export const getActiveAdsController = async (req, res) => {
-    try {
-        const companyId = req.companyId;
+  try {
+    const companyId = req.companyId;
 
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required",
-            });
-        }
-
-        const ads = await Ad.find({ isActive: true, companyId });
-
-        res.status(200).json({
-            success: true,
-            message: "Active ads fetched successfully",
-            data: ads,
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error fetching ads",
-            error: error.message,
-        });
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
     }
+
+    const ads = await Ad.find({ isActive: true, companyId });
+
+    res.status(200).json({
+      success: true,
+      message: "Active ads fetched successfully",
+      data: ads,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching ads",
+      error: error.message,
+    });
+  }
 };
 
-// deactivate ads 
+// deactivate ads
 export const deactivateAdController = async (req, res) => {
-    try {
-        const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required",
-            });
-        }
-        const { adId } = req.params;
-        const ad = await Ad.findOne({ _id: adId, companyId });
-
-        if (!ad) {
-            return res.status(404).json({ success: false, message: "Ad not found" });
-        }
-
-        ad.isActive = false;
-        await ad.save();
-
-        res.status(200).json({
-            success: true,
-            message: "Ad deactivated successfully",
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error deactivating ad",
-            error: error.message,
-        });
+  try {
+    const companyId = req.companyId;
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
     }
-};
+    const { adId } = req.params;
+    const ad = await Ad.findOne({ _id: adId, companyId });
 
+    if (!ad) {
+      return res.status(404).json({ success: false, message: "Ad not found" });
+    }
+
+    ad.isActive = false;
+    await ad.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Ad deactivated successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error deactivating ad",
+      error: error.message,
+    });
+  }
+};
 
 //og original kot controller
 
 export const generateKOTController = async (req, res) => {
-    try {
-        const { tableId, operatorId, items } = req.body;
-        const companyId = req.companyId;
+  try {
+    const { tableId, operatorId, items } = req.body;
+    const companyId = req.companyId;
 
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "companyId is required" });
-        }
-
-        let table = await Table.findById(tableId).populate({
-            path: "kotGeneratedItems",
-            select: "ticketNumber items createdAt",
-        });
-
-        if (!table) {
-            return res.status(404).json({ success: false, message: "Table not found" });
-        }
-
-        if (table.companyId?.toString() !== companyId.toString()) {
-            return res.status(403).json({ success: false, message: "Unauthorized" });
-        }
-
-        if (!table.reserved) {
-            table.reserved = true;
-        }
-
-        const adminMenuItems = await CategoryItem.find({ companyId });
-        const itemsByKitchen = {};
-
-        for (const { itemId, quantity } of items) {
-            const menuItem = adminMenuItems.find((menu) => menu.id === itemId);
-
-            if (!menuItem) {
-                return res.status(404).json({ success: false, message: `Menu item not found: ${itemId}` });
-            }
-
-            const itemData = {
-                itemId,
-                itemName: menuItem.itemName,
-                quantity: quantity || 1,
-                price: menuItem.price,
-            };
-
-            if (!itemsByKitchen[menuItem.kitchen]) {
-                itemsByKitchen[menuItem.kitchen] = [];
-            }
-
-            itemsByKitchen[menuItem.kitchen].push(itemData);
-        }
-
-        const generatedKOTs = [];
-
-        // for (const kitchen in itemsByKitchen) {
-        //     const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
-
-        //     const kot = await KOT.create({
-        //         ticketNumber,
-        //         tableName: table.name,
-        //         operatorId: kitchen,
-        //         companyId,
-        //         items: itemsByKitchen[kitchen],
-        //     });
-
-        //     generatedKOTs.push(kot);
-        // }
-
-        const sharedTicketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
-
-        for (const kitchen in itemsByKitchen) {
-            const kot = await KOT.create({
-                ticketNumber: sharedTicketNumber, // Use same ticket number
-                tableName: table.name,
-                operatorId: kitchen, // use kitchen name as operatorId
-                companyId,
-                items: itemsByKitchen[kitchen],
-            });
-
-            generatedKOTs.push(kot);
-        }
-
-        table.kotGeneratedItems = [...(table.kotGeneratedItems || []), ...generatedKOTs.map(kot => kot._id)];
-
-        await table.save();
-
-        const updatedTable = await Table.findById(tableId).populate({
-            path: "kotGeneratedItems",
-            select: "ticketNumber items createdAt",
-        });
-
-        res.status(201).json({
-            success: true,
-            message: "KOTs generated successfully",
-            data: {
-                generatedKOTs,
-                previousKOTs: updatedTable.kotGeneratedItems,
-            },
-        });
-    } catch (error) {
-        console.error("Error generating KOT:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error generating KOT",
-            error: error.message,
-        });
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
     }
-}; //modified wala 
+
+    let table = await Table.findById(tableId).populate({
+      path: "kotGeneratedItems",
+      select: "ticketNumber items createdAt",
+    });
+
+    if (!table) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Table not found" });
+    }
+
+    if (table.companyId?.toString() !== companyId.toString()) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (!table.reserved) {
+      table.reserved = true;
+    }
+
+    const adminMenuItems = await CategoryItem.find({ companyId });
+    const itemsByKitchen = {};
+
+    for (const { itemId, quantity } of items) {
+      const menuItem = adminMenuItems.find((menu) => menu.id === itemId);
+
+      if (!menuItem) {
+        return res
+          .status(404)
+          .json({ success: false, message: `Menu item not found: ${itemId}` });
+      }
+
+      const itemData = {
+        itemId,
+        itemName: menuItem.itemName,
+        quantity: quantity || 1,
+        price: menuItem.price,
+      };
+
+      if (!itemsByKitchen[menuItem.kitchen]) {
+        itemsByKitchen[menuItem.kitchen] = [];
+      }
+
+      itemsByKitchen[menuItem.kitchen].push(itemData);
+    }
+
+    const generatedKOTs = [];
+
+    // for (const kitchen in itemsByKitchen) {
+    //     const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
+
+    //     const kot = await KOT.create({
+    //         ticketNumber,
+    //         tableName: table.name,
+    //         operatorId: kitchen,
+    //         companyId,
+    //         items: itemsByKitchen[kitchen],
+    //     });
+
+    //     generatedKOTs.push(kot);
+    // }
+
+    const sharedTicketNumber = `KOT-${Math.floor(
+      10000 + Math.random() * 90000
+    )}`;
+
+    for (const kitchen in itemsByKitchen) {
+      const kot = await KOT.create({
+        ticketNumber: sharedTicketNumber, // Use same ticket number
+        tableName: table.name,
+        operatorId: kitchen, // use kitchen name as operatorId
+        companyId,
+        items: itemsByKitchen[kitchen],
+      });
+
+      generatedKOTs.push(kot);
+    }
+
+    table.kotGeneratedItems = [
+      ...(table.kotGeneratedItems || []),
+      ...generatedKOTs.map((kot) => kot._id),
+    ];
+
+    await table.save();
+
+    const updatedTable = await Table.findById(tableId).populate({
+      path: "kotGeneratedItems",
+      select: "ticketNumber items createdAt",
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "KOTs generated successfully",
+      data: {
+        generatedKOTs,
+        previousKOTs: updatedTable.kotGeneratedItems,
+      },
+    });
+  } catch (error) {
+    console.error("Error generating KOT:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error generating KOT",
+      error: error.message,
+    });
+  }
+}; //modified wala
 
 // new kot table controller
 
@@ -984,146 +1044,244 @@ export const generateKOTController = async (req, res) => {
 //         });
 //     }
 // };
-
-
-export const showBillController = async (req, res) => {
+export const updateBillController = async (req, res) => {
     try {
-        const { tableId } = req.params;
-        const companyId = req.companyId;
-
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "Company ID is required" });
-        }
-
-        const table = await Table.findById(tableId).populate({
-            path: "kotGeneratedItems",
-            select: "ticketNumber items createdAt",
+      const { tableId } = req.params;
+      const { itemsToDelete } = req.body; 
+      const companyId = req.companyId;
+  
+      if (!companyId) {
+        return res.status(400).json({
+          success: false,
+          message: "Company ID is required",
         });
-
-        if (!table) {
-            return res.status(404).json({ success: false, message: "Table not found" });
-        }
-
-        if (table.companyId?.toString() !== companyId.toString()) {
-            return res.status(403).json({ success: false, message: "Unauthorized" });
-        }
-
-        const itemMap = new Map(); // { itemName -> { quantity, price } }
-
-        table.kotGeneratedItems.forEach((kot) => {
-            kot.items.forEach((item) => {
-                if (itemMap.has(item.itemName)) {
-                    itemMap.get(item.itemName).quantity += item.quantity;
-                } else {
-                    itemMap.set(item.itemName, {
-                        quantity: item.quantity,
-                        price: item.price,
-                    });
-                }
+      }
+  
+      if (!itemsToDelete || !Array.isArray(itemsToDelete)) {
+        return res.status(400).json({
+          success: false,
+          message: "itemsToDelete should be an array",
+        });
+      }
+  
+      const table = await Table.findById(tableId).populate("kotGeneratedItems");
+  
+      if (!table) {
+        return res.status(404).json({
+          success: false,
+          message: "Table not found",
+        });
+      }
+  
+      if (table.companyId?.toString() !== companyId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
+  
+      for (const kot of table.kotGeneratedItems) {
+        kot.items = kot.items.filter(
+          (item) =>
+            !itemsToDelete.includes(item.itemName) && 
+            !itemsToDelete.includes(item._id.toString()) 
+        );
+        await kot.save();
+      }
+  
+      // ✅ Recalculate bill after deletion
+      const itemMap = new Map();
+  
+      table.kotGeneratedItems.forEach((kot) => {
+        kot.items.forEach((item) => {
+          if (itemMap.has(item.itemName)) {
+            itemMap.get(item.itemName).quantity += item.quantity;
+          } else {
+            itemMap.set(item.itemName, {
+              quantity: item.quantity,
+              price: item.price,
             });
+          }
         });
-
-        const orderedItems = Array.from(itemMap, ([itemName, data]) => ({
-            itemName,
-            quantity: data.quantity,
-            price: data.price,
-            totalPrice: data.quantity * data.price,
-        }));
-
-        const totalBill = orderedItems.reduce((sum, item) => sum + item.totalPrice, 0);
-
-        res.status(200).json({
-            success: true,
-            message: "Bill details fetched successfully",
-            data: {
-                tableName: table.name,
-                orderedItems,
-                totalBill,
-            },
-        });
+      });
+  
+      const orderedItems = Array.from(itemMap, ([itemName, data]) => ({
+        itemName,
+        quantity: data.quantity,
+        price: data.price,
+        totalPrice: data.quantity * data.price,
+      }));
+  
+      const totalBill = orderedItems.reduce(
+        (sum, item) => sum + item.totalPrice,
+        0
+      );
+  
+      res.status(200).json({
+        success: true,
+        message: "Bill updated successfully",
+        data: {
+          tableName: table.name,
+          orderedItems,
+          totalBill,
+        },
+      });
     } catch (error) {
-        console.error("Error fetching bill:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error fetching bill",
-            error: error.message,
-        });
+      console.error("Error updating bill:", error.message);
+      res.status(500).json({
+        success: false,
+        message: "Error updating bill",
+        error: error.message,
+      });
     }
-};
+  };
+  
+export const showBillController = async (req, res) => {
+  try {
+    const { tableId } = req.params;
+    const companyId = req.companyId;
 
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Company ID is required" });
+    }
+
+    const table = await Table.findById(tableId).populate({
+      path: "kotGeneratedItems",
+      select: "ticketNumber items createdAt",
+    });
+
+    if (!table) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Table not found" });
+    }
+
+    if (table.companyId?.toString() !== companyId.toString()) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+
+    const itemMap = new Map(); // { itemName -> { quantity, price } }
+
+    table.kotGeneratedItems.forEach((kot) => {
+      kot.items.forEach((item) => {
+        if (itemMap.has(item.itemName)) {
+          itemMap.get(item.itemName).quantity += item.quantity;
+        } else {
+          itemMap.set(item.itemName, {
+            quantity: item.quantity,
+            price: item.price,
+          });
+        }
+      });
+    });
+
+    const orderedItems = Array.from(itemMap, ([itemName, data]) => ({
+      itemName,
+      quantity: data.quantity,
+      price: data.price,
+      totalPrice: data.quantity * data.price,
+    }));
+
+    const totalBill = orderedItems.reduce(
+      (sum, item) => sum + item.totalPrice,
+      0
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Bill details fetched successfully",
+      data: {
+        tableName: table.name,
+        orderedItems,
+        totalBill,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching bill:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching bill",
+      error: error.message,
+    });
+  }
+};
 
 // generate online kot
 export const generateOnlineKOTController = async (req, res) => {
-    try {
-        const { orderId, operatorId, items } = req.body;
-        const companyId = req.companyId;
+  try {
+    const { orderId, operatorId, items } = req.body;
+    const companyId = req.companyId;
 
-        if (!orderId || !operatorId || !items || !items.length) {
-            return res.status(400).json({
-                success: false,
-                message: "orderId, operatorId, and items are required",
-            });
-        }
-
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "companyId is required" });
-        }
-
-        const adminMenuItems = await CategoryItem.find({ companyId });
-        const itemsByKitchen = {};
-
-        for (const { itemId, quantity } of items) {
-            const menuItem = adminMenuItems.find((menu) => menu.id === itemId);
-
-            if (!menuItem) {
-                return res.status(404).json({
-                    success: false,
-                    message: `Menu item not found: ${itemId}`,
-                });
-            }
-
-            const itemData = {
-                itemName: menuItem.itemName,
-                quantity: quantity || 1,
-                price: menuItem.price,
-            };
-
-            if (!itemsByKitchen[menuItem.kitchen]) {
-                itemsByKitchen[menuItem.kitchen] = [];
-            }
-
-            itemsByKitchen[menuItem.kitchen].push(itemData);
-        }
-
-        const generatedKOTs = [];
-
-        for (const kitchen in itemsByKitchen) {
-            const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
-
-            const kot = await KOT.create({
-                ticketNumber,
-                orderId,
-                operatorId,
-                companyId,
-                items: itemsByKitchen[kitchen],
-            });
-
-            generatedKOTs.push(kot);
-        }
-
-        res.status(201).json({
-            success: true,
-            message: "KOTs generated successfully for online order",
-            data: generatedKOTs,
-        });
-    } catch (error) {
-        console.error("Error generating KOT for online order:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error generating KOT for online order",
-            error: error.message,
-        });
+    if (!orderId || !operatorId || !items || !items.length) {
+      return res.status(400).json({
+        success: false,
+        message: "orderId, operatorId, and items are required",
+      });
     }
+
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
+    }
+
+    const adminMenuItems = await CategoryItem.find({ companyId });
+    const itemsByKitchen = {};
+
+    for (const { itemId, quantity } of items) {
+      const menuItem = adminMenuItems.find((menu) => menu.id === itemId);
+
+      if (!menuItem) {
+        return res.status(404).json({
+          success: false,
+          message: `Menu item not found: ${itemId}`,
+        });
+      }
+
+      const itemData = {
+        itemName: menuItem.itemName,
+        quantity: quantity || 1,
+        price: menuItem.price,
+      };
+
+      if (!itemsByKitchen[menuItem.kitchen]) {
+        itemsByKitchen[menuItem.kitchen] = [];
+      }
+
+      itemsByKitchen[menuItem.kitchen].push(itemData);
+    }
+
+    const generatedKOTs = [];
+
+    for (const kitchen in itemsByKitchen) {
+      const ticketNumber = `KOT-${Math.floor(10000 + Math.random() * 90000)}`;
+
+      const kot = await KOT.create({
+        ticketNumber,
+        orderId,
+        operatorId,
+        companyId,
+        items: itemsByKitchen[kitchen],
+      });
+
+      generatedKOTs.push(kot);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "KOTs generated successfully for online order",
+      data: generatedKOTs,
+    });
+  } catch (error) {
+    console.error("Error generating KOT for online order:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error generating KOT for online order",
+      error: error.message,
+    });
+  }
 };
 
 // export const generateBillController = async (req, res) => {
@@ -1207,402 +1365,468 @@ export const generateOnlineKOTController = async (req, res) => {
 //   };  bill generate ka previous right controller agar kuch galat hua isko on kar dena
 
 export const generateBillController = async (req, res) => {
-    try {
-        const { tableId, paymentMode } = req.body;
-        const companyId = req.companyId;
+  try {
+    const { tableId, paymentMode } = req.body;
+    const companyId = req.companyId;
 
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "companyId is required" });
-        }
-
-        const table = await Table.findById(tableId).populate("kotGeneratedItems");
-        if (!table) {
-            return res.status(404).json({ success: false, message: "Table not found" });
-        }
-
-        if (!table.reserved) {
-            return res.status(400).json({ success: false, message: "Table is not reserved" });
-        }
-
-        if (!table.kotGeneratedItems || table.kotGeneratedItems.length === 0) {
-            return res.status(400).json({ success: false, message: "No KOTs found for this table" });
-        }
-
-        let totalAmount = 0;
-        const itemMap = new Map();
-
-        table.kotGeneratedItems.forEach(kot => {
-            if (!kot.items || kot.items.length === 0) return;
-
-            kot.items.forEach(item => {
-                if (itemMap.has(item.itemName)) {
-
-                    itemMap.get(item.itemName).quantity += item.quantity;
-                } else {
-
-                    itemMap.set(item.itemName, {
-                        quantity: item.quantity,
-                        price: item.price,
-                    });
-                }
-            });
-        });
-
-        const consolidatedItems = Array.from(itemMap, ([itemName, data]) => ({
-            itemName,
-            quantity: data.quantity,
-            price: data.price,
-            totalPrice: data.quantity * data.price,
-        }));
-
-        if (consolidatedItems.length === 0) {
-            return res.status(400).json({ success: false, message: "No valid items found for billing" });
-        }
-
-        totalAmount = consolidatedItems.reduce((sum, item) => sum + item.totalPrice, 0);
-
-        const billNumber = `BILL-${Math.floor(10000 + Math.random() * 90000)}`;
-        const orderNumber = `ORD-${Math.floor(10000 + Math.random() * 90000)}`;
-
-        const bill = await Bill.create({
-            billNumber,
-            orderNumber,
-            billDate: new Date(),
-            tableName: table.name,
-            companyId,
-            operatorId: table.kotGeneratedItems[0]?.operatorId || "Unknown",
-            kotNumbers: table.kotGeneratedItems.map(kot => kot.ticketNumber),
-            items: consolidatedItems,
-            totalAmount,
-            paymentMode,
-        });
-
-        table.reserved = false;
-        table.kotGeneratedItems = [];
-        table.menuItems = [];
-        await table.save();
-
-        res.status(201).json({
-            success: true,
-            message: "Bill generated successfully",
-            data: bill,
-        });
-
-    } catch (error) {
-        console.error("Error generating bill:", error);
-        res.status(500).json({
-            success: false,
-            message: "Error generating bill",
-            error: error.message,
-        });
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
     }
+
+    const table = await Table.findById(tableId).populate("kotGeneratedItems");
+    if (!table) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Table not found" });
+    }
+
+    if (!table.reserved) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Table is not reserved" });
+    }
+
+    if (!table.kotGeneratedItems || table.kotGeneratedItems.length === 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No KOTs found for this table" });
+    }
+
+    let totalAmount = 0;
+    const itemMap = new Map();
+
+    table.kotGeneratedItems.forEach((kot) => {
+      if (!kot.items || kot.items.length === 0) return;
+
+      kot.items.forEach((item) => {
+        if (itemMap.has(item.itemName)) {
+          itemMap.get(item.itemName).quantity += item.quantity;
+        } else {
+          itemMap.set(item.itemName, {
+            quantity: item.quantity,
+            price: item.price,
+          });
+        }
+      });
+    });
+
+    const consolidatedItems = Array.from(itemMap, ([itemName, data]) => ({
+      itemName,
+      quantity: data.quantity,
+      price: data.price,
+      totalPrice: data.quantity * data.price,
+    }));
+
+    if (consolidatedItems.length === 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No valid items found for billing" });
+    }
+
+    totalAmount = consolidatedItems.reduce(
+      (sum, item) => sum + item.totalPrice,
+      0
+    );
+
+    const billNumber = `BILL-${Math.floor(10000 + Math.random() * 90000)}`;
+    const orderNumber = `ORD-${Math.floor(10000 + Math.random() * 90000)}`;
+
+    const bill = await Bill.create({
+      billNumber,
+      orderNumber,
+      billDate: new Date(),
+      tableName: table.name,
+      companyId,
+      operatorId: table.kotGeneratedItems[0]?.operatorId || "Unknown",
+      kotNumbers: table.kotGeneratedItems.map((kot) => kot.ticketNumber),
+      items: consolidatedItems,
+      totalAmount,
+      paymentMode,
+    });
+
+    table.reserved = false;
+    table.kotGeneratedItems = [];
+    table.menuItems = [];
+    await table.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Bill generated successfully",
+      data: bill,
+    });
+  } catch (error) {
+    console.error("Error generating bill:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error generating bill",
+      error: error.message,
+    });
+  }
 };
 
 //generate revenue by date controller
 export const getRevenueByDateRange = async (req, res) => {
-    try {
-        const { startDate, endDate } = req.body;
-        const companyId = req.companyId; // Ensure company-specific filtering
+  try {
+    const { startDate, endDate } = req.body;
+    const companyId = req.companyId; // Ensure company-specific filtering
 
-        if (!startDate || !endDate) {
-            return res.status(400).json({ success: false, message: "Start date and end date are required" });
-        }
-
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "companyId is required" });
-        }
-
-        // Convert dates to UTC for accurate filtering
-        const start = new Date(`${startDate}T00:00:00.000Z`);
-        const end = new Date(`${endDate}T23:59:59.999Z`);
-
-        console.log("Start Date in UTC:", start);
-        console.log("End Date in UTC:", end);
-
-        // Fetch bills within the date range for the specific company
-        const revenueData = await Bill.find({
-            companyId,
-            billDate: { $gte: start, $lte: end }
-        });
-
-        console.log("Fetched Revenue Data:", revenueData);
-
-        if (revenueData.length === 0) {
-            return res.status(200).json({ success: true, message: "No revenue data found", data: [] });
-        }
-
-        // Calculate total revenue
-        const totalRevenue = revenueData.reduce((sum, bill) => sum + bill.totalAmount, 0);
-
-        res.status(200).json({
-            success: true,
-            message: "Revenue data fetched successfully",
-            totalRevenue,
-            data: revenueData,
-        });
-
-    } catch (error) {
-        console.error("Error fetching revenue data:", error);
-        res.status(500).json({
-            success: false,
-            message: "Error fetching revenue data",
-            error: error.message,
+    if (!startDate || !endDate) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Start date and end date are required",
         });
     }
+
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
+    }
+
+    // Convert dates to UTC for accurate filtering
+    const start = new Date(`${startDate}T00:00:00.000Z`);
+    const end = new Date(`${endDate}T23:59:59.999Z`);
+
+    console.log("Start Date in UTC:", start);
+    console.log("End Date in UTC:", end);
+
+    // Fetch bills within the date range for the specific company
+    const revenueData = await Bill.find({
+      companyId,
+      billDate: { $gte: start, $lte: end },
+    });
+
+    console.log("Fetched Revenue Data:", revenueData);
+
+    if (revenueData.length === 0) {
+      return res
+        .status(200)
+        .json({ success: true, message: "No revenue data found", data: [] });
+    }
+
+    // Calculate total revenue
+    const totalRevenue = revenueData.reduce(
+      (sum, bill) => sum + bill.totalAmount,
+      0
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Revenue data fetched successfully",
+      totalRevenue,
+      data: revenueData,
+    });
+  } catch (error) {
+    console.error("Error fetching revenue data:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching revenue data",
+      error: error.message,
+    });
+  }
 };
 
 export const getReducedRevenueByDateRange = async (req, res) => {
-    try {
-        const { startDate, endDate } = req.body;
-        const companyId = req.companyId; // Ensure company-specific filtering
+  try {
+    const { startDate, endDate } = req.body;
+    const companyId = req.companyId; // Ensure company-specific filtering
 
-        if (!startDate || !endDate) {
-            return res.status(400).json({ success: false, message: "Start date and end date are required" });
-        }
-
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "companyId is required" });
-        }
-
-        // Convert dates to UTC for accurate filtering
-        const start = new Date(`${startDate}T00:00:00.000Z`);
-        const end = new Date(`${endDate}T23:59:59.999Z`);
-
-        console.log("Start Date in UTC:", start);
-        console.log("End Date in UTC:", end);
-
-        // Fetch bills within the date range for the specific company
-        const revenueData = await Bill.find({
-            companyId,
-            billDate: { $gte: start, $lte: end }
-        });
-
-        console.log("Fetched Revenue Data:", revenueData);
-
-        if (revenueData.length === 0) {
-            return res.status(200).json({ success: true, message: "No revenue data found", data: [] });
-        }
-
-        // Calculate total revenue by taking only 10% of each bill's totalAmount
-        const discountedRevenue = revenueData.reduce((sum, bill) => sum + (bill.totalAmount * 0.1), 0);
-
-        res.status(200).json({
-            success: true,
-            message: "Discounted revenue data fetched successfully",
-            totalDiscountedRevenue: discountedRevenue.toFixed(2), // Keep only 2 decimal places
-            data: revenueData,
-        });
-
-    } catch (error) {
-        console.error("Error fetching revenue data:", error);
-        res.status(500).json({
-            success: false,
-            message: "Error fetching revenue data",
-            error: error.message,
+    if (!startDate || !endDate) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Start date and end date are required",
         });
     }
+
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
+    }
+
+    // Convert dates to UTC for accurate filtering
+    const start = new Date(`${startDate}T00:00:00.000Z`);
+    const end = new Date(`${endDate}T23:59:59.999Z`);
+
+    console.log("Start Date in UTC:", start);
+    console.log("End Date in UTC:", end);
+
+    // Fetch bills within the date range for the specific company
+    const revenueData = await Bill.find({
+      companyId,
+      billDate: { $gte: start, $lte: end },
+    });
+
+    console.log("Fetched Revenue Data:", revenueData);
+
+    if (revenueData.length === 0) {
+      return res
+        .status(200)
+        .json({ success: true, message: "No revenue data found", data: [] });
+    }
+
+    // Calculate total revenue by taking only 10% of each bill's totalAmount
+    const discountedRevenue = revenueData.reduce(
+      (sum, bill) => sum + bill.totalAmount * 0.1,
+      0
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Discounted revenue data fetched successfully",
+      totalDiscountedRevenue: discountedRevenue.toFixed(2), // Keep only 2 decimal places
+      data: revenueData,
+    });
+  } catch (error) {
+    console.error("Error fetching revenue data:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching revenue data",
+      error: error.message,
+    });
+  }
 };
 
 // pdf controller for the original bills
 export const generateBillsSummaryPdf = async (req, res) => {
-    try {
-        // date are in format of yyyy-mm-dd 
-        const { startDate, endDate } = req.body;
-        const companyId = req.companyId;
+  try {
+    // date are in format of yyyy-mm-dd
+    const { startDate, endDate } = req.body;
+    const companyId = req.companyId;
 
-        if (!startDate || !endDate) {
-            return res.status(400).json({ success: false, message: "startDate and endDate are required" });
-        }
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "companyId is required" });
-        }
-
-        const start = new Date(`${startDate}T00:00:00.000Z`);
-        const end = new Date(`${endDate}T23:59:59.999Z`);
-
-        const bills = await Bill.find({
-            companyId,
-            billDate: { $gte: start, $lte: end },
-        }).select("billNumber billDate totalAmount").sort({ billDate: 1 });
-
-        if (!bills.length) {
-            return res.status(404).json({ success: false, message: "No bills found in this date range" });
-        }
-
-        // pdf generation code
-        const doc = new PDFDocument({ margin: 50 });
-        const chunks = [];
-        doc.on("data", chunk => chunks.push(chunk));
-        doc.on("end", () => {
-            const pdf = Buffer.concat(chunks);
-            const fileName = `bill-summary-${startDate}_to_${endDate}.pdf`;
-            res.set({
-                "Content-Type": "application/pdf",
-                "Content-Disposition": `attachment; filename="${fileName}"`,
-                "Content-Length": pdf.length,
-            });
-            res.send(pdf);
+    if (!startDate || !endDate) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "startDate and endDate are required",
         });
-
-        doc.fontSize(18).text("Bill Summary", { align: "center" });
-        doc.moveDown(0.5);
-        doc.fontSize(12).text(`Company: ${companyId}`);
-        doc.text(`Period : ${startDate} → ${endDate}`);
-        doc.moveDown();
-
-        doc.font("Helvetica-Bold");
-        doc.text("Bill No.", 50, doc.y, { continued: true });
-        doc.text("Bill Date", 200, doc.y, { continued: true });
-        doc.text("Amount", 350, doc.y);
-        doc.moveDown(0.25);
-        doc.font("Helvetica").moveTo(50, doc.y).lineTo(550, doc.y).stroke();
-        doc.moveDown(0.5);
-
-        let grandTotal = 0;
-        bills.forEach(b => {
-            grandTotal += b.totalAmount;
-            doc.text(b.billNumber, 50, doc.y, { continued: true });
-            doc.text(b.billDate.toISOString().slice(0, 10), 200, doc.y, { continued: true });
-            doc.text(`₹${b.totalAmount.toFixed(2)}`, 350, doc.y);
-        });
-
-        doc.moveDown();
-        doc.font("Helvetica-Bold");
-        doc.text("Grand Total:", 200, doc.y, { continued: true });
-        doc.text(`₹${grandTotal.toFixed(2)}`, 350, doc.y);
-        doc.end();
-
-    } catch (err) {
-        console.error("generateBillsSummaryPdf error:", err);
-        res.status(500).json({ success: false, message: "Server error", error: err.message });
     }
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
+    }
+
+    const start = new Date(`${startDate}T00:00:00.000Z`);
+    const end = new Date(`${endDate}T23:59:59.999Z`);
+
+    const bills = await Bill.find({
+      companyId,
+      billDate: { $gte: start, $lte: end },
+    })
+      .select("billNumber billDate totalAmount")
+      .sort({ billDate: 1 });
+
+    if (!bills.length) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No bills found in this date range" });
+    }
+
+    // pdf generation code
+    const doc = new PDFDocument({ margin: 50 });
+    const chunks = [];
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("end", () => {
+      const pdf = Buffer.concat(chunks);
+      const fileName = `bill-summary-${startDate}_to_${endDate}.pdf`;
+      res.set({
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${fileName}"`,
+        "Content-Length": pdf.length,
+      });
+      res.send(pdf);
+    });
+
+    doc.fontSize(18).text("Bill Summary", { align: "center" });
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(`Company: ${companyId}`);
+    doc.text(`Period : ${startDate} → ${endDate}`);
+    doc.moveDown();
+
+    doc.font("Helvetica-Bold");
+    doc.text("Bill No.", 50, doc.y, { continued: true });
+    doc.text("Bill Date", 200, doc.y, { continued: true });
+    doc.text("Amount", 350, doc.y);
+    doc.moveDown(0.25);
+    doc.font("Helvetica").moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+    doc.moveDown(0.5);
+
+    let grandTotal = 0;
+    bills.forEach((b) => {
+      grandTotal += b.totalAmount;
+      doc.text(b.billNumber, 50, doc.y, { continued: true });
+      doc.text(b.billDate.toISOString().slice(0, 10), 200, doc.y, {
+        continued: true,
+      });
+      doc.text(`₹${b.totalAmount.toFixed(2)}`, 350, doc.y);
+    });
+
+    doc.moveDown();
+    doc.font("Helvetica-Bold");
+    doc.text("Grand Total:", 200, doc.y, { continued: true });
+    doc.text(`₹${grandTotal.toFixed(2)}`, 350, doc.y);
+    doc.end();
+  } catch (err) {
+    console.error("generateBillsSummaryPdf error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: err.message });
+  }
 };
 
 // pdf controller for the fake bills
 
 export const generateFakeBillsSummaryPdf = async (req, res) => {
-    try {
-        const { startDate, endDate } = req.body;
-        const companyId = req.companyId;
+  try {
+    const { startDate, endDate } = req.body;
+    const companyId = req.companyId;
 
-        if (!startDate || !endDate) {
-            return res.status(400).json({ success: false, message: "startDate and endDate are required" });
-        }
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "companyId is required" });
-        }
-
-        const start = new Date(`${startDate}T00:00:00.000Z`);
-        const end = new Date(`${endDate}T23:59:59.999Z`);
-
-        const bills = await Bill.find({
-            companyId,
-            billDate: { $gte: start, $lte: end },
-        }).select("billNumber billDate totalAmount").sort({ billDate: 1 });
-
-        if (!bills.length) {
-            return res.status(404).json({ success: false, message: "No bills found in this date range" });
-        }
-
-        // PDF generation
-        const doc = new PDFDocument({ margin: 50 });
-        const chunks = [];
-        doc.on("data", chunk => chunks.push(chunk));
-        doc.on("end", () => {
-            const pdf = Buffer.concat(chunks);
-            const fileName = `bill-summary-${startDate}_to_${endDate}.pdf`;
-            res.set({
-                "Content-Type": "application/pdf",
-                "Content-Disposition": `attachment; filename="${fileName}"`,
-                "Content-Length": pdf.length,
-            });
-            res.send(pdf);
+    if (!startDate || !endDate) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "startDate and endDate are required",
         });
-
-        doc.fontSize(18).text("Bill Summary", { align: "center" });
-        doc.moveDown(0.5);
-        doc.fontSize(12).text(`Company: ${companyId}`);
-        doc.text(`Period : ${startDate} → ${endDate}`);
-        doc.moveDown();
-
-        doc.font("Helvetica-Bold");
-        doc.text("Bill No.", 50, doc.y, { continued: true });
-        doc.text("Bill Date", 200, doc.y, { continued: true });
-        doc.text("Amount", 350, doc.y);
-        doc.moveDown(0.25);
-        doc.font("Helvetica").moveTo(50, doc.y).lineTo(550, doc.y).stroke();
-        doc.moveDown(0.5);
-
-        let grandTotal = 0;
-        bills.forEach(b => {
-            const discountedAmount = b.totalAmount * 0.10;
-            grandTotal += discountedAmount;
-            doc.text(b.billNumber, 50, doc.y, { continued: true });
-            doc.text(b.billDate.toISOString().slice(0, 10), 200, doc.y, { continued: true });
-            doc.text(`₹${discountedAmount.toFixed(2)}`, 350, doc.y);
-        });
-
-        doc.moveDown();
-        doc.font("Helvetica-Bold");
-        doc.text("Grand Total:", 200, doc.y, { continued: true });
-        doc.text(`₹${grandTotal.toFixed(2)}`, 350, doc.y);
-        doc.end();
-
-    } catch (err) {
-        console.error("generateBillsSummaryPdf error:", err);
-        res.status(500).json({ success: false, message: "Server error", error: err.message });
     }
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
+    }
+
+    const start = new Date(`${startDate}T00:00:00.000Z`);
+    const end = new Date(`${endDate}T23:59:59.999Z`);
+
+    const bills = await Bill.find({
+      companyId,
+      billDate: { $gte: start, $lte: end },
+    })
+      .select("billNumber billDate totalAmount")
+      .sort({ billDate: 1 });
+
+    if (!bills.length) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No bills found in this date range" });
+    }
+
+    // PDF generation
+    const doc = new PDFDocument({ margin: 50 });
+    const chunks = [];
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("end", () => {
+      const pdf = Buffer.concat(chunks);
+      const fileName = `bill-summary-${startDate}_to_${endDate}.pdf`;
+      res.set({
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${fileName}"`,
+        "Content-Length": pdf.length,
+      });
+      res.send(pdf);
+    });
+
+    doc.fontSize(18).text("Bill Summary", { align: "center" });
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(`Company: ${companyId}`);
+    doc.text(`Period : ${startDate} → ${endDate}`);
+    doc.moveDown();
+
+    doc.font("Helvetica-Bold");
+    doc.text("Bill No.", 50, doc.y, { continued: true });
+    doc.text("Bill Date", 200, doc.y, { continued: true });
+    doc.text("Amount", 350, doc.y);
+    doc.moveDown(0.25);
+    doc.font("Helvetica").moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+    doc.moveDown(0.5);
+
+    let grandTotal = 0;
+    bills.forEach((b) => {
+      const discountedAmount = b.totalAmount * 0.1;
+      grandTotal += discountedAmount;
+      doc.text(b.billNumber, 50, doc.y, { continued: true });
+      doc.text(b.billDate.toISOString().slice(0, 10), 200, doc.y, {
+        continued: true,
+      });
+      doc.text(`₹${discountedAmount.toFixed(2)}`, 350, doc.y);
+    });
+
+    doc.moveDown();
+    doc.font("Helvetica-Bold");
+    doc.text("Grand Total:", 200, doc.y, { continued: true });
+    doc.text(`₹${grandTotal.toFixed(2)}`, 350, doc.y);
+    doc.end();
+  } catch (err) {
+    console.error("generateBillsSummaryPdf error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: err.message });
+  }
 };
-
-
 
 //get online orders revenue by date range
 export const getOnlineRevenue = async (req, res) => {
-    try {
-        const { startDate, endDate } = req.body;
+  try {
+    const { startDate, endDate } = req.body;
 
-        if (!startDate || !endDate) {
-            return res.status(400).json({ success: false, message: "Start date and end date are required" });
-        }
-
-        // Convert dates to UTC for consistent filtering
-        const start = new Date(`${startDate}T00:00:00.000Z`);
-        const end = new Date(`${endDate}T23:59:59.999Z`);
-
-        console.log("Start Date in UTC:", start);
-        console.log("End Date in UTC:", end);
-
-        // Fetch online bills in date range
-        const revenueData = await OnlineBill.find({
-            billDate: { $gte: start, $lte: end }
-        });
-
-        console.log("Fetched Online Revenue Data:", revenueData);
-
-        if (revenueData.length === 0) {
-            return res.status(200).json({ success: true, message: "No revenue data found", data: [] });
-        }
-
-        // Calculate total revenue
-        const totalRevenue = revenueData.reduce((sum, bill) => sum + (bill.totalAmount || 0), 0);
-
-        res.status(200).json({
-            success: true,
-            message: "Online revenue data fetched successfully",
-            totalRevenue,
-            data: revenueData,
-        });
-
-    } catch (error) {
-        console.error("Error fetching online revenue data:", error);
-        res.status(500).json({
-            success: false,
-            message: "Error fetching online revenue data",
-            error: error.message,
+    if (!startDate || !endDate) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Start date and end date are required",
         });
     }
-};
 
+    // Convert dates to UTC for consistent filtering
+    const start = new Date(`${startDate}T00:00:00.000Z`);
+    const end = new Date(`${endDate}T23:59:59.999Z`);
+
+    console.log("Start Date in UTC:", start);
+    console.log("End Date in UTC:", end);
+
+    // Fetch online bills in date range
+    const revenueData = await OnlineBill.find({
+      billDate: { $gte: start, $lte: end },
+    });
+
+    console.log("Fetched Online Revenue Data:", revenueData);
+
+    if (revenueData.length === 0) {
+      return res
+        .status(200)
+        .json({ success: true, message: "No revenue data found", data: [] });
+    }
+
+    // Calculate total revenue
+    const totalRevenue = revenueData.reduce(
+      (sum, bill) => sum + (bill.totalAmount || 0),
+      0
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Online revenue data fetched successfully",
+      totalRevenue,
+      data: revenueData,
+    });
+  } catch (error) {
+    console.error("Error fetching online revenue data:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching online revenue data",
+      error: error.message,
+    });
+  }
+};
 
 //create bill for onlin order
 // export const generateOnlineBillController = async (req, res) => {
@@ -1660,106 +1884,111 @@ export const getOnlineRevenue = async (req, res) => {
 //   };
 
 export const generateOnlineBillController = async (req, res) => {
-    try {
-        const { name, id: orderId, operator, items, paymentMode } = req.body;
-        const companyId = req.companyId;
+  try {
+    const { name, id: orderId, operator, items, paymentMode } = req.body;
+    const companyId = req.companyId;
 
-        // Validate request payload
-        if (!orderId || !operator || !items || !items.length) {
-            return res.status(400).json({
-                success: false,
-                message: "Order ID, operator, and items are required.",
-            });
-        }
-
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "Company ID is required." });
-        }
-
-        // Fetch menu items from the database based on IDs
-        const itemIds = items.map(item => item.menuItemId);
-        const menuItems = await CategoryItem.find({ _id: { $in: itemIds }, companyId });
-
-        if (menuItems.length !== itemIds.length) {
-            return res.status(404).json({
-                success: false,
-                message: "One or more menu items were not found in the company’s menu.",
-            });
-        }
-
-        let totalAmount = 0;
-        const billItems = [];
-
-        // Calculate total and format items for the bill
-        items.forEach(orderItem => {
-            const menuItem = menuItems.find(item => item._id.toString() === orderItem.menuItemId);
-            if (!menuItem) {
-                return res.status(404).json({
-                    success: false,
-                    message: `Menu item not found: ${orderItem.menuItemId}`,
-                });
-            }
-
-            const quantity = orderItem.quantity || 1;
-            const price = menuItem.price;
-            const itemTotal = price * quantity;
-            totalAmount += itemTotal;
-
-            billItems.push({
-                itemName: menuItem.itemName,  // Fetching item name from DB
-                price, // Fetching price from DB
-                quantity,
-                total: itemTotal
-            });
-        });
-
-        // Generate unique bill number
-        const billNumber = `BILL-${Math.floor(10000 + Math.random() * 90000)}`;
-
-        // Create and save the bill
-        const bill = await OnlineBill.create({
-            billNumber,
-            orderId,
-            billDate: new Date(),
-            customerName: name,
-            companyId,
-            operatorId: operator,
-            items: billItems,
-            totalAmount,
-            paymentMode: paymentMode || "Online Payment",
-        });
-
-        // Construct response without `_id`
-        const responseData = {
-            billNumber: bill.billNumber,
-            orderId: bill.orderId,
-            billDate: bill.billDate,
-            customerName: bill.customerName,
-            companyId: bill.companyId,
-            operatorId: bill.operatorId,
-            items: bill.items,
-            totalAmount: bill.totalAmount,
-            paymentMode: bill.paymentMode
-        };
-
-        res.status(201).json({
-            success: true,
-            message: "Bill generated successfully for online order.",
-            data: responseData,
-        });
-    } catch (error) {
-        console.error("Error generating online bill:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error generating online bill.",
-            error: error.message,
-        });
+    // Validate request payload
+    if (!orderId || !operator || !items || !items.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID, operator, and items are required.",
+      });
     }
+
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Company ID is required." });
+    }
+
+    // Fetch menu items from the database based on IDs
+    const itemIds = items.map((item) => item.menuItemId);
+    const menuItems = await CategoryItem.find({
+      _id: { $in: itemIds },
+      companyId,
+    });
+
+    if (menuItems.length !== itemIds.length) {
+      return res.status(404).json({
+        success: false,
+        message: "One or more menu items were not found in the company’s menu.",
+      });
+    }
+
+    let totalAmount = 0;
+    const billItems = [];
+
+    // Calculate total and format items for the bill
+    items.forEach((orderItem) => {
+      const menuItem = menuItems.find(
+        (item) => item._id.toString() === orderItem.menuItemId
+      );
+      if (!menuItem) {
+        return res.status(404).json({
+          success: false,
+          message: `Menu item not found: ${orderItem.menuItemId}`,
+        });
+      }
+
+      const quantity = orderItem.quantity || 1;
+      const price = menuItem.price;
+      const itemTotal = price * quantity;
+      totalAmount += itemTotal;
+
+      billItems.push({
+        itemName: menuItem.itemName, // Fetching item name from DB
+        price, // Fetching price from DB
+        quantity,
+        total: itemTotal,
+      });
+    });
+
+    // Generate unique bill number
+    const billNumber = `BILL-${Math.floor(10000 + Math.random() * 90000)}`;
+
+    // Create and save the bill
+    const bill = await OnlineBill.create({
+      billNumber,
+      orderId,
+      billDate: new Date(),
+      customerName: name,
+      companyId,
+      operatorId: operator,
+      items: billItems,
+      totalAmount,
+      paymentMode: paymentMode || "Online Payment",
+    });
+
+    // Construct response without `_id`
+    const responseData = {
+      billNumber: bill.billNumber,
+      orderId: bill.orderId,
+      billDate: bill.billDate,
+      customerName: bill.customerName,
+      companyId: bill.companyId,
+      operatorId: bill.operatorId,
+      items: bill.items,
+      totalAmount: bill.totalAmount,
+      paymentMode: bill.paymentMode,
+    };
+
+    res.status(201).json({
+      success: true,
+      message: "Bill generated successfully for online order.",
+      data: responseData,
+    });
+  } catch (error) {
+    console.error("Error generating online bill:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error generating online bill.",
+      error: error.message,
+    });
+  }
 };
 
-
-
-// generate new bill 
+// generate new bill
 // export const generateNewBillController = async (req, res) => {
 //     try {
 //         const { tableId, operatorId } = req.body;
@@ -1799,7 +2028,7 @@ export const generateOnlineBillController = async (req, res) => {
 //         kots.forEach((kot) => {
 //             kot.items.forEach((item) => {
 //                 const rate = item.price;
-//                 const amount = item.quantity * rate * 0.1; 
+//                 const amount = item.quantity * rate * 0.1;
 
 //                 billItems.push({
 //                     itemName: item.itemName,
@@ -1839,193 +2068,192 @@ export const generateOnlineBillController = async (req, res) => {
 // };
 
 export const generateNewBillController = async (req, res) => {
-    try {
-        const { tableId, operatorId, paymentMode } = req.body;
-        const companyId = req.companyId;
+  try {
+    const { tableId, operatorId, paymentMode } = req.body;
+    const companyId = req.companyId;
 
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required",
-            });
-        }
-
-        if (!paymentMode || !["cash", "card", "upi"].includes(paymentMode)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid or missing payment method. Accepted values: cash, card, upi",
-            });
-        }
-
-        const table = await Table.findOne({ _id: tableId, companyId }).populate(
-            "kotGeneratedItems.item",
-            "itemName price"
-        );
-
-        if (!table) {
-            return res.status(404).json({
-                success: false,
-                message: "Table not found",
-            });
-        }
-
-        const kots = await KOT.find({ tableName: table.name, companyId });
-
-        if (!kots || kots.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: "No KOTs found for this table.",
-            });
-        }
-
-        let totalAmount = 0;
-        const billItems = [];
-
-        kots.forEach((kot) => {
-            kot.items.forEach((item) => {
-                const rate = item.price;
-                const amount = item.quantity * rate * 0.1;
-
-                billItems.push({
-                    itemName: item.itemName,
-                    quantity: item.quantity,
-                    rate: rate,
-                    amount: amount,
-                });
-
-                totalAmount += amount;
-            });
-        });
-
-        const tenPercentBill = {
-            tableName: table.name,
-            items: billItems,
-            totalAmount,
-            operatorId,
-            companyId,
-            paymentMode,
-            generatedAt: new Date(),
-        };
-
-        const savedTenPercentBill = await NewBill.create(tenPercentBill);
-
-        res.status(201).json({
-            success: true,
-            message: "10% Bill generated successfully",
-            data: savedTenPercentBill,
-        });
-    } catch (error) {
-        console.error("Error generating 10% bill:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error generating 10% bill",
-            error: error.message,
-        });
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
     }
+
+    if (!paymentMode || !["cash", "card", "upi"].includes(paymentMode)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid or missing payment method. Accepted values: cash, card, upi",
+      });
+    }
+
+    const table = await Table.findOne({ _id: tableId, companyId }).populate(
+      "kotGeneratedItems.item",
+      "itemName price"
+    );
+
+    if (!table) {
+      return res.status(404).json({
+        success: false,
+        message: "Table not found",
+      });
+    }
+
+    const kots = await KOT.find({ tableName: table.name, companyId });
+
+    if (!kots || kots.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No KOTs found for this table.",
+      });
+    }
+
+    let totalAmount = 0;
+    const billItems = [];
+
+    kots.forEach((kot) => {
+      kot.items.forEach((item) => {
+        const rate = item.price;
+        const amount = item.quantity * rate * 0.1;
+
+        billItems.push({
+          itemName: item.itemName,
+          quantity: item.quantity,
+          rate: rate,
+          amount: amount,
+        });
+
+        totalAmount += amount;
+      });
+    });
+
+    const tenPercentBill = {
+      tableName: table.name,
+      items: billItems,
+      totalAmount,
+      operatorId,
+      companyId,
+      paymentMode,
+      generatedAt: new Date(),
+    };
+
+    const savedTenPercentBill = await NewBill.create(tenPercentBill);
+
+    res.status(201).json({
+      success: true,
+      message: "10% Bill generated successfully",
+      data: savedTenPercentBill,
+    });
+  } catch (error) {
+    console.error("Error generating 10% bill:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error generating 10% bill",
+      error: error.message,
+    });
+  }
 };
-
-
 
 // admin profile apis
 
 export const registerAdminController = async (req, res) => {
-    try {
-        const {
-            restaurantName,
-            addressLine1,
-            addressLine2,
-            state,
-            contactNo,
-            emailId,
-            gstin,
-            cin,
-            // baseCurrency,
-            // currencyCode,
-            // ticketFooterMessage,
-            // startBillNo,
-            // showLogoInReceipts,
-            companyId,
-            // printers,
-            password,
-            confirmPassword,
-        } = req.body;
+  try {
+    const {
+      restaurantName,
+      addressLine1,
+      addressLine2,
+      state,
+      contactNo,
+      emailId,
+      gstin,
+      cin,
+      // baseCurrency,
+      // currencyCode,
+      // ticketFooterMessage,
+      // startBillNo,
+      // showLogoInReceipts,
+      companyId,
+      // printers,
+      password,
+      confirmPassword,
+    } = req.body;
 
-        // if (!Array.isArray(printers)) {
-        //     return res.status(400).json({
-        //         success: false,
-        //         message: "Printers must be an array of objects",
-        //     });
-        // }
+    // if (!Array.isArray(printers)) {
+    //     return res.status(400).json({
+    //         success: false,
+    //         message: "Printers must be an array of objects",
+    //     });
+    // }
 
-        if (!password || !confirmPassword || password !== confirmPassword) {
-            return res.status(400).json({
-                success: false,
-                message: "Passwords are required and must match",
-            });
-        }
-
-        const existingAdmin = await AdminProfile.findOne({
-            $or: [{ emailId }, { companyId }],
-        });
-
-        if (existingAdmin) {
-            return res.status(400).json({
-                success: false,
-                message: "Admin with this email or company ID already exists",
-            });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const newAdmin = await AdminProfile.create({
-            restaurantName,
-            addressLine1,
-            addressLine2,
-            state,
-            contactNo,
-            emailId,
-            gstin,
-            cin,
-            // baseCurrency,
-            // currencyCode,
-            // ticketFooterMessage,
-            // startBillNo,
-            // showLogoInReceipts,
-            role: "sysadmin",
-            companyId,
-            // printers,
-            password: hashedPassword,
-        });
-
-            const newUser = await CompanyUser.create({
-            companyId,
-            emailId,
-            password: hashedPassword,
-            role : "sysadmin",
-        });
-
-        const token = jwt.sign(
-            { adminId: newAdmin._id, companyId: newAdmin.companyId },
-            process.env.JWT_ADMIN_SECRET,
-            { expiresIn: "1000d" }
-        );
-
-        newAdmin.token = token;
-        await newAdmin.save();
-
-        res.status(201).json({
-            success: true,
-            message: "Admin registered successfully",
-            token
-        });
-    } catch (error) {
-        console.error("Error registering admin:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error registering admin",
-            error: error.message,
-        });
+    if (!password || !confirmPassword || password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Passwords are required and must match",
+      });
     }
+
+    const existingAdmin = await AdminProfile.findOne({
+      $or: [{ emailId }, { companyId }],
+    });
+
+    if (existingAdmin) {
+      return res.status(400).json({
+        success: false,
+        message: "Admin with this email or company ID already exists",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newAdmin = await AdminProfile.create({
+      restaurantName,
+      addressLine1,
+      addressLine2,
+      state,
+      contactNo,
+      emailId,
+      gstin,
+      cin,
+      // baseCurrency,
+      // currencyCode,
+      // ticketFooterMessage,
+      // startBillNo,
+      // showLogoInReceipts,
+      role: "sysadmin",
+      companyId,
+      // printers,
+      password: hashedPassword,
+    });
+
+    const newUser = await CompanyUser.create({
+      companyId,
+      emailId,
+      password: hashedPassword,
+      role: "sysadmin",
+    });
+
+    const token = jwt.sign(
+      { adminId: newAdmin._id, companyId: newAdmin.companyId },
+      process.env.JWT_ADMIN_SECRET,
+      { expiresIn: "1000d" }
+    );
+
+    newAdmin.token = token;
+    await newAdmin.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Admin registered successfully",
+      token,
+    });
+  } catch (error) {
+    console.error("Error registering admin:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error registering admin",
+      error: error.message,
+    });
+  }
 };
 
 //register admin and cashier
@@ -2035,20 +2263,31 @@ export const createCompanyUserController = async (req, res) => {
     const companyId = req.companyId; // Extracted from sysadmin's token by middleware
 
     if (!companyId) {
-      return res.status(403).json({ success: false, message: "Unauthorized: No companyId found" });
+      return res
+        .status(403)
+        .json({ success: false, message: "Unauthorized: No companyId found" });
     }
 
     if (!emailId || !password || !confirmPassword || !role) {
-      return res.status(400).json({ success: false, message: "All fields are required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "All fields are required" });
     }
 
     if (password !== confirmPassword) {
-      return res.status(400).json({ success: false, message: "Passwords do not match" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Passwords do not match" });
     }
 
     const existingUser = await CompanyUser.findOne({ emailId, companyId });
     if (existingUser) {
-      return res.status(409).json({ success: false, message: "User already exists under this company" });
+      return res
+        .status(409)
+        .json({
+          success: false,
+          message: "User already exists under this company",
+        });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -2072,11 +2311,13 @@ export const createCompanyUserController = async (req, res) => {
     });
   } catch (err) {
     console.error("Error creating company user:", err.message);
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 
-// login user according to the role 
+// login user according to the role
 export const loginCompanyUserController = async (req, res) => {
   try {
     const { emailId, password } = req.body;
@@ -2084,7 +2325,9 @@ export const loginCompanyUserController = async (req, res) => {
 
     const user = await CompanyUser.findOne({ emailId, companyId });
     if (!user) {
-      return res.status(404).json({ message: "User not found under this company" });
+      return res
+        .status(404)
+        .json({ message: "User not found under this company" });
     }
 
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
@@ -2137,13 +2380,19 @@ export const editAdminProfile = async (req, res) => {
 
     // Define allowed fields only
     const allowedFields = [
-      'restaurantName', 'addressLine1', 'addressLine2', 'state',
-      'contactNo', 'gstin', 'cin', 'password'
+      "restaurantName",
+      "addressLine1",
+      "addressLine2",
+      "state",
+      "contactNo",
+      "gstin",
+      "cin",
+      "password",
     ];
 
     // Pick only allowed fields from updateData
     const sanitizedUpdate = {};
-    allowedFields.forEach(field => {
+    allowedFields.forEach((field) => {
       if (updateData[field] !== undefined) {
         sanitizedUpdate[field] = updateData[field];
       }
@@ -2178,7 +2427,7 @@ export const editAdminProfile = async (req, res) => {
         // ticketFooterMessage: updatedAdmin.ticketFooterMessage,
         // startBillNo: updatedAdmin.startBillNo,
         // showLogoInReceipts: updatedAdmin.showLogoInReceipts
-      }
+      },
     });
   } catch (error) {
     console.error("Error updating admin profile:", error);
@@ -2190,52 +2439,50 @@ export const editAdminProfile = async (req, res) => {
   }
 };
 
-
 //login admin controller
 export const loginAdminController = async (req, res) => {
-    try {
-        const { emailId, password } = req.body;
+  try {
+    const { emailId, password } = req.body;
 
-        if (!emailId || !password) {
-            return res.status(400).json({
-                success: false,
-                message: "Email and password are required",
-            });
-        }
-
-        const admin = await AdminProfile.findOne({ emailId });
-
-        if (!admin) {
-            return res.status(404).json({
-                success: false,
-                message: "Admin not found",
-            });
-        }
-
-        const isMatch = await bcrypt.compare(password, admin.password);
-
-        if (!isMatch) {
-            return res.status(401).json({
-                success: false,
-                message: "Invalid password",
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: "Login successful",
-            token: admin.token,
-        });
-    } catch (error) {
-        console.error("Error in admin login:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Server error during login",
-            error: error.message,
-        });
+    if (!emailId || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
     }
-};
 
+    const admin = await AdminProfile.findOne({ emailId });
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, admin.password);
+
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid password",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token: admin.token,
+    });
+  } catch (error) {
+    console.error("Error in admin login:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Server error during login",
+      error: error.message,
+    });
+  }
+};
 
 //udate admin profile
 
@@ -2303,292 +2550,415 @@ export const loginAdminController = async (req, res) => {
 //     }
 // };
 
-
 // Get Admin Profile
 export const getAdminProfile = async (req, res) => {
-    try {
-        const { companyId } = req.params;
+  try {
+    const { companyId } = req.params;
 
-        const profile = await AdminProfile.findOne({ companyId });
-        if (!profile) {
-            return res.status(404).json({ success: false, message: 'Profile not found' });
-        }
-
-        res.status(200).json({ success: true, data: profile });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+    const profile = await AdminProfile.findOne({ companyId });
+    if (!profile) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Profile not found" });
     }
-};
 
+    res.status(200).json({ success: true, data: profile });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 // Facilities section all controllers below
 
 export const addNewFacility = async (req, res) => {
-    try {
-        const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required",
-            });
-        }
-
-        const { name, type, capacity, description, isBooked = false } = req.body;
-
-        if (!name || !type || !capacity) {
-            return res.status(400).json({ success: false, message: "Name, type, and capacity are required." });
-        }
-
-        let pictureUrls = [];
-        if (req.files && req.files.length > 0) {
-            for (const file of req.files) {
-                const imageUrl = await uploadFile(file.buffer, "facilities");
-                pictureUrls.push(imageUrl);
-            }
-        } else {
-            return res.status(400).json({ message: "At least one image file is required" });
-        }
-
-        const newFacility = await Facility.create({
-            name,
-            type,
-            capacity,
-            description,
-            pictureUrls,
-            companyId,
-            isBooked
-        });
-
-        res.status(201).json({ success: true, message: "Facility added successfully.", data: newFacility });
-    } catch (error) {
-        console.error("Error adding facility:", error.message);
-        res.status(500).json({ success: false, message: "Error adding facility.", error: error.message });
+  try {
+    const companyId = req.companyId;
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
     }
+
+    const { name, type, capacity, description, isBooked = false } = req.body;
+
+    if (!name || !type || !capacity) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Name, type, and capacity are required.",
+        });
+    }
+
+    let pictureUrls = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const imageUrl = await uploadFile(file.buffer, "facilities");
+        pictureUrls.push(imageUrl);
+      }
+    } else {
+      return res
+        .status(400)
+        .json({ message: "At least one image file is required" });
+    }
+
+    const newFacility = await Facility.create({
+      name,
+      type,
+      capacity,
+      description,
+      pictureUrls,
+      companyId,
+      isBooked,
+    });
+
+    res
+      .status(201)
+      .json({
+        success: true,
+        message: "Facility added successfully.",
+        data: newFacility,
+      });
+  } catch (error) {
+    console.error("Error adding facility:", error.message);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error adding facility.",
+        error: error.message,
+      });
+  }
 };
 
 export const getAllFacilities = async (req, res) => {
-    try {
-        const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "companyId is required" });
-        }
-
-        const facilities = await Facility.find({ companyId }).select("-__v"); // Fetch all fields except version
-
-        res.status(200).json({ success: true, message: "Facilities retrieved successfully.", data: facilities });
-    } catch (error) {
-        console.error("Error fetching facilities:", error.message);
-        res.status(500).json({ success: false, message: "Error fetching facilities.", error: error.message });
+  try {
+    const companyId = req.companyId;
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
     }
+
+    const facilities = await Facility.find({ companyId }).select("-__v"); // Fetch all fields except version
+
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Facilities retrieved successfully.",
+        data: facilities,
+      });
+  } catch (error) {
+    console.error("Error fetching facilities:", error.message);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error fetching facilities.",
+        error: error.message,
+      });
+  }
 };
 
-
 export const getFacilityById = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({
-                success: false,
-                message: "companyId is required",
-            });
-        }
-
-        const facility = await Facility.findOne({ _id: id, companyId });
-
-        if (!facility) {
-            return res.status(404).json({ success: false, message: "Facility not found." });
-        }
-
-        res.status(200).json({ success: true, message: "Facility retrieved successfully.", data: facility });
-    } catch (error) {
-        console.error("Error fetching facility:", error.message);
-        res.status(500).json({ success: false, message: "Error fetching facility.", error: error.message });
+  try {
+    const { id } = req.params;
+    const companyId = req.companyId;
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
     }
+
+    const facility = await Facility.findOne({ _id: id, companyId });
+
+    if (!facility) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Facility not found." });
+    }
+
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Facility retrieved successfully.",
+        data: facility,
+      });
+  } catch (error) {
+    console.error("Error fetching facility:", error.message);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error fetching facility.",
+        error: error.message,
+      });
+  }
 };
 
 export const updateFacility = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "companyId is required" });
-        }
-
-        const { name, type, capacity, description, isBooked } = req.body;
-
-        let pictureUrls = [];
-        if (req.files && req.files.length > 0) {
-            for (const file of req.files) {
-                const imageUrl = await uploadFile(file.buffer, "facilities");
-                pictureUrls.push(imageUrl);
-            }
-        }
-
-        const updateData = {};
-        if (name) updateData.name = name;
-        if (type) updateData.type = type;
-        if (capacity) updateData.capacity = capacity;
-        if (description) updateData.description = description;
-        if (pictureUrls.length > 0) updateData.pictureUrls = pictureUrls;
-        if (isBooked !== undefined) updateData.isBooked = isBooked;  // Update isBooked
-
-        const updatedFacility = await Facility.findOneAndUpdate({ _id: id, companyId }, updateData, { new: true });
-
-        if (!updatedFacility) {
-            return res.status(404).json({ success: false, message: "Facility not found." });
-        }
-
-        res.status(200).json({ success: true, message: "Facility updated successfully.", data: updatedFacility });
-    } catch (error) {
-        console.error("Error updating facility:", error.message);
-        res.status(500).json({ success: false, message: "Error updating facility.", error: error.message });
+  try {
+    const { id } = req.params;
+    const companyId = req.companyId;
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
     }
+
+    const { name, type, capacity, description, isBooked } = req.body;
+
+    let pictureUrls = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const imageUrl = await uploadFile(file.buffer, "facilities");
+        pictureUrls.push(imageUrl);
+      }
+    }
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (type) updateData.type = type;
+    if (capacity) updateData.capacity = capacity;
+    if (description) updateData.description = description;
+    if (pictureUrls.length > 0) updateData.pictureUrls = pictureUrls;
+    if (isBooked !== undefined) updateData.isBooked = isBooked; // Update isBooked
+
+    const updatedFacility = await Facility.findOneAndUpdate(
+      { _id: id, companyId },
+      updateData,
+      { new: true }
+    );
+
+    if (!updatedFacility) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Facility not found." });
+    }
+
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Facility updated successfully.",
+        data: updatedFacility,
+      });
+  } catch (error) {
+    console.error("Error updating facility:", error.message);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error updating facility.",
+        error: error.message,
+      });
+  }
 };
 
 export const deleteFacility = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "companyId is required" });
-        }
-
-        const deletedFacility = await Facility.findOneAndDelete({ _id: id, companyId });
-
-        if (!deletedFacility) {
-            return res.status(404).json({ success: false, message: "Facility not found." });
-        }
-
-        res.status(200).json({ success: true, message: "Facility deleted successfully." });
-    } catch (error) {
-        console.error("Error deleting facility:", error.message);
-        res.status(500).json({ success: false, message: "Error deleting facility.", error: error.message });
+  try {
+    const { id } = req.params;
+    const companyId = req.companyId;
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "companyId is required" });
     }
+
+    const deletedFacility = await Facility.findOneAndDelete({
+      _id: id,
+      companyId,
+    });
+
+    if (!deletedFacility) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Facility not found." });
+    }
+
+    res
+      .status(200)
+      .json({ success: true, message: "Facility deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting facility:", error.message);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error deleting facility.",
+        error: error.message,
+      });
+  }
 };
 
 export const bookFacility = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const companyId = req.companyId;
+  try {
+    const { id } = req.params;
+    const companyId = req.companyId;
 
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "Company ID is required." });
-        }
-
-        const facility = await Facility.findOne({ _id: id, companyId });
-
-        if (!facility) {
-            return res.status(404).json({ success: false, message: "Facility not found." });
-        }
-
-        if (facility.isBooked === true) {
-            return res.status(400).json({ success: false, message: "Facility is already booked." });
-        }
-
-        facility.isBooked = true;
-        await facility.save();
-
-        res.status(200).json({
-            success: true,
-            message: "Facility booked successfully.",
-            data: facility,
-        });
-    } catch (error) {
-        console.error("Error booking facility:", error.message);
-        res.status(500).json({ success: false, message: "Error booking facility.", error: error.message });
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Company ID is required." });
     }
-};
 
+    const facility = await Facility.findOne({ _id: id, companyId });
+
+    if (!facility) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Facility not found." });
+    }
+
+    if (facility.isBooked === true) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Facility is already booked." });
+    }
+
+    facility.isBooked = true;
+    await facility.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Facility booked successfully.",
+      data: facility,
+    });
+  } catch (error) {
+    console.error("Error booking facility:", error.message);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error booking facility.",
+        error: error.message,
+      });
+  }
+};
 
 export const unbookFacility = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const companyId = req.companyId;
+  try {
+    const { id } = req.params;
+    const companyId = req.companyId;
 
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "Company ID is required." });
-        }
-
-        const facility = await Facility.findOne({ _id: id, companyId });
-
-        if (!facility) {
-            return res.status(404).json({ success: false, message: "Facility not found." });
-        }
-
-        if (facility.isBooked === false) {
-            return res.status(400).json({ success: false, message: "Facility is already unbooked." });
-        }
-
-        facility.isBooked = false;
-        await facility.save();
-
-        res.status(200).json({
-            success: true,
-            message: "Facility unbooked successfully.",
-            data: facility,
-        });
-    } catch (error) {
-        console.error("Error unbooking facility:", error.message);
-        res.status(500).json({ success: false, message: "Error unbooking facility.", error: error.message });
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Company ID is required." });
     }
-};
 
+    const facility = await Facility.findOne({ _id: id, companyId });
+
+    if (!facility) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Facility not found." });
+    }
+
+    if (facility.isBooked === false) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Facility is already unbooked." });
+    }
+
+    facility.isBooked = false;
+    await facility.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Facility unbooked successfully.",
+      data: facility,
+    });
+  } catch (error) {
+    console.error("Error unbooking facility:", error.message);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error unbooking facility.",
+        error: error.message,
+      });
+  }
+};
 
 //adding customer to the database
 
 export const addCustomer = async (req, res) => {
-    try {
-        const companyId = req.companyId;
-        const { name, phoneNumber, walletBalance = 0, address} = req.body;
+  try {
+    const companyId = req.companyId;
+    const { name, phoneNumber, walletBalance = 0, address } = req.body;
 
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "Company ID is required." });
-        }
-
-        if (!name || !phoneNumber) {
-            return res.status(400).json({ success: false, message: "Name and phone number are required." });
-        }
-
-        // Check for duplicate phone number within the same company
-        const existingCustomer = await Customer.findOne({ phoneNumber, companyId });
-
-        if (existingCustomer) {
-            return res.status(400).json({ success: false, message: "Customer with this phone number already exists for this company." });
-        }
-
-        const newCustomer = new Customer({
-            name,
-            phoneNumber,
-            walletBalance,
-            companyId,
-            address,
-        });
-
-        await newCustomer.save();
-
-        res.status(201).json({
-            success: true,
-            message: "Customer added successfully.",
-            data: newCustomer,
-        });
-
-    } catch (error) {
-        console.error("Error adding customer:", error.message);
-        res.status(500).json({ success: false, message: "Error adding customer", error: error.message });
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Company ID is required." });
     }
+
+    if (!name || !phoneNumber) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Name and phone number are required.",
+        });
+    }
+
+    // Check for duplicate phone number within the same company
+    const existingCustomer = await Customer.findOne({ phoneNumber, companyId });
+
+    if (existingCustomer) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message:
+            "Customer with this phone number already exists for this company.",
+        });
+    }
+
+    const newCustomer = new Customer({
+      name,
+      phoneNumber,
+      walletBalance,
+      companyId,
+      address,
+    });
+
+    await newCustomer.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Customer added successfully.",
+      data: newCustomer,
+    });
+  } catch (error) {
+    console.error("Error adding customer:", error.message);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error adding customer",
+        error: error.message,
+      });
+  }
 };
 
 //edit customer api
 export const editCustomer = async (req, res) => {
   try {
-    const { customerId } = req.params; 
+    const { customerId } = req.params;
     const { name, phoneNumber, address } = req.body;
-    const companyId = req.companyId; 
+    const companyId = req.companyId;
 
     const customer = await Customer.findOne({ _id: customerId, companyId });
     if (!customer) {
-      return res.status(404).json({ success: false, message: "Customer not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Customer not found" });
     }
 
     if (name) customer.name = name;
@@ -2597,287 +2967,343 @@ export const editCustomer = async (req, res) => {
 
     await customer.save();
 
-    res.status(200).json({ success: true, message: "Customer updated successfully", data: customer });
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Customer updated successfully",
+        data: customer,
+      });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Server error", error: error.message });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
   }
 };
 
 // getting all customers
 export const getAllCustomers = async (req, res) => {
-    try {
-        const companyId = req.companyId;
+  try {
+    const companyId = req.companyId;
 
-        if (!companyId) return res.status(400).json({ success: false, message: "Company ID is required." });
+    if (!companyId)
+      return res
+        .status(400)
+        .json({ success: false, message: "Company ID is required." });
 
-        const customers = await Customer.find({ companyId });
-        res.status(200).json({ success: true, data: customers });
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Error fetching customers", error: error.message });
-    }
+    const customers = await Customer.find({ companyId });
+    res.status(200).json({ success: true, data: customers });
+  } catch (error) {
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error fetching customers",
+        error: error.message,
+      });
+  }
 };
-
 
 //getting customers via phone number
 export const getCustomerByPhone = async (req, res) => {
-    try {
-        const companyId = req.companyId;
-        const { phoneNumber } = req.params;
+  try {
+    const companyId = req.companyId;
+    const { phoneNumber } = req.params;
 
-        if (!companyId) return res.status(400).json({ success: false, message: "Company ID is required." });
+    if (!companyId)
+      return res
+        .status(400)
+        .json({ success: false, message: "Company ID is required." });
 
-        const customer = await Customer.findOne({ phoneNumber, companyId });
+    const customer = await Customer.findOne({ phoneNumber, companyId });
 
-        if (!customer) return res.status(404).json({ success: false, message: "Customer not found." });
+    if (!customer)
+      return res
+        .status(404)
+        .json({ success: false, message: "Customer not found." });
 
-        res.status(200).json({ success: true, data: customer });
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Error fetching customer", error: error.message });
-    }
+    res.status(200).json({ success: true, data: customer });
+  } catch (error) {
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error fetching customer",
+        error: error.message,
+      });
+  }
 };
 
 //adding and reducing balance
 export const updateCustomerWallet = async (req, res) => {
-    try {
-        const companyId = req.companyId;
-        const { id } = req.params;
-        const { amount } = req.body;
+  try {
+    const companyId = req.companyId;
+    const { id } = req.params;
+    const { amount } = req.body;
 
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "Company ID is required." });
-        }
-
-        if (typeof amount !== 'number') {
-            return res.status(400).json({ success: false, message: "Amount must be a number." });
-        }
-
-        const customer = await Customer.findOne({ _id: id, companyId });
-
-        if (!customer) {
-            return res.status(404).json({ success: false, message: "Customer not found." });
-        }
-
-        // Check for insufficient funds if deducting
-        // if (amount < 0 && customer.walletBalance + amount < 0) {
-        //     return res.status(400).json({ success: false, message: "Insufficient wallet balance." });
-        // }
-
-        customer.walletBalance += amount;
-        await customer.save();
-
-        res.status(200).json({
-            success: true,
-            message: `Customer wallet updated by ${amount >= 0 ? 'adding' : 'deducting'} ₹${Math.abs(amount)}.`,
-            data: customer,
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error updating wallet balance",
-            error: error.message,
-        });
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Company ID is required." });
     }
+
+    if (typeof amount !== "number") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Amount must be a number." });
+    }
+
+    const customer = await Customer.findOne({ _id: id, companyId });
+
+    if (!customer) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Customer not found." });
+    }
+
+    // Check for insufficient funds if deducting
+    // if (amount < 0 && customer.walletBalance + amount < 0) {
+    //     return res.status(400).json({ success: false, message: "Insufficient wallet balance." });
+    // }
+
+    customer.walletBalance += amount;
+    await customer.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Customer wallet updated by ${
+        amount >= 0 ? "adding" : "deducting"
+      } ₹${Math.abs(amount)}.`,
+      data: customer,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error updating wallet balance",
+      error: error.message,
+    });
+  }
 };
-
-
 
 //edit customer
 export const updateCustomerDetails = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const companyId = req.companyId;
+  try {
+    const { id } = req.params;
+    const companyId = req.companyId;
 
-        const { name, phoneNumber, address} = req.body;
+    const { name, phoneNumber, address } = req.body;
 
-        // if (!name || !phoneNumber) {
-        //     return res.status(400).json({ success: false, message: "Name and phone number are required." });
-        // }
+    // if (!name || !phoneNumber) {
+    //     return res.status(400).json({ success: false, message: "Name and phone number are required." });
+    // }
 
-        const customer = await Customer.findOne({ _id: id, companyId });
+    const customer = await Customer.findOne({ _id: id, companyId });
 
-        if (!customer) {
-            return res.status(404).json({ success: false, message: "Customer not found or does not belong to your company." });
-        }
-
-        if (name) customer.name = name;
-        if(phoneNumber) customer.phoneNumber = phoneNumber;
-        if (address) customer.address = address;
-
-        await customer.save();
-
-        res.status(200).json({ success: true, message: "Customer details updated successfully.", data: customer });
-
-    } catch (error) {
-        console.error("Error updating customer details:", error.message);
-        res.status(500).json({ success: false, message: "Error updating customer details.", error: error.message });
+    if (!customer) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Customer not found or does not belong to your company.",
+        });
     }
+
+    if (name) customer.name = name;
+    if (phoneNumber) customer.phoneNumber = phoneNumber;
+    if (address) customer.address = address;
+
+    await customer.save();
+
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Customer details updated successfully.",
+        data: customer,
+      });
+  } catch (error) {
+    console.error("Error updating customer details:", error.message);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error updating customer details.",
+        error: error.message,
+      });
+  }
 };
 
 //delete customers
 export const deleteCustomer = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const companyId = req.companyId;
+  try {
+    const { id } = req.params;
+    const companyId = req.companyId;
 
-        if (!companyId) {
-            return res.status(400).json({ success: false, message: "Company ID is required." });
-        }
-
-        if (!id) {
-            return res.status(400).json({ success: false, message: "Customer ID is required." });
-        }
-
-        const customer = await Customer.findOne({ _id: id, companyId });
-
-        if (!customer) {
-            return res.status(404).json({ success: false, message: "Customer not found." });
-        }
-
-        if (customer.walletBalance < 0) {
-            return res.status(400).json({
-                success: false,
-                message: "Customer cannot be deleted because their wallet balance is negative.",
-            });
-        }
-
-        await Customer.deleteOne({ _id: id });
-
-        res.status(200).json({
-            success: true,
-            message: "Customer deleted successfully.",
-        });
-
-    } catch (error) {
-        console.error("Error deleting customer:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Error deleting customer",
-            error: error.message,
-        });
+    if (!companyId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Company ID is required." });
     }
-};
 
+    if (!id) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Customer ID is required." });
+    }
+
+    const customer = await Customer.findOne({ _id: id, companyId });
+
+    if (!customer) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Customer not found." });
+    }
+
+    if (customer.walletBalance < 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Customer cannot be deleted because their wallet balance is negative.",
+      });
+    }
+
+    await Customer.deleteOne({ _id: id });
+
+    res.status(200).json({
+      success: true,
+      message: "Customer deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Error deleting customer:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting customer",
+      error: error.message,
+    });
+  }
+};
 
 //get previous orders apis
 export const getAllOnlineOrders = async (req, res) => {
-    try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = 5;
-        const skip = (page - 1) * limit;
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 5;
+    const skip = (page - 1) * limit;
 
-        const totalOrders = await Order.countDocuments();
+    const totalOrders = await Order.countDocuments();
 
-        const orders = await Order.find()
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limit);
+    const orders = await Order.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-        res.status(200).json({
-            success: true,
-            currentPage: page,
-            totalPages: Math.ceil(totalOrders / limit),
-            totalOrders,
-            data: orders,
-        });
-    } catch (error) {
-        console.error("Error fetching online orders:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Failed to fetch online orders",
-            error: error.message,
-        });
-    }
+    res.status(200).json({
+      success: true,
+      currentPage: page,
+      totalPages: Math.ceil(totalOrders / limit),
+      totalOrders,
+      data: orders,
+    });
+  } catch (error) {
+    console.error("Error fetching online orders:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch online orders",
+      error: error.message,
+    });
+  }
 };
 
 //top deals controller below
 
 export const addTopDealController = async (req, res) => {
-    try {
-        const { itemId, customPrice } = req.body;
-        const companyId = req.companyId;
+  try {
+    const { itemId, customPrice } = req.body;
+    const companyId = req.companyId;
 
-        if (!itemId) {
-            return res.status(400).json({
-                success: false,
-                message: "itemId is required"
-            });
-        }
-
-        const newTopDeal = await TopDeal.create({
-            itemId,
-            customPrice: customPrice || null,
-            companyId
-        });
-
-        res.status(201).json({
-            success: true,
-            message: "Top Deal added successfully",
-            data: newTopDeal
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error adding top deal",
-            error: error.message
-        });
+    if (!itemId) {
+      return res.status(400).json({
+        success: false,
+        message: "itemId is required",
+      });
     }
+
+    const newTopDeal = await TopDeal.create({
+      itemId,
+      customPrice: customPrice || null,
+      companyId,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Top Deal added successfully",
+      data: newTopDeal,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error adding top deal",
+      error: error.message,
+    });
+  }
 };
 
 export const getTopDealsController = async (req, res) => {
-    try {
-        const companyId = req.companyId;
+  try {
+    const companyId = req.companyId;
 
-        const topDeals = await TopDeal.find({ companyId, isActive: true }).populate('itemId');
+    const topDeals = await TopDeal.find({ companyId, isActive: true }).populate(
+      "itemId"
+    );
 
-        const response = topDeals.map(deal => ({
-            _id: deal._id,
-            itemName: deal.itemId.itemName,
-            image: deal.itemId.image,
-            price: deal.customPrice ?? deal.itemId.price,
-            isActive: deal.isActive
-        }));
+    const response = topDeals.map((deal) => ({
+      _id: deal._id,
+      itemName: deal.itemId.itemName,
+      image: deal.itemId.image,
+      price: deal.customPrice ?? deal.itemId.price,
+      isActive: deal.isActive,
+    }));
 
-        res.status(200).json({
-            success: true,
-            message: "Top Deals fetched successfully",
-            data: response
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error fetching top deals",
-            error: error.message
-        });
-    }
+    res.status(200).json({
+      success: true,
+      message: "Top Deals fetched successfully",
+      data: response,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching top deals",
+      error: error.message,
+    });
+  }
 };
 
-
 export const deactivateTopDealController = async (req, res) => {
-    try {
-        const { topDealId } = req.params;
+  try {
+    const { topDealId } = req.params;
 
-        const topDeal = await TopDeal.findById(topDealId);
-        if (!topDeal) {
-            return res.status(404).json({
-                success: false,
-                message: "Top deal not found",
-            });
-        }
-
-        topDeal.isActive = false;
-        await topDeal.save();
-
-        res.status(200).json({
-            success: true,
-            message: "Top deal deactivated successfully",
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Failed to deactivate top deal",
-            error: error.message,
-        });
+    const topDeal = await TopDeal.findById(topDealId);
+    if (!topDeal) {
+      return res.status(404).json({
+        success: false,
+        message: "Top deal not found",
+      });
     }
+
+    topDeal.isActive = false;
+    await topDeal.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Top deal deactivated successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to deactivate top deal",
+      error: error.message,
+    });
+  }
 };
 
 // Printer Controllers
@@ -2933,16 +3359,16 @@ export const deactivateTopDealController = async (req, res) => {
 //   }
 // };
 
-
- export const assignPrinters = async (req, res) => {
+export const assignPrinters = async (req, res) => {
   try {
-    const companyId = req.companyId; 
-    const assignments = req.body; 
+    const companyId = req.companyId;
+    const assignments = req.body;
 
     if (!assignments || typeof assignments !== "object") {
       return res.status(400).json({
         success: false,
-        message: "Invalid request body. Expected key-value pairs of operatorId: printerName",
+        message:
+          "Invalid request body. Expected key-value pairs of operatorId: printerName",
       });
     }
 
@@ -3043,7 +3469,8 @@ export const updatePrinterForOperator = async (req, res) => {
     if (!assignment) {
       return res.status(404).json({
         success: false,
-        message: "No printer assignment found for the given operator in your company",
+        message:
+          "No printer assignment found for the given operator in your company",
       });
     }
 
@@ -3066,8 +3493,6 @@ export const updatePrinterForOperator = async (req, res) => {
     });
   }
 };
-
-
 
 export const getAllPrinterMappings = async (req, res) => {
   try {
@@ -3102,10 +3527,12 @@ export const getAllPrinterMappings = async (req, res) => {
 export const addKitchen = async (req, res) => {
   try {
     const { name } = req.body;
-    const companyId = req.companyId; 
+    const companyId = req.companyId;
 
     if (!name) {
-      return res.status(400).json({ success: false, message: "Kitchen name is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Kitchen name is required" });
     }
 
     if (!companyId) {
@@ -3127,7 +3554,7 @@ export const addKitchen = async (req, res) => {
 //get kitchen api
 export const getKitchens = async (req, res) => {
   try {
-    const  companyId  = req.companyId;
+    const companyId = req.companyId;
 
     const kitchens = await Kitchen.find({ companyId });
 
@@ -3141,28 +3568,198 @@ export const getKitchens = async (req, res) => {
 export const deleteKitchen = async (req, res) => {
   try {
     const { id } = req.params;
-    const companyId  = req.companyId;
+    const companyId = req.companyId;
 
     const deleted = await Kitchen.findOneAndDelete({ _id: id, companyId });
 
     if (!deleted) {
-      return res.status(404).json({ success: false, message: "Kitchen not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Kitchen not found" });
     }
 
-    res.status(200).json({ success: true, message: "Kitchen deleted successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Kitchen deleted successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
+export const downloadCategoryItemTemplate = async (req, res) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Template");
 
+    const headers = [
+      { header: "Item Name", key: "itemName", width: 25 },
+      { header: "Type", key: "type", width: 15 },
+      { header: "Kitchen", key: "kitchen", width: 20 },
+      { header: "Price", key: "price", width: 10 },
+      { header: "Description", key: "description", width: 30 },
+      { header: "Image URL", key: "imageUrl", width: 30 },
+    ];
 
+    worksheet.columns = headers;
 
+    worksheet.getRow(1).eachCell((cell) => {
+      cell.font = { bold: true };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "D3D3D3" },
+      };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    });
 
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=category_items_template.xlsx"
+    );
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
 
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error("Error generating template:", error.message);
+    res
+      .status(500)
+      .json({ message: "Error generating template", error: error.message });
+  }
+};
 
+//   export const uploadCategoryItemsBulk = async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({ message: "Please upload an Excel file" });
+//     }
 
+//     const companyId = req.companyId;
+//     const categoryId = req.params.categoryId;
 
+//     if (!companyId) {
+//       return res.status(400).json({ message: "companyId is required" });
+//     }
 
+//     const category = await Category.findById(categoryId);
+//     if (!category) {
+//       return res.status(404).json({ message: "Category not found" });
+//     }
 
+//     // Read Excel
+//     const fileBuffer = fs.readFileSync(req.file.path);
+//     const workbook = XLSX.read(fileBuffer, { type: "buffer" });
+//     const sheetName = workbook.SheetNames[0];
+//     const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
+//     if (!rows.length) {
+//       return res.status(400).json({ message: "Excel file is empty" });
+//     }
+
+//     let addedItems = [];
+
+//     for (const row of rows) {
+//       const { itemName, type, kitchen, price, description, imageUrl } = row;
+
+//       // check duplicate
+//       const existingItem = await CategoryItem.findOne({
+//         itemName,
+//         type,
+//         companyId,
+//       });
+//       if (existingItem) continue;
+
+//       let finalImageUrl = imageUrl || null;
+
+//       // If you want to support local upload from buffer (optional)
+//       if (req.file && req.file.buffer && !imageUrl) {
+//         finalImageUrl = await uploadFile(req.file.buffer, "categories");
+//       }
+
+//       const newItem = await CategoryItem.create({
+//         itemName,
+//         type,
+//         kitchen,
+//         price,
+//         description,
+//         image: finalImageUrl,
+//         category: categoryId,
+//         companyId,
+//       });
+
+//       category.items.push(newItem._id);
+//       addedItems.push(newItem);
+//     }
+
+//     await category.save();
+
+//     res.status(201).json({
+//       message: `${addedItems.length} items uploaded successfully`,
+//       items: addedItems,
+//     });
+//   } catch (error) {
+//     console.error("Error bulk uploading items:", error.message);
+//     res.status(500).json({ message: "Error uploading items", error: error.message });
+//   }
+// };
+
+export const uploadCategoryItemsBulk = async (req, res) => {
+  try {
+    const filePath = req.file.path;
+    const workbook = XLSX.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    if (!sheetData.length) {
+      return res.status(400).json({ message: "Excel file is empty" });
+    }
+
+    let results = [];
+
+    for (let row of sheetData) {
+        const fakeReq = {
+          body: {
+            itemName: row.itemName || row["Item Name"],
+            type: row.type || row["Type"],
+            kitchen: row.kitchen || row["Kitchen"],
+            price: row.price || row["Price"],
+            categoryId: req.params.categoryId,
+            description: row.description || row["Description"] || "",
+            image: row.image || row["Image"] || "https://your-cdn.com/default-item.png",
+          },
+          companyId: req.companyId,
+          file: null,
+        };
+      
+        const fakeRes = {
+          status: (code) => ({
+            json: (data) => results.push({ code, ...data }),
+          }),
+        };
+      
+        await addCategoryItem(fakeReq, fakeRes);
+      }
+      
+
+    fs.unlinkSync(filePath); 
+
+    res.status(201).json({
+      message: "Bulk upload completed",
+      results,
+    });
+  } catch (error) {
+    console.error("Error in bulk upload:", error);
+    res
+      .status(500)
+      .json({ message: "Error uploading items", error: error.message });
+  }
+};

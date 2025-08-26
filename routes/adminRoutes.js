@@ -1,11 +1,11 @@
 import express  from "express";
 import userAuth from '../middlewares/authMiddlewares.js'
 // import { uploadToBackblaze, uploadFileToBackblaze } from '../middlewares/multerBackblaze.js';
-import upload from '../middlewares/fileUploadMiddlewares.js';
+import excelUpload from '../middlewares/fileUploadMiddlewares.js';
 import multer from 'multer';
 import path from 'path';
 import resetStocksMiddleware from "../middlewares/resetStocksMiddleware.js";
-import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange,addCustomer,getAllCustomers,getCustomerByPhone,updateCustomerWallet,updateCustomerDetails,getAllOnlineOrders,getOnlineRevenue,addTopDealController,getTopDealsController,deactivateTopDealController,getAllCategoryItems,deleteCustomer,generateBillsSummaryPdf, generateFakeBillsSummaryPdf,loginAdminController, assignPrinters, updatePrinterForOperator, getAllPrinterMappings, editAdminProfile, healthCheck,createCompanyUserController,loginCompanyUserController,addKitchen,getKitchens,deleteKitchen,editCustomer} from "../controller/adminController.js";
+import {addCategoryController,addCategoryItem,getAllCategories,editCategoryController,editCategoryItemController,deleteCategoryController,deleteCategoryItemController,addTableController,deleteTableController,addMenuItemsToTable,getAllTables,getCategoryItems,generateKOTController,addAdController,getActiveAdsController,deactivateAdController,getAdminProfile,registerAdminController,generateBillController,generateNewBillController,addStockController,generateOnlineKOTController,generateOnlineBillController,addNewFacility,getAllFacilities,getFacilityById,updateFacility,deleteFacility,bookFacility,unbookFacility,showBillController,getRevenueByDateRange,getReducedRevenueByDateRange,addCustomer,getAllCustomers,getCustomerByPhone,updateCustomerWallet,updateCustomerDetails,getAllOnlineOrders,getOnlineRevenue,addTopDealController,getTopDealsController,deactivateTopDealController,getAllCategoryItems,deleteCustomer,generateBillsSummaryPdf, generateFakeBillsSummaryPdf,loginAdminController, assignPrinters, updatePrinterForOperator, getAllPrinterMappings, editAdminProfile, healthCheck,createCompanyUserController,loginCompanyUserController,addKitchen,getKitchens,deleteKitchen,editCustomer,downloadCategoryItemTemplate,uploadCategoryItemsBulk,updateBillController} from "../controller/adminController.js";
 
 import { companyMiddleware } from "../middlewares/companyAuthMiddleware.js";
 import { roleMiddleware } from "../middlewares/companyRoleMiddleware.js";
@@ -69,6 +69,7 @@ router.post("/reserve-table/:tableId",companyMiddleware, addMenuItemsToTable);
 
 //kot and billing rutes
 router.post("/generate-table-kot",companyMiddleware,generateKOTController)
+router.put("/update-bill/:tableId", companyMiddleware, updateBillController);
 router.get("/show-bill/:tableId",companyMiddleware,showBillController)
 router.post("/generate-online-kot",companyMiddleware,generateOnlineKOTController)
 router.post("/generate-table-bill",companyMiddleware,generateBillController)
@@ -131,6 +132,13 @@ router.get('/get-printers',companyMiddleware, getAllPrinterMappings);
 router.post('/add-kitchen',companyMiddleware,addKitchen);
 router.get('/get-kitchens',companyMiddleware,getKitchens);
 router.delete('/delete-kitchen/:id',companyMiddleware,deleteKitchen);
+router.get("/download-template", downloadCategoryItemTemplate);
+router.post(
+    "/categories/:categoryId/items/bulk-upload",
+    companyMiddleware,
+    excelUpload.single("file"),
+    uploadCategoryItemsBulk
+  );
 
 
 

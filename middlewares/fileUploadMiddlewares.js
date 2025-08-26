@@ -1,27 +1,34 @@
-import multer from 'multer';
-import path from 'path';
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+// ensure uploads dir exists
+const uploadDir = "uploads/";
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/'); // Save in 'uploads' directory
-    },
-    filename: (req, file, cb) => {
-        cb(null, `${Date.now()}-${file.originalname}`);
-    }
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
 });
 
 const fileFilter = (req, file, cb) => {
-    const fileTypes = /jpeg|jpg|png|gif/;
-    const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = fileTypes.test(file.mimetype);
-
-    if (extname && mimetype) {
-        return cb(null, true);
-    } else {
-        cb(new Error('Images only!'));
-    }
+  const fileTypes = /xlsx|xls/;
+  const extname = fileTypes.test(
+    path.extname(file.originalname).toLowerCase()
+  );
+  if (extname) {
+    cb(null, true);
+  } else {
+    cb(new Error("Excel files only!"));
+  }
 };
 
-const upload = multer({ storage, fileFilter });
+const excelUploader = multer({ storage, fileFilter });
 
-export default upload;
+export default excelUploader;
