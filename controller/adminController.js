@@ -3586,11 +3586,13 @@ export const deleteKitchen = async (req, res) => {
   }
 };
 
+
 export const downloadCategoryItemTemplate = async (req, res) => {
   try {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Template");
 
+    // Define headers
     const headers = [
       { header: "Item Name", key: "itemName", width: 25 },
       { header: "Type", key: "type", width: 15 },
@@ -3599,9 +3601,9 @@ export const downloadCategoryItemTemplate = async (req, res) => {
       { header: "Description", key: "description", width: 30 },
       { header: "Image URL", key: "imageUrl", width: 30 },
     ];
-
     worksheet.columns = headers;
 
+    // Style header row
     worksheet.getRow(1).eachCell((cell) => {
       cell.font = { bold: true };
       cell.fill = {
@@ -3618,9 +3620,18 @@ export const downloadCategoryItemTemplate = async (req, res) => {
       };
     });
 
+
+    const typeColNum = worksheet.getColumn("type").number;
+    for (let row = 2; row <= 100; row++) {
+      worksheet.getRow(row).getCell(typeColNum).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: ['"veg,non-Veg"'],
+      };
+    }
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=category_items_template.xlsx"
+      "attachment; filename=CategoryItemsTemplate.xlsx"
     );
     res.setHeader(
       "Content-Type",
@@ -3636,6 +3647,7 @@ export const downloadCategoryItemTemplate = async (req, res) => {
       .json({ message: "Error generating template", error: error.message });
   }
 };
+
 
 //   export const uploadCategoryItemsBulk = async (req, res) => {
 //   try {
