@@ -13,6 +13,7 @@ import ViewCart from './components/Cart/ViewCart';
 import MyOrders from './components/Sidebar/MyOrders';
 import Checkout from './components/Order/Checkout';
 import { StatusBar } from 'expo-status-bar';
+import OrderConfirmed from './components/Order/OrderConfirmedScreen';
 
 const Stack = createStackNavigator();
 
@@ -120,6 +121,7 @@ const App = () => {
             </Stack.Screen>
             <Stack.Screen name="ViewCart" component={ViewCart} />
             <Stack.Screen name="Checkout" component={Checkout} />
+            <Stack.Screen name="OrderConfirmed" component={OrderConfirmed} />
             <Stack.Screen name="MyOrders">
               {(props) => (
                 <ScreenWithFooter>

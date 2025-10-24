@@ -243,7 +243,6 @@ const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
       
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <TouchableOpacity onPress={toggleSidebar}>
@@ -269,7 +268,6 @@ const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Icon name="search" size={20} color="#999" style={styles.searchIcon} />
           <TextInput 
@@ -279,7 +277,6 @@ const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           />
         </View>
 
-        {/* Categories */}
         <Text style={styles.sectionTitle}>Categories</Text>
         {loading ? (
           <ActivityIndicator size="large" color="#fff" style={styles.loader} />
@@ -294,7 +291,6 @@ const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           />
         )}
 
-        {/* Banners */}
         <Text style={styles.sectionTitle}>Special Offers</Text>
         <View style={styles.bannerWrapper}>
           <Animated.FlatList
@@ -312,8 +308,6 @@ const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           />
           {renderBannerIndicator()}
         </View>
-
-        {/* Top Deals */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Top Deals</Text>
           <TouchableOpacity>

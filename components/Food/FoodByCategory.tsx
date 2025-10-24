@@ -12,11 +12,12 @@ import {
   Easing,
   Modal,
   Dimensions,
-  ScrollView,
+  SafeAreaView, 
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
@@ -29,6 +30,7 @@ const FoodByCategory = ({ route }) => {
   const [showNotification, setShowNotification] = useState(false);
   const slideAnim = useRef(new Animated.Value(-100)).current;
   const navigation = useNavigation();
+
 
   const fetchFoodItems = async () => {
     if (!categoryId) {
@@ -53,7 +55,7 @@ const FoodByCategory = ({ route }) => {
         if (Array.isArray(result.data) && result.data.length > 0) {
           setFoodItems(result.data);
         } else {
-          alert('No items found for this category.');
+          console.warn('No items found for this category.');
           setFoodItems([]);
         }
       } else {
@@ -112,7 +114,7 @@ const FoodByCategory = ({ route }) => {
       }
 
       for (const item of itemsToAdd) {
-        const response = await fetch('https://efc-app-1.onrender.com/api/v1/cart/add', {
+        const response = await fetch('https://efc-user-backend.onrender.com/api/v1/cart/add', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -128,21 +130,19 @@ const FoodByCategory = ({ route }) => {
         }
       }
 
-      // Show notification
       setShowNotification(true);
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 500,
-        easing: Easing.ease,
+        easing: Easing.out(Easing.ease),
         useNativeDriver: true,
       }).start();
 
-      // Hide notification after 2 seconds
       setTimeout(() => {
         Animated.timing(slideAnim, {
           toValue: -100,
           duration: 500,
-          easing: Easing.ease,
+          easing: Easing.in(Easing.ease),
           useNativeDriver: true,
         }).start(() => setShowNotification(false));
       }, 2000);
@@ -161,192 +161,174 @@ const FoodByCategory = ({ route }) => {
   const totalItemsInCart = Object.values(itemQuantities).reduce((sum, quantity) => sum + quantity, 0);
 
   const renderFoodItem = ({ item }) => (
-    <View style={styles.cardContainer}>
-      <Image source={{ uri: item.image }} style={styles.foodImage} />
-      <View style={styles.infoContainer}>
-        <Text style={styles.foodName} numberOfLines={1} ellipsizeMode="tail">
+    <View style={enhancedStyles.cardContainer}>
+      <Image source={{ uri: item.image }} style={enhancedStyles.foodImage} />
+      <View style={enhancedStyles.infoContainer}>
+        <Text style={enhancedStyles.foodName} numberOfLines={2} ellipsizeMode="tail">
           {item.itemName}
         </Text>
-        <Text style={styles.price}>{`₹${item.price}`}</Text>
+        <Text style={enhancedStyles.price}>{`₹${item.price}`}</Text>
       </View>
       {itemQuantities[item._id] ? (
-        <View style={styles.quantityWrapper}>
+        <View style={enhancedStyles.quantityWrapper}>
           <TouchableOpacity 
             onPress={() => handleDecrement(item)} 
-            style={styles.quantityButton}
+            style={enhancedStyles.quantityButton}
             activeOpacity={0.7}
           >
-            <Icon name="remove" size={20} color="#FFFFFF" />
+            <Icon name="remove-outline" size={20} color="#FFFFFF" />
           </TouchableOpacity>
-          <View style={styles.quantityDisplay}>
-            <Text style={styles.quantityText}>{itemQuantities[item._id]}</Text>
+          <View style={enhancedStyles.quantityDisplay}>
+            <Text style={enhancedStyles.quantityText}>{itemQuantities[item._id]}</Text>
           </View>
           <TouchableOpacity 
             onPress={() => handleIncrement(item)} 
-            style={styles.quantityButton}
+            style={enhancedStyles.quantityButton}
             activeOpacity={0.7}
           >
-            <Icon name="add" size={20} color="#FFFFFF" />
+            <Icon name="add-outline" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       ) : (
         <TouchableOpacity 
-          style={styles.addButton} 
+          style={enhancedStyles.addButton} 
           onPress={() => handleAdd(item)}
           activeOpacity={0.7}
         >
-          <Text style={styles.addButtonText}>ADD</Text>
+          <Icon name="add" size={20} color="#FFFFFF" />
+          <Text style={enhancedStyles.addButtonText}>ADD</Text>
         </TouchableOpacity>
       )}
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      {/* Header with back button and category name */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-          activeOpacity={0.7}
-        >
-          <Icon name="chevron-back" size={28} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{categoryName}</Text>
-        <TouchableOpacity 
-          onPress={() => navigation.navigate('ViewCart')} 
-          style={styles.cartIconContainer}
-          activeOpacity={0.7}
-        >
-          <Icon name="cart" size={24} color="#FFFFFF" />
-          {totalItemsInCart > 0 && (
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>{totalItemsInCart}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Icon name="search" size={20} color="#FFFFFF" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search dishes..."
-          placeholderTextColor="rgba(255,255,255,0.7)"
-          value={searchText}
-          onChangeText={setSearchText}
-        />
-      </View>
-
-      {/* Content Area */}
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FFFFFF" />
-          <Text style={styles.loadingText}>Loading delicious items...</Text>
+    <LinearGradient
+      colors={['#a00000', '#600000']}
+      style={enhancedStyles.container}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
+    >
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={enhancedStyles.header}>
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()}
+            style={enhancedStyles.backButton}
+            activeOpacity={0.7}
+          >
+            <Icon name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={enhancedStyles.headerTitle}>{categoryName}</Text>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('ViewCart')} 
+            style={enhancedStyles.cartIconContainer}
+            activeOpacity={0.7}
+          >
+            <Icon name="basket-outline" size={24} color="#FFFFFF" />
+            {totalItemsInCart > 0 && (
+              <View style={enhancedStyles.cartBadge}>
+                <Text style={enhancedStyles.cartBadgeText}>{totalItemsInCart}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
-      ) : (
-        <>
-          <FlatList
-            data={filteredFoodItems}
-            renderItem={renderFoodItem}
-            keyExtractor={(item) => item._id}
-            contentContainerStyle={styles.listContainer}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Icon name="fast-food" size={60} color="rgba(255,255,255,0.5)" />
-                <Text style={styles.emptyText}>No items found</Text>
-                <Text style={styles.emptySubText}>Try a different search term</Text>
-              </View>
-            }
-          />
-          
-          {/* Add to Cart Button (floating) */}
-          {Object.keys(itemQuantities).length > 0 && (
-            <TouchableOpacity 
-              style={styles.cartButton} 
-              onPress={handleAddToCart}
-              activeOpacity={0.8}
-            >
-              <View style={styles.cartButtonContent}>
-                <Text style={styles.cartButtonText}>Add to Cart</Text>
-                <View style={styles.cartButtonBadge}>
-                  <Text style={styles.cartButtonBadgeText}>{totalItemsInCart}</Text>
-                </View>
-                <Icon name="arrow-forward" size={20} color="#FFFFFF" />
-              </View>
-            </TouchableOpacity>
-          )}
-        </>
-      )}
 
-      {/* Notification Popup */}
+        <View style={enhancedStyles.searchContainer}>
+          <Icon name="search" size={20} color="#666" style={enhancedStyles.searchIcon} />
+          <TextInput
+            style={enhancedStyles.searchInput}
+            placeholder="Search dishes..."
+            placeholderTextColor="#666"
+            value={searchText}
+            onChangeText={setSearchText}
+          />
+        </View>
+        {isLoading ? (
+          <View style={enhancedStyles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FFD700" />
+            <Text style={enhancedStyles.loadingText}>Loading delicious items...</Text>
+          </View>
+        ) : (
+          <View style={enhancedStyles.listWrapper}>
+            <FlatList
+              data={filteredFoodItems}
+              renderItem={renderFoodItem}
+              keyExtractor={(item) => item._id}
+              contentContainerStyle={enhancedStyles.listContainer}
+              ListEmptyComponent={
+                <View style={enhancedStyles.emptyContainer}>
+                  <Icon name="fast-food-outline" size={80} color="rgba(255,255,255,0.7)" />
+                  <Text style={enhancedStyles.emptyText}>No items found</Text>
+                  <Text style={enhancedStyles.emptySubText}>Try a different search term</Text>
+                </View>
+              }
+            />
+          </View>
+        )}
+
+        {Object.keys(itemQuantities).length > 0 && (
+          <TouchableOpacity 
+            style={enhancedStyles.cartButton} 
+            onPress={handleAddToCart}
+            activeOpacity={0.8}
+          >
+            <View style={enhancedStyles.cartButtonContent}>
+              <Text style={enhancedStyles.cartButtonText}>Add to Cart</Text>
+              <View style={enhancedStyles.cartButtonBadge}>
+                <Text style={enhancedStyles.cartButtonBadgeText}>{totalItemsInCart}</Text>
+              </View>
+              <Icon name="chevron-forward-outline" size={24} color="#a00000" />
+            </View>
+          </TouchableOpacity>
+        )}
+      </SafeAreaView>
       <Modal
         transparent={true}
         visible={showNotification}
         animationType="none"
         onRequestClose={() => setShowNotification(false)}
       >
-        <View style={styles.notificationContainer}>
+        <View style={enhancedStyles.notificationContainer}>
           <Animated.View
             style={[
-              styles.notification,
+              enhancedStyles.notification,
               { transform: [{ translateY: slideAnim }] },
             ]}
           >
-            <Icon name="checkmark-circle" size={24} color="#FFFFFF" />
-            <Text style={styles.notificationText}>Items added to cart!</Text>
+            <Icon name="checkmark-circle-outline" size={24} color="#FFFFFF" />
+            <Text style={enhancedStyles.notificationText}>Items added to cart!</Text>
           </Animated.View>
         </View>
       </Modal>
-    </View>
+    </LinearGradient>
   );
 };
 
-const styles = StyleSheet.create({
+// --- ENHANCED STYLESHEET ---
+const enhancedStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#D32F2F', // Rich red background
   },
+  // --- Header ---
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 16,
-    backgroundColor: '#B71C1C', // Darker red for header
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
   },
   backButton: {
     padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   headerTitle: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     flex: 1,
     textAlign: 'center',
-    marginHorizontal: 12,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 25,
-    marginHorizontal: 16,
-    marginVertical: 12,
-    paddingHorizontal: 16,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    color: '#FFFFFF',
-    fontSize: 16,
-    paddingVertical: 12,
+    marginHorizontal: 10,
   },
   cartIconContainer: {
     position: 'relative',
@@ -356,88 +338,121 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: '#FFC107',
+    backgroundColor: '#FFD700', 
     borderRadius: 10,
     width: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
   cartBadgeText: {
-    color: '#000000',
+    color: '#a00000',
     fontSize: 12,
     fontWeight: 'bold',
   },
-  listContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 100,
-  },
-  cardContainer: {
+  searchContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFEBEE', // Light red/pink background for cards
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    height: 50,
+    marginHorizontal: 20,
+    marginBottom: 25,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 5,
     elevation: 3,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    height: '100%',
+    paddingVertical: 0,
+  },
+  listWrapper: {
+    flex: 1,
+    backgroundColor: '#f8f8f8', 
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+  },
+  listContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 30,
+    paddingBottom: 120, 
+  },
+  cardContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 15,
+    marginBottom: 15,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   foodImage: {
     width: 80,
     height: 80,
-    borderRadius: 8,
-    marginRight: 16,
+    borderRadius: 10,
+    marginRight: 15,
+    resizeMode: 'cover',
   },
   infoContainer: {
     flex: 1,
   },
   foodName: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
     marginBottom: 4,
     color: '#333',
-    maxWidth: width - 180, // Ensure text doesn't overflow
   },
   price: {
     fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#D32F2F',
+    fontWeight: '700',
+    color: '#a00000',
   },
   addButton: {
-    backgroundColor: '#388E3C',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#a00000',
     borderRadius: 8,
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    alignSelf: 'center',
-    marginLeft: 8,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+    marginLeft: 10,
   },
   addButtonText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 14,
+    marginLeft: 5,
   },
   quantityWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#388E3C',
+    backgroundColor: '#a00000',
     alignSelf: 'center',
-    marginLeft: 8,
+    marginLeft: 10,
   },
   quantityButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#2E7D32',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
   quantityDisplay: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#388E3C',
+    paddingHorizontal: 8,
   },
   quantityText: {
     color: '#FFFFFF',
@@ -448,53 +463,57 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 80,
+    backgroundColor: 'transparent',
   },
   emptyText: {
-    color: '#FFFFFF',
-    fontSize: 18,
+    color: '#333',
+    fontSize: 20,
     fontWeight: 'bold',
-    marginTop: 16,
+    marginTop: 20,
   },
   emptySubText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 14,
-    marginTop: 4,
+    color: '#666',
+    fontSize: 15,
+    marginTop: 5,
   },
   cartButton: {
     position: 'absolute',
-    bottom: 20,
-    left: 16,
-    right: 16,
-    backgroundColor: '#388E3C',
-    borderRadius: 25,
-    paddingVertical: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+    bottom: 25,
+    left: 20,
+    right: 20,
+    backgroundColor: '#FFD700', 
+    borderRadius: 15,
+    paddingVertical: 18,
+    shadowColor: '#a00000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 10,
   },
   cartButtonContent: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
   },
   cartButtonText: {
-    color: '#FFFFFF',
+    color: '#a00000',
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 17,
   },
   cartButtonBadge: {
-    backgroundColor: '#FFC107',
+    backgroundColor: '#a00000',
     borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginLeft: 8,
-    marginRight: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    minWidth: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
   cartButtonBadgeText: {
-    color: '#000000',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -502,6 +521,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   loadingText: {
     color: '#FFFFFF',
@@ -514,25 +534,26 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
-    paddingTop: 50,
+    paddingTop: 120, 
+    zIndex: 999,
   },
   notification: {
     backgroundColor: '#388E3C',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowRadius: 6,
+    elevation: 8,
   },
   notificationText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
-    marginLeft: 8,
+    marginLeft: 10,
   },
 });
 

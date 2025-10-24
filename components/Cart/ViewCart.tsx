@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,15 +11,16 @@ import {
   Modal,
   ScrollView,
   Dimensions,
+  SafeAreaView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
-// Define types
 interface CartItem {
   itemId: string;
   itemName: string;
@@ -50,26 +51,30 @@ type RootStackParamList = {
       totalAmount: number;
     };
   };
-  // Add other screens as needed
 };
 
 const QuantityHandler = ({ quantity, onDecrement, onIncrement }) => {
   return (
-    <View style={styles.quantityWrapper}>
+    <View style={enhancedStyles.quantityWrapper}>
       <TouchableOpacity 
-        style={[styles.quantityButton, styles.decrementButton]} 
+        style={enhancedStyles.quantityButton} 
         onPress={onDecrement}
+        disabled={quantity <= 0}
       >
-        <Icon name="remove" size={20} color="#fff" />
+        <Icon 
+          name="remove-outline" 
+          size={20} 
+          color={quantity <= 1 ? '#999' : '#a00000'} 
+        />
       </TouchableOpacity>
-      <View style={styles.quantityDisplay}>
-        <Text style={styles.quantityText}>{quantity}</Text>
+      <View style={enhancedStyles.quantityDisplay}>
+        <Text style={enhancedStyles.quantityText}>{quantity}</Text>
       </View>
       <TouchableOpacity 
-        style={[styles.quantityButton, styles.incrementButton]} 
+        style={enhancedStyles.quantityButton} 
         onPress={onIncrement}
       >
-        <Icon name="add" size={20} color="#fff" />
+        <Icon name="add-outline" size={20} color="#a00000" />
       </TouchableOpacity>
     </View>
   );
@@ -78,7 +83,7 @@ const QuantityHandler = ({ quantity, onDecrement, onIncrement }) => {
 const Cart = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [cartData, setCartData] = useState<CartData | null>(null);
-  const [orderType, setOrderType] = useState<string | null>(null);
+  const [orderType, setOrderType] = useState<string | null>('Take Away'); // Default to Take Away
   const [itemTimeouts, setItemTimeouts] = useState<Record<string, NodeJS.Timeout>>({});
   const [modalVisible, setModalVisible] = useState(false);
   const [address, setAddress] = useState<Address>({
@@ -101,7 +106,7 @@ const Cart = () => {
         return;
       }
 
-      const response = await fetch('https://efc-app-1.onrender.com/api/v1/cart', {
+      const response = await fetch('https://efc-user-backend.onrender.com/api/v1/cart', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -144,7 +149,7 @@ const Cart = () => {
     const timeout = setTimeout(async () => {
       try {
         const token = await AsyncStorage.getItem('authToken');
-        await fetch('https://efc-app-1.onrender.com/api/v1/cart/update-quantity', {
+        await fetch('https://efc-user-backend.onrender.com/api/v1/cart/update-quantity', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -163,19 +168,28 @@ const Cart = () => {
   const removeItemFromCart = async (itemId: string) => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-      await fetch(`https://efc-app-1.onrender.com/api/v1/cart/remove?itemId=${itemId}`, {
+      await fetch(`https://efc-user-backend.onrender.com/api/v1/cart/remove?itemId=${itemId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      setCartData(prev => {
-        if (!prev) return null;
-        const updatedItems = prev.items.filter(item => item.itemId !== itemId);
-        const totalPrice = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        return { ...prev, items: updatedItems, totalPrice };
-      });
+      const itemToRemove = cartData?.items.find(item => item.itemId === itemId);
+      if (itemToRemove) {
+        Animated.timing(itemToRemove.animationValue, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => {
+          setCartData(prev => {
+            if (!prev) return null;
+            const updatedItems = prev.items.filter(item => item.itemId !== itemId);
+            const totalPrice = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            return { ...prev, items: updatedItems, totalPrice };
+          });
+        });
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to remove item');
       console.error(error);
@@ -184,17 +198,21 @@ const Cart = () => {
 
   const handlePlaceOrder = () => {
     if (!orderType) {
-      Alert.alert('Error', 'Please select delivery option');
+      Alert.alert('Hold on!', 'Please select a delivery option first.', [{ text: 'OK' }]);
       return;
     }
-    setModalVisible(true);
+    if (orderType === 'Home Delivery') {
+      setModalVisible(true);
+    } else {
+      handleProceedToPayment();
+    }
   };
 
   const handleProceedToPayment = () => {
     if (isNavigating) return;
-    
-    if (!address.addressLine1 || !address.city || !address.postalCode) {
-      Alert.alert('Error', 'Please fill all required address fields');
+
+    if (orderType === 'Home Delivery' && (!address.addressLine1 || !address.city || !address.postalCode)) {
+      Alert.alert('Attention!', 'Please fill all required address fields.', [{ text: 'OK' }]);
       return;
     }
 
@@ -204,14 +222,14 @@ const Cart = () => {
       orderData: {
         deliveryAddress: address,
         deliveryType: orderType || 'Take Away',
-        paymentMethod: 'UPI/QR Code', // Default payment method
+        paymentMethod: 'UPI/QR Code',
         items: cartData?.items || [],
         totalAmount: calculateTotal()
       }
     });
     
     setModalVisible(false);
-    setIsNavigating(false);
+    setTimeout(() => setIsNavigating(false), 500); 
   };
 
   const calculateTotal = () => {
@@ -219,32 +237,47 @@ const Cart = () => {
     return orderType === 'Home Delivery' ? cartData.totalPrice + 50 : cartData.totalPrice;
   };
 
+
   const renderEmptyCart = () => (
-    <View style={styles.emptyCartContainer}>
-      <Icon name="remove-shopping-cart" size={60} color="#fff" />
-      <Text style={styles.emptyCartText}>Your cart is empty</Text>
-      <Text style={styles.emptyCartSubText}>Add some delicious items to get started!</Text>
+    <View style={enhancedStyles.emptyCartContainer}>
+      <Icon name="basket-outline" size={80} color="rgba(255,255,255,0.7)" />
+      <Text style={enhancedStyles.emptyCartText}>Your Basket is Empty</Text>
+      <Text style={enhancedStyles.emptyCartSubText}>Add some delicious items to get started!</Text>
+      <TouchableOpacity 
+        style={enhancedStyles.goShoppingButton} 
+        onPress={() => navigation.navigate('Home')}
+      >
+        <Text style={enhancedStyles.goShoppingButtonText}>Start Shopping</Text>
+      </TouchableOpacity>
     </View>
   );
 
   const renderCartItem = ({ item }: { item: CartItem }) => (
     <Animated.View
       style={[
-        styles.cartItem,
+        enhancedStyles.cartItem,
         {
           opacity: item.animationValue,
+          height: item.animationValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 95],
+          }),
+          paddingVertical: item.animationValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 15],
+          }),
           transform: [{
             translateX: item.animationValue.interpolate({
               inputRange: [0, 1],
-              outputRange: [500, 0],
+              outputRange: [width, 0],
             }),
           }],
         },
       ]}
     >
-      <View style={styles.itemDetails}>
-        <Text style={styles.itemName}>{item.itemName}</Text>
-        <Text style={styles.itemPrice}>₹{item.price}</Text>
+      <View style={enhancedStyles.itemDetails}>
+        <Text style={enhancedStyles.itemName} numberOfLines={2}>{item.itemName}</Text>
+        <Text style={enhancedStyles.itemPrice}>₹{item.price.toFixed(2)}</Text>
       </View>
       <QuantityHandler
         quantity={item.quantity}
@@ -255,132 +288,156 @@ const Cart = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.heading}>My Cart</Text>
-        {cartData?.items && (
-          <Text style={styles.itemCount}>{cartData.items.length} items</Text>
-        )}
-      </View>
-
-      {cartData ? (
-        cartData.items.length > 0 ? (
-          <ScrollView style={styles.scrollContainer}>
-            <FlatList
-              data={cartData.items}
-              keyExtractor={(item) => item.itemId}
-              scrollEnabled={false}
-              renderItem={renderCartItem}
-            />
-
-            <View style={styles.orderTypeContainer}>
-              <Text style={styles.sectionTitle}>Delivery Option</Text>
-              <View style={styles.orderTypeOptions}>
-                <TouchableOpacity
-                  style={[
-                    styles.orderTypeOption,
-                    orderType === 'Take Away' && styles.selectedOption,
-                  ]}
-                  onPress={() => setOrderType('Take Away')}
-                >
-                  <Icon 
-                    name="takeout-dining" 
-                    size={24} 
-                    color={orderType === 'Take Away' ? '#fff' : '#d32f2f'} 
-                  />
-                  <Text style={[
-                    styles.orderTypeText,
-                    orderType === 'Take Away' && styles.selectedOptionText
-                  ]}>
-                    Take Away
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.orderTypeOption,
-                    orderType === 'Home Delivery' && styles.selectedOption,
-                  ]}
-                  onPress={() => setOrderType('Home Delivery')}
-                >
-                  <Icon 
-                    name="delivery-dining" 
-                    size={24} 
-                    color={orderType === 'Home Delivery' ? '#fff' : '#d32f2f'} 
-                  />
-                  <Text style={[
-                    styles.orderTypeText,
-                    orderType === 'Home Delivery' && styles.selectedOptionText
-                  ]}>
-                    Home Delivery
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.summaryContainer}>
-              <Text style={styles.sectionTitle}>Order Summary</Text>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Subtotal:</Text>
-                <Text style={styles.summaryValue}>₹{cartData.totalPrice}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Delivery Fee:</Text>
-                <Text style={styles.summaryValue}>
-                  ₹{orderType === 'Home Delivery' ? '50' : '0'}
-                </Text>
-              </View>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total:</Text>
-                <Text style={styles.totalValue}>₹{calculateTotal()}</Text>
-              </View>
-            </View>
-          </ScrollView>
-        ) : (
-          renderEmptyCart()
-        )
-      ) : (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading your cart...</Text>
+    <LinearGradient
+      colors={['#a00000', '#600000']} 
+      style={enhancedStyles.container}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }} 
+    >
+      <SafeAreaView style={enhancedStyles.safeArea}>
+        <View style={enhancedStyles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={enhancedStyles.backButton}>
+            <Icon name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={enhancedStyles.heading}>My Cart</Text>
+          {cartData?.items ? (
+            <Text style={enhancedStyles.itemCount}>{cartData.items.length} items</Text>
+          ) : (
+            <View style={enhancedStyles.itemCountPlaceholder} />
+          )}
         </View>
-      )}
 
-      {cartData?.items && cartData.items.length > 0 && (
-        <TouchableOpacity 
-          style={styles.placeOrderButton} 
-          onPress={handlePlaceOrder}
-          disabled={!orderType || isNavigating}
-        >
-          <Text style={styles.placeOrderText}>
-            {isNavigating ? 'Processing...' : 'Proceed to Checkout'}
-          </Text>
-          <View style={styles.checkoutPriceContainer}>
-            <Text style={styles.checkoutPriceText}>₹{calculateTotal()}</Text>
-            <Icon name="arrow-forward" size={20} color="#fff" />
+        {cartData ? (
+          cartData.items.length > 0 ? (
+            <ScrollView 
+              style={enhancedStyles.scrollContainer}
+              contentContainerStyle={{ paddingBottom: 120 }}
+              showsVerticalScrollIndicator={false}
+>
+              <FlatList
+                data={cartData.items}
+                keyExtractor={(item) => item.itemId}
+                scrollEnabled={false}
+                renderItem={renderCartItem}
+              />
+              <View style={enhancedStyles.sectionWrapper}>
+                <Text style={enhancedStyles.sectionTitle}>Select Order Type</Text>
+                <View style={enhancedStyles.orderTypeOptions}>
+                  <TouchableOpacity
+                    style={[
+                      enhancedStyles.orderTypeOption,
+                      orderType === 'Take Away' && enhancedStyles.selectedOption,
+                    ]}
+                    onPress={() => setOrderType('Take Away')}
+                  >
+                    <Icon 
+                      name="walk-outline" 
+                      size={24} 
+                      color={orderType === 'Take Away' ? '#fff' : '#a00000'} 
+                    />
+                    <Text style={[
+                      enhancedStyles.orderTypeText,
+                      orderType === 'Take Away' && enhancedStyles.selectedOptionText
+                    ]}>
+                      Take Away
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      enhancedStyles.orderTypeOption,
+                      orderType === 'Home Delivery' && enhancedStyles.selectedOption,
+                    ]}
+                    onPress={() => setOrderType('Home Delivery')}
+                  >
+                    <Icon 
+                      name="bicycle-outline" 
+                      size={24} 
+                      color={orderType === 'Home Delivery' ? '#fff' : '#a00000'} 
+                    />
+                    <Text style={[
+                      enhancedStyles.orderTypeText,
+                      orderType === 'Home Delivery' && enhancedStyles.selectedOptionText
+                    ]}>
+                      Delivery
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={enhancedStyles.summaryContainer}>
+                <Text style={enhancedStyles.sectionTitle}>Summary</Text>
+                <View style={enhancedStyles.summaryRow}>
+                  <Text style={enhancedStyles.summaryLabel}>Subtotal:</Text>
+                  <Text style={enhancedStyles.summaryValue}>₹{cartData.totalPrice.toFixed(2)}</Text>
+                </View>
+                <View style={enhancedStyles.summaryRow}>
+                  <Text style={enhancedStyles.summaryLabel}>Delivery Fee:</Text>
+                  <Text style={enhancedStyles.summaryValue}>
+                    {orderType === 'Home Delivery' ? '₹50.00' : 'Free'}
+                  </Text>
+                </View>
+                <View style={enhancedStyles.totalRow}>
+                  <Text style={enhancedStyles.totalLabel}>Total Payable:</Text>
+                  <Text style={enhancedStyles.totalValue}>₹{calculateTotal().toFixed(2)}</Text>
+                </View>
+              </View>
+            </ScrollView>
+          ) : (
+            renderEmptyCart()
+          )
+        ) : (
+          <View style={enhancedStyles.loadingContainer}>
+            <Text style={enhancedStyles.loadingText}>Loading your cart...</Text>
           </View>
-        </TouchableOpacity>
-      )}
+        )}
+
+        {cartData?.items && cartData.items.length > 0 && (
+          <TouchableOpacity 
+            style={enhancedStyles.placeOrderButton} 
+            onPress={handlePlaceOrder}
+            disabled={!orderType || isNavigating}
+            activeOpacity={0.8}
+          >
+            <Text style={enhancedStyles.placeOrderText}>
+              {isNavigating ? 'Processing...' : 'Proceed to Checkout'}
+            </Text>
+            <View style={enhancedStyles.checkoutPriceContainer}>
+              <Text style={enhancedStyles.checkoutPriceText}>₹{calculateTotal().toFixed(2)}</Text>
+              <Icon name="chevron-forward-outline" size={24} color="#a00000" />
+            </View>
+          </TouchableOpacity>
+        )}
+      </SafeAreaView>
 
       <Modal
         visible={modalVisible}
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Icon name="arrow-back" size={24} color="#fff" />
+        <LinearGradient
+          colors={['#a00000', '#600000']}
+          style={enhancedStyles.modalContainer}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        >
+          <SafeAreaView style={enhancedStyles.modalHeader}>
+            <TouchableOpacity style={enhancedStyles.backButtonModal} onPress={() => setModalVisible(false)}>
+              <Icon name="close-outline" size={24} color="#fff" />
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Delivery Details</Text>
-          </View>
+            <Text style={enhancedStyles.modalTitle}>Delivery Address</Text>
+          </SafeAreaView>
 
-          <ScrollView style={styles.modalScrollContainer}>
-            <View style={styles.addressForm}>
-              <Text style={styles.sectionTitle}>Delivery Address</Text>
+          <ScrollView 
+            style={enhancedStyles.modalScrollContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={enhancedStyles.addressForm}>
+              <Text style={enhancedStyles.modalSectionTitle}>Enter Details</Text>
               
-              <View style={styles.inputContainer}>
-                <Icon name="location-on" size={20} color="#d32f2f" />
+              <View style={enhancedStyles.inputContainer}>
+                <Icon name="location-outline" size={20} color="#a00000" />
                 <TextInput
-                  style={styles.input}
+                  style={enhancedStyles.input}
                   placeholder="Address Line 1*"
                   value={address.addressLine1}
                   onChangeText={(text) => setAddress({...address, addressLine1: text})}
@@ -388,21 +445,21 @@ const Cart = () => {
                 />
               </View>
 
-              <View style={styles.inputContainer}>
-                <Icon name="home" size={20} color="#d32f2f" />
+              <View style={enhancedStyles.inputContainer}>
+                <Icon name="home-outline" size={20} color="#a00000" />
                 <TextInput
-                  style={styles.input}
-                  placeholder="Address Line 2"
+                  style={enhancedStyles.input}
+                  placeholder="Apartment / Floor (Optional)"
                   value={address.addressLine2}
                   onChangeText={(text) => setAddress({...address, addressLine2: text})}
                   placeholderTextColor="#999"
                 />
               </View>
 
-              <View style={styles.inputContainer}>
-                <Icon name="location-city" size={20} color="#d32f2f" />
+              <View style={enhancedStyles.inputContainer}>
+                <Icon name="business-outline" size={20} color="#a00000" />
                 <TextInput
-                  style={styles.input}
+                  style={enhancedStyles.input}
                   placeholder="City*"
                   value={address.city}
                   onChangeText={(text) => setAddress({...address, city: text})}
@@ -410,10 +467,10 @@ const Cart = () => {
                 />
               </View>
 
-              <View style={styles.inputContainer}>
-                <Icon name="markunread-mailbox" size={20} color="#d32f2f" />
+              <View style={enhancedStyles.inputContainer}>
+                <Icon name="mail-outline" size={20} color="#a00000" />
                 <TextInput
-                  style={styles.input}
+                  style={enhancedStyles.input}
                   placeholder="Postal Code*"
                   value={address.postalCode}
                   onChangeText={(text) => setAddress({...address, postalCode: text})}
@@ -425,51 +482,68 @@ const Cart = () => {
           </ScrollView>
 
           <TouchableOpacity
-            style={styles.confirmButton}
+            style={enhancedStyles.confirmButton}
             onPress={handleProceedToPayment}
             disabled={isNavigating}
+            activeOpacity={0.8}
           >
-            <Text style={styles.confirmButtonText}>
-              {isNavigating ? 'Processing...' : 'Proceed to Payment'}
+            <Text style={enhancedStyles.confirmButtonText}>
+              {isNavigating ? 'Processing...' : 'Confirm Address & Pay'}
             </Text>
-            {!isNavigating && <Icon name="payment" size={24} color="#fff" />}
+            {!isNavigating && <Icon name="arrow-forward-circle-outline" size={24} color="#a00000" />}
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
       </Modal>
-    </View>
+    </LinearGradient>
   );
 };
 
-const styles = StyleSheet.create({
+const enhancedStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#d32f2f',
+  },
+  safeArea: {
+    flex: 1,
   },
   header: {
-    padding: 20,
-    paddingTop: 40,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)', 
   },
   heading: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: 'bold',
     color: '#fff',
+    flex: 1,
+    textAlign: 'center',
   },
   itemCount: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.9)',
     fontWeight: '600',
+    minWidth: 60,
+    textAlign: 'right',
+  },
+  itemCountPlaceholder: {
+    width: 30, 
+    height: 20,
   },
   scrollContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f8f8', 
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    padding: 20,
+    paddingHorizontal: 20,
     paddingTop: 30,
   },
+
   cartItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -477,53 +551,45 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: 15,
     marginBottom: 15,
+    justifyContent: 'space-between',
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   itemDetails: {
     flex: 1,
+    paddingRight: 10,
   },
   itemName: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#333',
-    marginBottom: 5,
+    marginBottom: 4,
   },
   itemPrice: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#d32f2f',
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#a00000', 
   },
   quantityWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
-    overflow: 'hidden',
-    height: 40,
-    width: 120,
+    backgroundColor: '#eee',
+    borderRadius: 8,
+    height: 35,
+    width: 100,
     justifyContent: 'space-between',
   },
   quantityButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  decrementButton: {
-    backgroundColor: '#f44336',
-  },
-  incrementButton: {
-    backgroundColor: '#4caf50',
+    paddingHorizontal: 5,
   },
   quantityDisplay: {
-    width: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    height: '100%',
+    paddingHorizontal: 5,
+    backgroundColor: '#fff', 
+    borderRadius: 4,
   },
   quantityText: {
     fontSize: 16,
@@ -535,57 +601,71 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: 'transparent',
   },
   emptyCartText: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
     color: '#fff',
-    marginTop: 15,
+    marginTop: 20,
   },
   emptyCartSubText: {
-    fontSize: 16,
+    fontSize: 15,
     color: 'rgba(255,255,255,0.8)',
     marginTop: 5,
     textAlign: 'center',
+    marginBottom: 30,
   },
-  orderTypeContainer: {
-    marginBottom: 20,
+  goShoppingButton: {
+    backgroundColor: '#FFD700', 
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+  },
+  goShoppingButtonText: {
+    color: '#a00000',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  sectionWrapper: {
+    marginBottom: 25,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#333',
-    marginBottom: 15,
+    marginBottom: 10,
+    paddingLeft: 5,
   },
   orderTypeOptions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: '#fff',
     borderRadius: 15,
-    padding: 10,
+    padding: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   orderTypeOption: {
     flex: 1,
-    padding: 15,
-    borderRadius: 10,
+    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    marginHorizontal: 5,
+    marginHorizontal: 3,
   },
   selectedOption: {
-    backgroundColor: '#d32f2f',
+    backgroundColor: '#a00000',
   },
   orderTypeText: {
-    color: '#d32f2f',
+    color: '#a00000',
     fontWeight: '600',
-    marginLeft: 10,
-    fontSize: 16,
+    marginLeft: 8,
+    fontSize: 15,
   },
   selectedOptionText: {
     color: '#fff',
@@ -596,32 +676,32 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   summaryLabel: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#666',
   },
   summaryValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#333',
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
-    paddingTop: 10,
+    marginTop: 15,
+    paddingTop: 15,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#f0f0f0', 
   },
   totalLabel: {
     fontSize: 18,
@@ -631,57 +711,75 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#d32f2f',
+    color: '#a00000',
   },
+
   placeOrderButton: {
-    backgroundColor: '#d32f2f',
-    padding: 20,
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: '#FFD700', 
+    paddingVertical: 18,
+    paddingHorizontal: 25,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
+    borderRadius: 15,
+    shadowColor: '#a00000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 10,
   },
   placeOrderText: {
-    color: '#fff',
+    color: '#a00000',
     fontWeight: '700',
-    fontSize: 18,
+    fontSize: 17,
   },
   checkoutPriceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   checkoutPriceText: {
-    color: '#fff',
+    color: '#a00000',
     fontWeight: '700',
-    fontSize: 18,
-    marginRight: 10,
+    fontSize: 17,
+    marginRight: 8,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   modalHeader: {
-    backgroundColor: '#d32f2f',
-    padding: 20,
-    paddingTop: 40,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 10,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: 'bold',
     color: '#fff',
     marginLeft: 15,
   },
+  backButtonModal: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
   modalScrollContainer: {
     flex: 1,
+    backgroundColor: '#f8f8f8',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     padding: 20,
+  },
+  modalSectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 20,
   },
   addressForm: {
     marginBottom: 20,
@@ -693,28 +791,29 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 15,
     marginBottom: 15,
+    height: 55,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   input: {
     flex: 1,
-    height: 50,
     fontSize: 16,
     color: '#333',
     marginLeft: 10,
+    paddingVertical: 0,
   },
   confirmButton: {
-    backgroundColor: '#4caf50',
-    padding: 20,
+    backgroundColor: '#FFD700',
+    paddingVertical: 20,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
   confirmButtonText: {
-    color: '#fff',
+    color: '#a00000',
     fontWeight: '700',
     fontSize: 18,
     marginRight: 10,

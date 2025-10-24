@@ -33,7 +33,8 @@ const DineOut = () => {
 
       <View style={styles.cardContainer}>
         <ImageBackground
-          source={require('/Users/iceberg/efcApk/assets/images/greenzone.jpeg')}
+          source={require('../../assets/images/greenzone.jpeg')}
+
           style={styles.customCard}
           resizeMode="cover"
         >
@@ -45,7 +46,7 @@ const DineOut = () => {
         </ImageBackground>
 
         <ImageBackground
-          source={require('/Users/iceberg/efcApk/assets/images/hall.jpeg')}
+          source={require('../../assets/images/hall.jpeg')}
           style={styles.customCard}
           resizeMode="cover"
         >

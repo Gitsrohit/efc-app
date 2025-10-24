@@ -8,12 +8,15 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
-  ScrollView
+  ScrollView,
+  Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import moment from 'moment';
+
+const { width } = Dimensions.get('window');
 
 interface OrderItem {
   id: string;
@@ -72,7 +75,7 @@ const MyOrdersScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       }
 
       const response = await fetch(
-        `https://efc-app-1.onrender.com/api/v1/orders/user/${userId}`,
+        `https://efc-user-backend.onrender.com/api/v1/orders/user/${userId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -126,24 +129,15 @@ const MyOrdersScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     }
   };
 
-  const renderOrderItem = ({ item }: { item: OrderItem }) => (
-    <View style={styles.orderItemContainer}>
-      <Image 
-        source={{ uri: 'https://via.placeholder.com/50' }} 
-        style={styles.orderItemImage} 
-      />
-      <View style={styles.orderItemDetails}>
-        <Text style={styles.orderItemName}>{item.itemName}</Text>
-        <Text style={styles.orderItemQuantity}>Qty: {item.quantity}</Text>
-      </View>
-      <Text style={styles.orderItemPrice}>₹{item.price.toFixed(2)}</Text>
-    </View>
-  );
+  // Helper function to render a list of items as a string
+  const getItemsSummary = (items) => {
+    return items.map(item => `${item.itemName} x${item.quantity}`).join(', ');
+  };
 
   const renderOrder = ({ item }: { item: Order }) => (
     <View style={styles.orderContainer}>
       <View style={styles.orderHeader}>
-        <View>
+        <View style={styles.orderHeaderLeft}>
           <Text style={styles.orderId}>Order #{item.id.substring(0, 8)}</Text>
           <Text style={styles.orderDate}>
             {moment(item.orderTime).format('DD MMM YYYY, hh:mm A')}
@@ -154,20 +148,21 @@ const MyOrdersScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         </View>
       </View>
 
-      <FlatList
-        data={item.items}
-        renderItem={renderOrderItem}
-        keyExtractor={(item) => item.id}
-        scrollEnabled={false}
-      />
+      <View style={styles.orderItemsSummary}>
+        <Text style={styles.itemsSummaryText} numberOfLines={2}>
+          {getItemsSummary(item.items)}
+        </Text>
+      </View>
 
       <View style={styles.orderFooter}>
-        <View style={styles.deliveryInfo}>
-          <Icon name="location-outline" size={16} color="#666" />
-          <Text style={styles.deliveryText}>
-            {`${item.deliveryAddress.addressLine1}, ${item.deliveryAddress.city}`}
-          </Text>
-        </View>
+        {item.deliveryType === 'Home Delivery' && (
+          <View style={styles.deliveryInfo}>
+            <Icon name="location-outline" size={16} color="#666" />
+            <Text style={styles.deliveryText}>
+              {`${item.deliveryAddress.addressLine1}, ${item.deliveryAddress.city}`}
+            </Text>
+          </View>
+        )}
 
         {item.deliveryBoy && (
           <View style={styles.deliveryBoyInfo}>
@@ -185,10 +180,11 @@ const MyOrdersScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         
         <View style={styles.orderActions}>
           <TouchableOpacity 
-            style={styles.actionButton}
+            style={[styles.actionButton, styles.detailsButton]}
             onPress={() => navigation.navigate('OrderDetails', { orderId: item.id })}
           >
             <Text style={styles.actionButtonText}>View Details</Text>
+            <Icon name="chevron-forward-outline" size={18} color="#FFFFFF" />
           </TouchableOpacity>
           
           {item.deliveryStatus.toLowerCase() === 'processing' && (
@@ -197,6 +193,7 @@ const MyOrdersScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               onPress={() => handleCancelOrder(item.id)}
             >
               <Text style={styles.actionButtonText}>Cancel</Text>
+              <Icon name="close-circle-outline" size={18} color="#FFFFFF" />
             </TouchableOpacity>
           )}
         </View>
@@ -208,7 +205,7 @@ const MyOrdersScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     try {
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(
-        `https://efc-app-1.onrender.com/api/v1/orders/${orderId}/cancel`,
+        `https://efc-user-backend.onrender.com/api/v1/orders/${orderId}/cancel`,
         {
           method: 'PATCH',
           headers: {
@@ -222,7 +219,6 @@ const MyOrdersScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         throw new Error(`Failed to cancel order: ${response.status}`);
       }
 
-      // Refresh orders after cancellation
       fetchOrders();
     } catch (err) {
       console.error('Error cancelling order:', err);
@@ -240,6 +236,7 @@ const MyOrdersScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       >
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text style={styles.loadingText}>Loading your orders...</Text>
         </View>
       </LinearGradient>
     );
@@ -254,13 +251,14 @@ const MyOrdersScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         end={{ x: 1, y: 1 }}
       >
         <View style={styles.errorContainer}>
-          <Icon name="warning-outline" size={50} color="#FFFFFF" />
-          <Text style={styles.errorText}>{error}</Text>
+          <Icon name="cloud-offline-outline" size={60} color="#FFFFFF" />
+          <Text style={styles.errorText}>Oops! Something went wrong.</Text>
+          <Text style={styles.errorSubText}>{error}</Text>
           <TouchableOpacity 
             style={styles.retryButton}
             onPress={fetchOrders}
           >
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -275,7 +273,7 @@ const MyOrdersScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       end={{ x: 1, y: 1 }}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Icon name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Orders</Text>
@@ -294,13 +292,13 @@ const MyOrdersScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             />
           }
         >
-          <Icon name="receipt-outline" size={80} color="#FFFFFF" />
-          <Text style={styles.emptyText}>No orders found</Text>
+          <Icon name="receipt-outline" size={80} color="rgba(255,255,255,0.8)" />
+          <Text style={styles.emptyText}>You haven't placed any orders yet.</Text>
           <TouchableOpacity 
             style={styles.shopNowButton}
             onPress={() => navigation.navigate('Home')}
           >
-            <Text style={styles.shopNowButtonText}>Shop Now</Text>
+            <Text style={styles.shopNowButtonText}>Start Shopping</Text>
           </TouchableOpacity>
         </ScrollView>
       ) : (
@@ -332,18 +330,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 15,
+    padding: 20,
     paddingTop: 50,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   headerTitle: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginTop: 10,
   },
   errorContainer: {
     flex: 1,
@@ -353,23 +361,36 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    marginTop: 10,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 15,
+    textAlign: 'center',
+  },
+  errorSubText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
+    marginTop: 5,
     textAlign: 'center',
   },
   retryButton: {
     marginTop: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 5,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    backgroundColor: '#FFD700',
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
   },
   retryButtonText: {
     color: '#a00000',
     fontWeight: 'bold',
+    fontSize: 16,
   },
   emptyContainer: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -377,15 +398,21 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#FFFFFF',
     fontSize: 18,
+    fontWeight: '600',
     marginTop: 10,
     textAlign: 'center',
   },
   shopNowButton: {
-    marginTop: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 25,
+    marginTop: 30,
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    backgroundColor: '#FFD700',
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
   },
   shopNowButtonText: {
     color: '#a00000',
@@ -393,81 +420,66 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   listContent: {
-    paddingHorizontal: 15,
-    paddingTop: 10,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   orderContainer: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    marginBottom: 15,
+    borderRadius: 20,
+    marginBottom: 20,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 15,
+    padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
+  orderHeaderLeft: {
+    flex: 1,
+  },
   orderId: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333333',
   },
   orderDate: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#666666',
     marginTop: 3,
   },
   statusBadge: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
   },
   statusText: {
     fontSize: 12,
     fontWeight: 'bold',
     color: '#FFFFFF',
+    textTransform: 'uppercase',
   },
-  orderItemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
+  orderItemsSummary: {
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
-  orderItemImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 5,
-    marginRight: 15,
-    backgroundColor: '#F5F5F5',
-  },
-  orderItemDetails: {
-    flex: 1,
-  },
-  orderItemName: {
-    fontSize: 14,
-    color: '#333333',
-    marginBottom: 5,
-  },
-  orderItemQuantity: {
-    fontSize: 12,
+  itemsSummaryText: {
+    fontSize: 16,
     color: '#666666',
-  },
-  orderItemPrice: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333333',
+    fontWeight: '500',
   },
   orderFooter: {
-    padding: 15,
+    padding: 20,
   },
   deliveryInfo: {
     flexDirection: 'row',
@@ -480,41 +492,57 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   deliveryText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#666666',
-    marginLeft: 8,
+    marginLeft: 10,
   },
   orderTotalContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 15,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
   },
   totalLabel: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '700',
     color: '#333333',
   },
   totalAmount: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#a00000',
   },
   orderActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   actionButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    backgroundColor: '#a00000',
-    borderRadius: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 25,
     marginLeft: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  detailsButton: {
+    backgroundColor: '#a00000',
+  },
+  cancelButton: {
+    backgroundColor: '#F44336',
   },
   actionButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
-  },
-  cancelButton: {
-    backgroundColor: '#F44336',
+    fontWeight: '600',
+    marginRight: 5,
   },
 });
 

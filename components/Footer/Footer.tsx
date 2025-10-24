@@ -1,76 +1,119 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native'; 
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons'; 
+import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
 
 const Footer = () => {
   const navigation = useNavigation();
   
-  // Only show footer on these screens
   const showFooterScreens = ['Home', 'FoodByCategory', 'DineOut', 'MyOrders'];
   const currentRoute = navigation.getState()?.routes[navigation.getState().index]?.name;
 
   if (!showFooterScreens.includes(currentRoute)) {
     return null;
   }
+  const isActive = (routeName) => currentRoute === routeName;
+  
+  // Custom Menu Item Component
+  const MenuItem = ({ name, iconName, label, routeName }) => (
+    <TouchableOpacity 
+      style={enhancedStyles.menuItem} 
+      onPress={() => navigation.navigate(routeName)}
+      activeOpacity={0.7}
+    >
+      <View style={enhancedStyles.iconWrapper}>
+        <Icon 
+          name={iconName} 
+          size={24} 
+          color={isActive(routeName) ? '#FFD700' : 'rgba(255, 255, 255, 0.7)'}
+        />
+      </View>
+      <Text style={[
+        enhancedStyles.menuText, 
+        isActive(routeName) && enhancedStyles.activeMenuText
+      ]}>
+        {label}
+      </Text>
+      {isActive(routeName) && <View style={enhancedStyles.activeIndicator} />}
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={styles.footerContainer}>
-      <TouchableOpacity style={styles.menuItemLeft} onPress={() => navigation.navigate('DineOut')}>
-        <MaterialIcons name="local-dining" size={24} color="black" />
-        <Text style={styles.menuText}>DINEOUT</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.menuItemCenter} onPress={() => navigation.navigate('Home')}>
-        <MaterialIcons name="home" size={24} color="black" />
-        <Text style={styles.homeText}>HOME</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.menuItemRight} onPress={() => navigation.navigate('MyOrders')}>
-        <MaterialIcons name="list-alt" size={24} color="black" />
-        <Text style={styles.menuText}>ORDERS</Text>
-      </TouchableOpacity>
-    </View>
+    <LinearGradient
+      colors={['#a00000', '#600000']} 
+      style={enhancedStyles.footerContainer}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+    >
+      <MenuItem 
+        name="DineOut" 
+        iconName="restaurant-outline" 
+        label="DINE OUT" 
+        routeName="DineOut" 
+      />
+      <MenuItem 
+        name="Home" 
+        iconName="home-outline" 
+        label="HOME" 
+        routeName="Home" 
+      />
+      <MenuItem 
+        name="MyOrders" 
+        iconName="receipt-outline" 
+        label="ORDERS" 
+        routeName="MyOrders" 
+      />
+    </LinearGradient>
   );
 };
 
-const styles = StyleSheet.create({
+const enhancedStyles = StyleSheet.create({
   footerContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFD600', 
-    justifyContent: 'space-between', 
+    justifyContent: 'space-around', 
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    height: 70,
+    paddingTop: 15,
+    paddingBottom: 25, 
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    width: width,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  menuItemCenter: {
+  menuItem: {
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1, 
-    padding: 15, 
+    position: 'relative',
+    paddingVertical: 5,
   },
-  menuItemLeft: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1, 
-  },
-  menuItemRight: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1, 
+  iconWrapper: {
+    marginBottom: 4,
   },
   menuText: {
-    color: 'black',
-    fontSize: 12,
-    marginTop: 5,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
-  homeText: {
-    color: 'black', 
-    fontWeight: 'bold',
-    marginTop: 5,
-    fontSize: 12,
+  activeMenuText: {
+    color: '#FFD700',
+    fontWeight: '700',
   },
+  activeIndicator: {
+    position: 'absolute',
+    top: 0,
+    width: 30, 
+    height: 3,
+    backgroundColor: '#FFD700',
+    borderRadius: 1.5,
+  }
 });
 
 export default Footer;
