@@ -362,7 +362,7 @@ export const getAllCategoryItems = async (req, res) => {
 export const searchCategoryItems = async (req, res) => {
   try {
     const companyId = req.companyId;
-    const { query } = req.query; 
+    const { query } = req.query;
 
     if (!companyId) {
       return res.status(400).json({
@@ -378,10 +378,9 @@ export const searchCategoryItems = async (req, res) => {
       });
     }
 
-
     const items = await CategoryItem.find({
       companyId,
-      name: { $regex: query, $options: "i" }, 
+      itemName: { $regex: query, $options: "i" },
     });
 
     res.status(200).json({
@@ -398,6 +397,7 @@ export const searchCategoryItems = async (req, res) => {
     });
   }
 };
+
 
 
 // edit category item controller
