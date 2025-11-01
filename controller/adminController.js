@@ -358,6 +358,47 @@ export const getAllCategoryItems = async (req, res) => {
     });
   }
 };
+//search category items
+export const searchCategoryItems = async (req, res) => {
+  try {
+    const companyId = req.companyId;
+    const { query } = req.query; 
+
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "companyId is required",
+      });
+    }
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query is required",
+      });
+    }
+
+
+    const items = await CategoryItem.find({
+      companyId,
+      name: { $regex: query, $options: "i" }, 
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Category items fetched successfully",
+      data: items,
+    });
+  } catch (error) {
+    console.error("Error searching category items:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error searching category items",
+      error: error.message,
+    });
+  }
+};
+
 
 // edit category item controller
 export const editCategoryItemController = async (req, res) => {
