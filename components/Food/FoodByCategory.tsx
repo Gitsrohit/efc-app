@@ -9,7 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
   Animated,
-  Easing,
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] }); // Specify expected algorithm
   Modal,
   Dimensions,
   SafeAreaView, 
